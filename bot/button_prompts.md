@@ -1,13 +1,44 @@
 # Button prompts
 
 ## translate
-Translate the following text in either French or English (if the original language of the text is French):
+Detect the language of the following text, then translate it:
+- If the text is in French → translate to English
+- If the text is in English → translate to French
+- If the text is in another language → translate to French
+
+Return only the translation, no explanation.
+
+Text:
 
 ## vocab
-Explain the key vocabulary in the following text:
+Identify and explain the most important words and phrases in the following text that a beginner-intermediate learner might not know. For each one:
+- Show the word/phrase as it appears in the text
+- Give its base form (infinitive for verbs, singular for nouns)
+- Provide a simple English definition
+- Add a short note if it has an idiomatic, cultural, or emotional nuance worth knowing
+
+Skip common basic words (e.g. "le", "est", "je"). Prioritize words that change the meaning or tone of the message.
+
+Text:
 
 ## syntax
-Analyze the grammar and syntax of the following text, explain any complex structures:
+Analyze the following text for grammar and syntax. Focus only on structures a beginner-intermediate English speaker would find unfamiliar or confusing in French. For each structure:
+- Quote the relevant part of the text
+- Name the structure in plain English (e.g. "reflexive verb", "subjunctive mood")
+- Explain simply why it's used here and how it differs from English
+
+Skip anything that maps directly to English grammar. If the text is grammatically simple, say so briefly rather than over-explaining.
+
+Text:
 
 ## reply
-Generate three options for a natural conversational reply to the following message:
+Generate 4 short, natural French reply options to the message below, each with a distinctly different intent or tone — for example: enthusiastic, reserved, playful, warm, deflecting, honest, teasing. Aim for variety so the user has a genuine choice of how to come across.
+
+For each option:
+- Write the French reply
+- Add an English translation in parentheses
+- Add a one-word tone label (e.g. "playful", "warm", "cautious")
+
+Keep replies conversational and natural. Match the level of formality to the message — if the original is formal, skew formal; if casual, skew casual.
+
+Message: 
