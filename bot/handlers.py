@@ -158,7 +158,7 @@ async def _handle_reply(query, context: ContextTypes.DEFAULT_TYPE, original_text
     prompt = f"{prompt}\n<text>\n{original_text}\n</text>"
 
     try:
-        raw = await get_completion(prompt, SYSTEM_PROMPT)
+        raw = await get_completion(SYSTEM_PROMPT, prompt)
         logging.info("Raw response: %s", raw)
         replies = json.loads(raw)
     except (json.JSONDecodeError, Exception) as e:
@@ -189,9 +189,9 @@ async def _stream_response(query, prompt: str, mode: str) -> None:
 
         accumulated = ""
         last_sent_len = 0
-        await query.edit_message_text(text="", reply_markup=None)
+        await query.edit_message_text(text=MSG_THINKING + ".", reply_markup=None)
 
-        async for chunk in stream_completion(prompt, SYSTEM_PROMPT):
+        async for chunk in stream_completion(SYSTEM_PROMPT, prompt):
             logging.debug("Received chunk size=%d for user=%s", len(chunk), user_id)
             accumulated += chunk
             if len(accumulated) - last_sent_len >= STREAM_CHUNK_SIZE:
@@ -212,5 +212,5 @@ async def _stream_response(query, prompt: str, mode: str) -> None:
 
 async def _send_response(query, prompt: str, mode: str) -> None:
     """Send a single non-streaming LLM response."""
-    llm_reply = await get_completion(prompt, SYSTEM_PROMPT)
+    llm_reply = await get_completion(SYSTEM_PROMPT, prompt)
     await query.edit_message_text(text=llm_reply, reply_markup=make_keyboard(mode))

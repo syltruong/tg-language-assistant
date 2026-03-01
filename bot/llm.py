@@ -29,7 +29,7 @@ async def get_completion(system_prompt: str, user_prompt: str) -> str:
     return response.output_text
 
 
-async def stream_completion(prompt: str, system_prompt: str) -> AsyncIterator[str]:
+async def stream_completion(system_prompt: str, user_prompt: str) -> AsyncIterator[str]:
     """Yield text chunks from a streaming OpenAI response."""
     model_input = _build_messages(system_prompt, user_prompt)
     logger.debug("model_input: %s", model_input)
@@ -39,13 +39,5 @@ async def stream_completion(prompt: str, system_prompt: str) -> AsyncIterator[st
         stream=True,
     )
     async for event in stream:
-        chunk = ""
-        try:
-            chunk = event.choices[0].delta.content
-        except Exception:
-            try:
-                chunk = event.choices[0].delta.get("content", "")
-            except Exception:
-                chunk = ""
-        if chunk:
-            yield chunk
+        if event.type == "response.output_text.delta":
+            yield event.delta
