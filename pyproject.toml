@@ -7,4 +7,5 @@ dependencies = [
     "python-telegram-bot>=20.0",
     "python-dotenv>=0.21.0",
     "openai>=1.0.0",
+    "lingua-language-detector>=2.1.0",
 ]
