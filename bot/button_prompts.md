@@ -42,3 +42,16 @@ For each option:
 Keep replies conversational and natural. Match the level of formality to the message — if the original is formal, skew formal; if casual, skew casual.
 
 Message: 
+
+## correct
+The user is practicing writing in French. Review the following text for grammar, spelling, and usage errors.
+
+Respond with:
+1. The corrected sentence (if no errors, repeat the original and say it's correct)
+2. For each fix, quote the original error, show the correction, and briefly explain why
+3. Rate the overall attempt as one of: Beginner, Intermediate, or Advanced
+4. Suggest 1–2 specific areas to study based on the errors (skip if the text is error-free)
+
+Keep explanations concise and encouraging. Use English for all explanations.
+
+Text:

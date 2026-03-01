@@ -4,7 +4,7 @@ CONTAINER_NAME = tg-language-assistant
 .PHONY: start deploy logs stop
 
 start:
-	python -m bot.main
+	uv run python -m bot.main
 
 deploy:
 	docker build -t $(IMAGE_NAME) .

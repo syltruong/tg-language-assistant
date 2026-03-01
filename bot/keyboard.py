@@ -13,6 +13,9 @@ def make_keyboard() -> InlineKeyboardMarkup:
             InlineKeyboardButton("💬 Reply", callback_data="reply"),
         ],
         [
+            InlineKeyboardButton("✏️ Correct", callback_data="correct"),
+        ],
+        [
             InlineKeyboardButton("Cancel", callback_data="clear"),
         ],
     ]
