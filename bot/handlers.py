@@ -159,9 +159,11 @@ async def _handle_reply(query, context: ContextTypes.DEFAULT_TYPE, original_text
 
     try:
         raw = await get_completion(prompt, SYSTEM_PROMPT)
+        logging.info("Raw response: %s", raw)
         replies = json.loads(raw)
     except (json.JSONDecodeError, Exception) as e:
         logging.error("Failed to parse reply suggestions: %s", e)
+        logging.error("Raw response: %s", raw)
         await query.edit_message_text(text=MSG_AI_ERROR.format(error=e))
         return
 
