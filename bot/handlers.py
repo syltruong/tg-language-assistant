@@ -17,14 +17,15 @@ data.  To make it durable, plug in a persistence backend:
 https://docs.python-telegram-bot.org/en/stable/telegram.ext.persistenceclass.html
 """
 
+import json
 import logging
 
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from bot.config import STREAMING_ENABLED, STREAM_CHUNK_SIZE, ALLOWED_USERS
+from bot.config import STREAMING_ENABLED, STREAM_CHUNK_SIZE, ALLOWED_USERS, N_SUGGESTED_REPLIES
 from bot.prompts import SYSTEM_PROMPT, PROMPTS
-from bot.keyboard import make_keyboard
+from bot.keyboard import make_keyboard, make_reply_keyboard, _NUMBER_EMOJIS
 from bot.language import detect_language
 from bot.llm import get_completion, stream_completion
 from bot.strings import (
