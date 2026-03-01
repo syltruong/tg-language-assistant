@@ -2,14 +2,16 @@
 
 A Telegram bot that helps language learners communicate with native speakers in real time. Powered by OpenAI, it provides translation, vocabulary breakdowns, grammar analysis, and suggested replies.
 
+## Prerequisites
+
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) for Python and dependency management
+
 ## Quickstart
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
 cp .env.example .env   # set TELEGRAM_TOKEN and OPENAI_API_KEY
-python -m bot.main
+uv sync                # installs Python 3.12 (if needed) and all dependencies
+uv run python -m bot.main
 ```
 
 ## Roadmap

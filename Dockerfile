@@ -1,10 +1,12 @@
 FROM python:3.12-slim
 
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
 
 COPY bot/ bot/
 
-CMD ["python", "-m", "bot.main"]
+CMD ["uv", "run", "python", "-m", "bot.main"]
