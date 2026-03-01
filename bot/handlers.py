@@ -17,14 +17,15 @@ data.  To make it durable, plug in a persistence backend:
 https://docs.python-telegram-bot.org/en/stable/telegram.ext.persistenceclass.html
 """
 
+import json
 import logging
 
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from bot.config import STREAMING_ENABLED, STREAM_CHUNK_SIZE, ALLOWED_USERS
+from bot.config import STREAMING_ENABLED, STREAM_CHUNK_SIZE, ALLOWED_USERS, N_SUGGESTED_REPLIES
 from bot.prompts import SYSTEM_PROMPT, PROMPTS
-from bot.keyboard import make_keyboard
+from bot.keyboard import make_keyboard, make_reply_keyboard, _NUMBER_EMOJIS
 from bot.language import detect_language
 from bot.llm import get_completion, stream_completion
 from bot.strings import (
@@ -99,7 +100,24 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     if callback_data == "clear":
         await query.answer(text="Dismissed!", show_alert=True)
-        await query.edit_message_reply_markup(reply_markup=None) # TODO: change to a one-button keyboard to open back the menu
+        await query.edit_message_reply_markup(reply_markup=None)
+        return
+
+    if callback_data == "back":
+        mode = context.user_data.get("modes", {}).get(query.message.message_id, "full")
+        await query.edit_message_text(
+            text=MSG_CHOOSE_ACTION,
+            reply_markup=make_keyboard(mode),
+        )
+        return
+
+    if callback_data.startswith("reply_"):
+        idx = int(callback_data.removeprefix("reply_"))
+        replies = context.user_data.get("replies", {}).get(query.message.message_id, [])
+        if idx < len(replies):
+            await query.edit_message_text(text=replies[idx]["reply"])
+        else:
+            await query.edit_message_text(text=MSG_NO_MESSAGE)
         return
 
     if callback_data not in PROMPTS:
@@ -112,6 +130,11 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
         return
 
     mode = context.user_data.get("modes", {}).get(query.message.message_id, "full")
+
+    if callback_data == "reply":
+        await _handle_reply(query, context, original_text)
+        return
+
 
     await query.edit_message_text(text=MSG_THINKING)
 
@@ -126,6 +149,36 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
         logging.error("OpenAI API error: %s", e)
         await query.edit_message_text(text=MSG_AI_ERROR.format(error=e))
 
+async def _handle_reply(query, context: ContextTypes.DEFAULT_TYPE, original_text: str) -> None:
+    """Generate suggested replies and present them as numbered buttons."""
+    await query.edit_message_text(text=MSG_THINKING)
+
+    prompt_template = PROMPTS["reply"]
+    prompt = prompt_template.format(n=N_SUGGESTED_REPLIES)
+    prompt = f"{prompt}\n<text>\n{original_text}\n</text>"
+
+    try:
+        raw = await get_completion(prompt, SYSTEM_PROMPT)
+        logging.info("Raw response: %s", raw)
+        replies = json.loads(raw)
+    except (json.JSONDecodeError, Exception) as e:
+        logging.error("Failed to parse reply suggestions: %s", e)
+        logging.error("Raw response: %s", raw)
+        await query.edit_message_text(text=MSG_AI_ERROR.format(error=e))
+        return
+
+    context.user_data.setdefault("replies", {})[query.message.message_id] = replies
+
+    lines = [
+        f"{_NUMBER_EMOJIS[i]}  {r['reply']}  ({r['tone']})"
+        for i, r in enumerate(replies)
+    ]
+    body = "\n\n".join(lines)
+
+    await query.edit_message_text(
+        text=body,
+        reply_markup=make_reply_keyboard(len(replies)),
+    )
 
 async def _stream_response(query, prompt: str, mode: str) -> None:
     """Stream an LLM response, progressively editing the Telegram message."""

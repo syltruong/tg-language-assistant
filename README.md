@@ -30,6 +30,7 @@ Currently the bot is hardcoded for French. Add the ability for users to choose t
 Cross-check LLM outputs for accuracy before delivering them to the user.
 
 - [ ] After each action, score the output and re-run action N times until the output score goes over the threshold
+- [ ] Add a validation loop for structured LLM outputs (e.g. JSON reply suggestions): retry the same prompt up to N times if parsing fails
 
 ### Full button user flow
 
@@ -39,17 +40,24 @@ Improve the conversational flow so users can chain actions and navigate between 
 - [ ] Add a "Back" button to return to the previous menu or result
 - [ ] Replace the current "Cancel" behavior (which removes the keyboard entirely) with a "Close" button that can reopen the menu
 - [ ] Add a `/help` command explaining available actions and the flow
-- [ ] Track conversation state so the bot can offer contextual follow-ups (e.g. after translating, suggest "Want to check the vocab?")
 
-### Correct mode
+### ✅ Correct mode
 
 A new mode where the user practices writing in the target language and gets corrections.
 
-- [ ] Add a "Correct" button to the inline keyboard
-- [ ] User writes a sentence in the target language; the bot identifies grammar, spelling, and usage errors
-- [ ] Return the corrected sentence with inline annotations explaining each fix
-- [ ] Optionally rate the attempt (e.g. beginner/intermediate/advanced) and suggest what to study
-- [ ] Wire up a dedicated LLM prompt for correction in `button_prompts.md`
+- [x] Add a "Correct" button to the inline keyboard
+- [x] User writes a sentence in the target language; the bot identifies grammar, spelling, and usage errors
+- [x] Return the corrected sentence with inline annotations explaining each fix
+- [x] Optionally rate the attempt (e.g. beginner/intermediate/advanced) and suggest what to study
+- [x] Wire up a dedicated LLM prompt for correction in `button_prompts.md`
+
+### Response caching
+
+Cache LLM responses to avoid redundant API calls when the same (or similar) prompt is sent multiple times.
+
+- [ ] Implement a cache layer keyed on (action, input text) pairs to return stored responses for repeated requests
+- [ ] Choose a caching strategy (in-memory LRU, Redis, or database-backed) with configurable TTL and max size
+- [ ] Add cache-hit/miss logging for observability
 
 ### Database logging
 
@@ -60,3 +68,12 @@ Replace in-memory state with persistent storage for preferences, history, and an
 - [ ] Log all user messages and bot responses with timestamps for debugging and analytics
 - [ ] Build a vocabulary/history feature so users can review their past lookups (e.g. `/history` command)
 - [ ] Add retention policies or limits so the database doesn't grow unbounded
+
+### Safety guardrails
+
+Protect users and the bot from harmful, off-topic, or adversarial content.
+
+- [ ] Add input filtering to detect and reject prompt-injection attempts inside user messages
+- [ ] Screen LLM outputs for toxic, harmful, or off-topic content before delivering them to the user
+- [ ] Implement rate limiting per user to prevent abuse and runaway API costs
+- [ ] Add a content moderation layer (e.g. OpenAI Moderation API) as a pre/post-processing step
