@@ -25,12 +25,14 @@ from telegram.ext import ContextTypes
 from bot.config import STREAMING_ENABLED, STREAM_CHUNK_SIZE, ALLOWED_USERS
 from bot.prompts import SYSTEM_PROMPT, PROMPTS
 from bot.keyboard import make_keyboard
+from bot.language import detect_language
 from bot.llm import get_completion, stream_completion
 from bot.strings import (
     MSG_TOO_LONG,
     MSG_CHOOSE_ACTION,
     MSG_CLEAR,
     MSG_UNKNOWN_ACTION,
+    MSG_UNKNOWN_LANGUAGE,
     MSG_NO_MESSAGE,
     MSG_THINKING,
     MSG_NO_CONTENT,
@@ -63,14 +65,23 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
+    lang = detect_language(update.message.text)
+    if lang is None:
+        await update.message.reply_text(
+            MSG_UNKNOWN_LANGUAGE,
+            reply_to_message_id=update.message.message_id,
+        )
+        return
+
+    mode = "translate_only" if lang == "source" else "full"
+
     reply = await update.message.reply_text(
         text=MSG_CHOOSE_ACTION,
-        reply_markup=make_keyboard(),
+        reply_markup=make_keyboard(mode),
         reply_to_message_id=update.message.message_id,
     )
-    # Key the original text by the reply's message ID so each keyboard
-    # resolves to the message it was triggered from
     context.user_data.setdefault("messages", {})[reply.message_id] = update.message.text
+    context.user_data.setdefault("modes", {})[reply.message_id] = mode
 
 
 async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -100,21 +111,23 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
         await query.edit_message_text(text=MSG_NO_MESSAGE)
         return
 
+    mode = context.user_data.get("modes", {}).get(query.message.message_id, "full")
+
     await query.edit_message_text(text=MSG_THINKING)
 
-    prompt = PROMPTS[callback_data] + "\n" + original_text
+    prompt = f"{PROMPTS[callback_data]}\n<text>\n{original_text}\n</text>"
 
     try:
         if STREAMING_ENABLED:
-            await _stream_response(query, prompt)
+            await _stream_response(query, prompt, mode)
         else:
-            await _send_response(query, prompt)
+            await _send_response(query, prompt, mode)
     except Exception as e:
         logging.error("OpenAI API error: %s", e)
         await query.edit_message_text(text=MSG_AI_ERROR.format(error=e))
 
 
-async def _stream_response(query, prompt: str) -> None:
+async def _stream_response(query, prompt: str, mode: str) -> None:
     """Stream an LLM response, progressively editing the Telegram message."""
     user_id = getattr(query.from_user, "id", None)
 
@@ -135,16 +148,16 @@ async def _stream_response(query, prompt: str) -> None:
 
         await query.edit_message_text(
             text=accumulated or MSG_NO_CONTENT,
-            reply_markup=make_keyboard(),
+            reply_markup=make_keyboard(mode),
         )
         logging.info("Streaming finished for user=%s total_chars=%d", user_id, len(accumulated))
 
     except Exception as e:
         logging.warning("Streaming failed, falling back to non-streaming: %s", e)
-        await _send_response(query, prompt)
+        await _send_response(query, prompt, mode)
 
 
-async def _send_response(query, prompt: str) -> None:
+async def _send_response(query, prompt: str, mode: str) -> None:
     """Send a single non-streaming LLM response."""
     llm_reply = await get_completion(prompt, SYSTEM_PROMPT)
-    await query.edit_message_text(text=llm_reply, reply_markup=make_keyboard())
+    await query.edit_message_text(text=llm_reply, reply_markup=make_keyboard(mode))
