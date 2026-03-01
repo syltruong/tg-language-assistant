@@ -39,17 +39,16 @@ Improve the conversational flow so users can chain actions and navigate between 
 - [ ] Add a "Back" button to return to the previous menu or result
 - [ ] Replace the current "Cancel" behavior (which removes the keyboard entirely) with a "Close" button that can reopen the menu
 - [ ] Add a `/help` command explaining available actions and the flow
-- [ ] Track conversation state so the bot can offer contextual follow-ups (e.g. after translating, suggest "Want to check the vocab?")
 
-### Correct mode
+### ✅ Correct mode
 
 A new mode where the user practices writing in the target language and gets corrections.
 
-- [ ] Add a "Correct" button to the inline keyboard
-- [ ] User writes a sentence in the target language; the bot identifies grammar, spelling, and usage errors
-- [ ] Return the corrected sentence with inline annotations explaining each fix
-- [ ] Optionally rate the attempt (e.g. beginner/intermediate/advanced) and suggest what to study
-- [ ] Wire up a dedicated LLM prompt for correction in `button_prompts.md`
+- [x] Add a "Correct" button to the inline keyboard
+- [x] User writes a sentence in the target language; the bot identifies grammar, spelling, and usage errors
+- [x] Return the corrected sentence with inline annotations explaining each fix
+- [x] Optionally rate the attempt (e.g. beginner/intermediate/advanced) and suggest what to study
+- [x] Wire up a dedicated LLM prompt for correction in `button_prompts.md`
 
 ### Database logging
 
