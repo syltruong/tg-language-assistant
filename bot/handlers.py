@@ -28,6 +28,7 @@ from bot.prompts import SYSTEM_PROMPT, PROMPTS
 from bot.keyboard import make_keyboard, make_reply_keyboard, _NUMBER_EMOJIS
 from bot.language import detect_language
 from bot.llm import get_completion, stream_completion
+from bot.session import UserSession
 from bot.strings import (
     MSG_TOO_LONG,
     MSG_CHOOSE_ACTION,
@@ -81,8 +82,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=make_keyboard(mode),
         reply_to_message_id=update.message.message_id,
     )
-    context.user_data.setdefault("messages", {})[reply.message_id] = update.message.text
-    context.user_data.setdefault("modes", {})[reply.message_id] = mode
+    session = UserSession.from_context(context)
+    session.store_message(reply.message_id, update.message.text, mode)
 
 
 async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -103,8 +104,10 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
         await query.edit_message_reply_markup(reply_markup=None)
         return
 
+    session = UserSession.from_context(context)
+
     if callback_data == "back":
-        mode = context.user_data.get("modes", {}).get(query.message.message_id, "full")
+        mode = session.get_mode(query.message.message_id)
         await query.edit_message_text(
             text=MSG_CHOOSE_ACTION,
             reply_markup=make_keyboard(mode),
@@ -113,7 +116,7 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     if callback_data.startswith("reply_"):
         idx = int(callback_data.removeprefix("reply_"))
-        replies = context.user_data.get("replies", {}).get(query.message.message_id, [])
+        replies = session.get_replies(query.message.message_id)
         if idx < len(replies):
             await query.edit_message_text(text=replies[idx]["reply"])
         else:
@@ -124,15 +127,15 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
         await query.answer(text=MSG_UNKNOWN_ACTION, show_alert=True)
         return
 
-    original_text = context.user_data.get("messages", {}).get(query.message.message_id, "")
+    original_text = session.get_message(query.message.message_id)
     if not original_text:
         await query.edit_message_text(text=MSG_NO_MESSAGE)
         return
 
-    mode = context.user_data.get("modes", {}).get(query.message.message_id, "full")
+    mode = session.get_mode(query.message.message_id)
 
     if callback_data == "reply":
-        await _handle_reply(query, context, original_text)
+        await _handle_reply(query, session, original_text)
         return
 
 
@@ -149,7 +152,7 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
         logging.error("OpenAI API error: %s", e)
         await query.edit_message_text(text=MSG_AI_ERROR.format(error=e))
 
-async def _handle_reply(query, context: ContextTypes.DEFAULT_TYPE, original_text: str) -> None:
+async def _handle_reply(query, session: UserSession, original_text: str) -> None:
     """Generate suggested replies and present them as numbered buttons."""
     await query.edit_message_text(text=MSG_THINKING)
 
@@ -167,7 +170,7 @@ async def _handle_reply(query, context: ContextTypes.DEFAULT_TYPE, original_text
         await query.edit_message_text(text=MSG_AI_ERROR.format(error=e))
         return
 
-    context.user_data.setdefault("replies", {})[query.message.message_id] = replies
+    session.store_replies(query.message.message_id, replies)
 
     lines = [
         f"{_NUMBER_EMOJIS[i]}  {r['reply']}  ({r['tone']})"
