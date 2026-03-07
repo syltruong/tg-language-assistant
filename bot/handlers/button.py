@@ -22,32 +22,32 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
     user_id = update.effective_user.id if update.effective_user else None
     if not _is_authorized(user_id):
         logger.warning("Unauthorized button click by user=%s", user_id)
+        # This line sends an alert popup to the user via Telegram when they press a button they aren't authorized to use.
         await update.callback_query.answer(text=MSG_UNAUTHORIZED, show_alert=True)
         return
 
     query = update.callback_query
     await query.answer()
+    bot_message_id = query.message.message_id
 
     callback_data = query.data
 
     if callback_data == "clear":
-        await query.answer(text=MSG_CLEAR, show_alert=True)
-        await query.edit_message_reply_markup(reply_markup=None)
+        await query.edit_message_text(text=MSG_CLEAR, reply_markup=None)
         return
 
     session = UserSession.from_context(context)
 
     if callback_data == "back":
-        mode = session.get_mode(query.message.message_id)
         await query.edit_message_text(
             text=MSG_CHOOSE_ACTION,
-            reply_markup=make_keyboard(mode),
+            reply_markup=make_keyboard(session.get_action_types(bot_message_id)),
         )
         return
 
     if callback_data.startswith("reply_"):
         idx = int(callback_data.removeprefix("reply_"))
-        replies = session.get_replies(query.message.message_id)
+        replies = session.get_replies(bot_message_id)
         if idx < len(replies):
             await query.edit_message_text(text=replies[idx].reply)
         else:
@@ -58,12 +58,10 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
         await query.answer(text=MSG_UNKNOWN_ACTION, show_alert=True)
         return
 
-    original_text = session.get_message(query.message.message_id)
+    original_text = session.get_message(bot_message_id)
     if not original_text:
         await query.edit_message_text(text=MSG_NO_MESSAGE)
         return
-
-    mode = session.get_mode(query.message.message_id)
 
     if callback_data == ActionType.REPLY:
         await _handle_reply(query, session, original_text)
@@ -72,7 +70,8 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
     await query.edit_message_text(text=MSG_THINKING)
 
     prompt = f"{PROMPTS[callback_data]}\n<text>\n{original_text}\n</text>"
-    reply_markup = make_keyboard(mode)
+    action_types = session.get_action_types(bot_message_id)
+    reply_markup = make_keyboard(action_types)
 
     try:
         if STREAMING_ENABLED:

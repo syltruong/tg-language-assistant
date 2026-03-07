@@ -7,7 +7,7 @@ from bot.keyboard import make_keyboard
 from bot.language import detect_language
 from bot.session import UserSession
 from bot.config.strings import MSG_TOO_LONG, MSG_CHOOSE_ACTION, MSG_UNKNOWN_LANGUAGE, MSG_UNAUTHORIZED
-from bot.types import KeyboardMode
+from bot.types import ActionType
 from bot.handlers.auth import _is_authorized
 
 logger = logging.getLogger(__name__)
@@ -37,11 +37,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    mode = KeyboardMode.TRANSLATE_ONLY if lang == "source" else KeyboardMode.FULL
-
+    action_types = [ActionType.TRANSLATE] if lang == "source" else [ ActionType.TRANSLATE,
+    ActionType.ANALYZE,
+    ActionType.REPLY,
+    ActionType.CORRECT,]
     reply = await update.message.reply_text(
         text=MSG_CHOOSE_ACTION,
-        reply_markup=make_keyboard(mode),
+        reply_markup=make_keyboard(action_types),
         reply_to_message_id=update.message.message_id,
     )
-    session.store_message(reply.message_id, update.message.text, mode)
+    session.store_original_trigger_message(reply.message_id, update.message.text, lang, action_types)
