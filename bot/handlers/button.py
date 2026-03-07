@@ -26,7 +26,7 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
         await update.callback_query.answer(text=MSG_UNAUTHORIZED, show_alert=True)
         return
 
-    await update.effective_chat.send_action("typing")
+    # await update.effective_chat.send_action("typing")
     query = update.callback_query
     await query.answer()
     bot_message_id = query.message.message_id
@@ -69,8 +69,13 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
         await _handle_reply(query, session, original_text)
         return
 
-    prompt = f"{PROMPTS[callback_data]}\n<text>\n{original_text}\n</text>"
     action_types = session.get_action_types(bot_message_id)
+    await _handle_non_reply_action(query, callback_data, original_text, action_types)
+
+
+async def _handle_non_reply_action(query, action_type: ActionType, original_text: str, action_types) -> None:
+    """Run an LLM completion for a non-reply action and update the message."""
+    prompt = f"{PROMPTS[action_type]}\n<text>\n{original_text}\n</text>"
     reply_markup = make_keyboard(action_types)
 
     try:
