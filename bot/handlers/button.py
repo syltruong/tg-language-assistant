@@ -26,10 +26,10 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
         await update.callback_query.answer(text=MSG_UNAUTHORIZED, show_alert=True)
         return
 
+    await update.effective_chat.send_action("typing")
     query = update.callback_query
     await query.answer()
     bot_message_id = query.message.message_id
-
     callback_data = query.data
 
     if callback_data == "clear":
@@ -62,12 +62,12 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
     if not original_text:
         await query.edit_message_text(text=MSG_NO_MESSAGE)
         return
-
+    
+    await query.edit_message_text(text=MSG_THINKING)
+    
     if callback_data == ActionType.REPLY:
         await _handle_reply(query, session, original_text)
         return
-
-    await query.edit_message_text(text=MSG_THINKING)
 
     prompt = f"{PROMPTS[callback_data]}\n<text>\n{original_text}\n</text>"
     action_types = session.get_action_types(bot_message_id)
@@ -92,7 +92,6 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 async def _handle_reply(query, session: UserSession, original_text: str) -> None:
     """Generate suggested replies and present them as numbered buttons."""
-    await query.edit_message_text(text=MSG_THINKING)
 
     prompt_template = PROMPTS[ActionType.REPLY]
     prompt = prompt_template.format(n=N_SUGGESTED_REPLIES)

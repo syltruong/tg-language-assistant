@@ -4,7 +4,7 @@ from collections.abc import AsyncIterator
 from telegram import InlineKeyboardMarkup
 
 from bot.config import STREAM_CHUNK_SIZE
-from bot.config.strings import MSG_THINKING, MSG_NO_CONTENT
+from bot.config.strings import MSG_NO_CONTENT
 
 
 async def _stream_response(query, stream: AsyncIterator[str], reply_markup: InlineKeyboardMarkup) -> None:
@@ -29,7 +29,6 @@ async def _stream_response(query, stream: AsyncIterator[str], reply_markup: Inli
 
     accumulated = ""
     last_sent_len = 0
-    await query.edit_message_text(text=MSG_THINKING + ".", reply_markup=None)
 
     async for chunk in stream:
         logging.debug("Received chunk size=%d for user=%s", len(chunk), user_id)

@@ -8,10 +8,15 @@ from bot.handlers import handle_message, handle_button_click
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO)
-    app = ApplicationBuilder().token(TOKEN).build()
+    app = (
+        ApplicationBuilder()
+        .token(TOKEN)
+        .concurrent_updates(True) # Allow multiple updates to be processed concurrently to not delay other users' requests
+        .build()
+    )
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_handler(CallbackQueryHandler(handle_button_click))
-    app.run_polling()
+    app.run_polling(drop_pending_updates=True) # Drop pending updates at startup
 
 
 if __name__ == "__main__":

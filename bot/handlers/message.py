@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from telegram import Update
@@ -22,6 +23,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(MSG_UNAUTHORIZED)
         return
 
+    await update.effective_chat.send_action("typing")
+
     if len(update.message.text) > 100:
         await update.message.reply_text(
             MSG_TOO_LONG,
@@ -29,7 +32,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    lang = detect_language(update.message.text)
+    # This line runs the detect_language function in a separate thread, avoiding blocking the main event loop for replies to other users
+    loop = asyncio.get_running_loop()
+    lang = await loop.run_in_executor(None, detect_language, update.message.text)
     if lang is None:
         await update.message.reply_text(
             MSG_UNKNOWN_LANGUAGE,
