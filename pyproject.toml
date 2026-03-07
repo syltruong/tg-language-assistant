@@ -9,3 +9,8 @@ dependencies = [
     "openai>=1.0.0",
     "lingua-language-detector>=2.1.0",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.5",
+]
