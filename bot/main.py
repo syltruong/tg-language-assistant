@@ -16,7 +16,7 @@ def main() -> None:
     app = (
         ApplicationBuilder()
         .token(TOKEN)
-        .concurrent_updates(True) # Allow multiple updates to be processed concurrently to not delay other users' requests
+        .concurrent_updates(True)
         .build()
     )
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))

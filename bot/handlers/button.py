@@ -30,8 +30,10 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
     user_id = update.effective_user.id if update.effective_user else None
     if not _is_authorized(user_id):
         logger.warning("Unauthorized button click by user=%s", user_id)
-        # This line sends an alert popup to the user via Telegram when they press a button they aren't authorized to use.
-        await update.callback_query.answer(text=MSG_UNAUTHORIZED, show_alert=True)
+        # Alert popup when an unauthorized user presses a button.
+        await update.callback_query.answer(
+            text=MSG_UNAUTHORIZED, show_alert=True,
+        )
         return
 
     # await update.effective_chat.send_action("typing")
@@ -81,7 +83,9 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
     await _handle_non_reply_action(query, callback_data, original_text, action_types)
 
 
-async def _handle_non_reply_action(query, action_type: ActionType, original_text: str, action_types) -> None:
+async def _handle_non_reply_action(
+    query, action_type: ActionType, original_text: str, action_types,
+) -> None:
     """Run an LLM completion for a non-reply action and update the message."""
     prompt = f"{PROMPTS[action_type]}\n<text>\n{original_text}\n</text>"
     reply_markup = make_keyboard(action_types)
@@ -92,7 +96,9 @@ async def _handle_non_reply_action(query, action_type: ActionType, original_text
                 stream = stream_completion(SYSTEM_PROMPT, prompt)
                 await _stream_response(query, stream, reply_markup)
             except Exception as e:
-                logging.warning("Streaming failed, falling back to non-streaming: %s", e)
+                logging.warning(
+                    "Streaming failed, falling back to non-streaming: %s", e,
+                )
                 text = await get_completion(SYSTEM_PROMPT, prompt)
                 await _send_response(query, text, reply_markup)
         else:

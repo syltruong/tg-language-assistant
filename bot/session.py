@@ -37,9 +37,14 @@ class UserSession:
     def from_context(cls, context: ContextTypes.DEFAULT_TYPE) -> UserSession:
         return cls(context.user_data)
 
-    def store_original_trigger_message(self, msg_id: int, text: str, detected_language: str, action_types: list[ActionType]) -> None:
+    def store_original_trigger_message(
+        self, msg_id: int, text: str,
+        detected_language: str, action_types: list[ActionType],
+    ) -> None:
         self._data.setdefault(self._KEY_MESSAGES, {})[msg_id] = text
-        self._data.setdefault(self._KEY_DETECTED_LANGUAGE, {})[msg_id] = detected_language
+        self._data.setdefault(
+            self._KEY_DETECTED_LANGUAGE, {},
+        )[msg_id] = detected_language
         self._data.setdefault(self._KEY_ACTION_TYPES, {})[msg_id] = action_types
 
     def get_message(self, msg_id: int) -> str:

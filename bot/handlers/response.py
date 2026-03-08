@@ -7,7 +7,9 @@ from bot.config import STREAM_CHUNK_SIZE
 from bot.config.strings import MSG_NO_CONTENT
 
 
-async def _stream_response(query, stream: AsyncIterator[str], reply_markup: InlineKeyboardMarkup) -> None:
+async def _stream_response(
+    query, stream: AsyncIterator[str], reply_markup: InlineKeyboardMarkup,
+) -> None:
     """Consume a streaming LLM response, progressively editing the Telegram message.
 
     ``stream`` delivers the LLM's output one small string chunk at a time,
@@ -36,13 +38,19 @@ async def _stream_response(query, stream: AsyncIterator[str], reply_markup: Inli
         if len(accumulated) - last_sent_len >= STREAM_CHUNK_SIZE:
             await query.edit_message_text(text=accumulated)
             last_sent_len = len(accumulated)
-            logging.info("Sent edit update (%d chars) for user=%s", last_sent_len, user_id)
+            logging.info(
+                "Sent edit update (%d chars) for user=%s",
+                last_sent_len, user_id,
+            )
 
     await query.edit_message_text(
         text=accumulated or MSG_NO_CONTENT,
         reply_markup=reply_markup,
     )
-    logging.info("Streaming finished for user=%s total_chars=%d", user_id, len(accumulated))
+    logging.info(
+        "Streaming finished for user=%s total_chars=%d",
+        user_id, len(accumulated),
+    )
 
 
 async def _send_response(query, text: str, reply_markup: InlineKeyboardMarkup) -> None:
