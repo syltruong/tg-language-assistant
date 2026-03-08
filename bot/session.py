@@ -13,6 +13,9 @@ from telegram.ext import ContextTypes
 from bot.types import ActionType, ReplySuggestion
 
 
+_MAX_ACTIVE_MESSAGES = 5
+
+
 class UserSession:
     """
     Thin wrapper around a ``context.user_data`` dict.
@@ -22,6 +25,7 @@ class UserSession:
         _KEY_DETECTED_LANGUAGE : { msg_id: language },
         _KEY_ACTION_TYPES : { msg_id: list[ActionType] },
         _KEY_REPLIES : { msg_id: list[replies] },
+        _KEY_ACTIVE_MESSAGES : [msg_id, ...],
     }
     """
 
@@ -29,6 +33,7 @@ class UserSession:
     _KEY_DETECTED_LANGUAGE = "detected_language"
     _KEY_ACTION_TYPES = "action_types"
     _KEY_REPLIES = "replies"
+    _KEY_ACTIVE_MESSAGES = "active_message_ids"
 
     def __init__(self, user_data: dict) -> None:
         self._data = user_data
@@ -61,3 +66,21 @@ class UserSession:
 
     def get_replies(self, msg_id: int) -> list[ReplySuggestion]:
         return self._data.get(self._KEY_REPLIES, {}).get(msg_id, [])
+
+    # ── active-message tracking ──────────────────────────────────
+
+    def get_active_messages(self) -> list[int]:
+        return self._data.get(self._KEY_ACTIVE_MESSAGES, [])
+
+    def add_active_message(self, msg_id: int) -> None:
+        ids = self._data.setdefault(self._KEY_ACTIVE_MESSAGES, [])
+        ids.append(msg_id)
+        if len(ids) > _MAX_ACTIVE_MESSAGES:
+            ids.pop(0)
+
+    def remove_active_message(self, msg_id: int) -> None:
+        ids = self._data.get(self._KEY_ACTIVE_MESSAGES, [])
+        try:
+            ids.remove(msg_id)
+        except ValueError:
+            pass

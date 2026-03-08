@@ -1,4 +1,3 @@
-import asyncio
 import logging
 
 from telegram import Update
@@ -11,10 +10,14 @@ from bot.config.strings import (
     MSG_UNKNOWN_LANGUAGE,
 )
 from bot.handlers.auth import _is_authorized
+from bot.handlers.utils import (
+    LanguageNotDetectedException,
+    TextTooLongException,
+    close_active_messages,
+    detect_and_get_actions,
+)
 from bot.keyboard import make_keyboard
-from bot.language import detect_language
 from bot.session import UserSession
-from bot.types import ActionType
 
 logger = logging.getLogger(__name__)
 
@@ -33,33 +36,23 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.effective_chat.send_action("typing")
 
-    if len(update.message.text) > 100:
+    try:
+        lang, action_types = await detect_and_get_actions(update.message.text)
+    except TextTooLongException:
         await update.message.reply_text(
             MSG_TOO_LONG,
             reply_to_message_id=update.message.message_id,
         )
         return
-
-    # Run language detection in a separate thread to avoid blocking the event loop.
-    loop = asyncio.get_running_loop()
-    lang = await loop.run_in_executor(None, detect_language, update.message.text)
-    if lang is None:
+    except LanguageNotDetectedException:
         await update.message.reply_text(
             MSG_UNKNOWN_LANGUAGE,
             reply_to_message_id=update.message.message_id,
         )
         return
 
-    action_types = (
-        [ActionType.TRANSLATE]
-        if lang == "source"
-        else [
-            ActionType.TRANSLATE,
-            ActionType.ANALYZE,
-            ActionType.REPLY,
-            ActionType.CORRECT,
-        ]
-    )
+    await close_active_messages(session, context.bot, update.effective_chat.id)
+
     reply = await update.message.reply_text(
         text=MSG_CHOOSE_ACTION,
         reply_markup=make_keyboard(action_types),
@@ -68,3 +61,4 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     session.store_original_trigger_message(
         reply.message_id, update.message.text, lang, action_types,
     )
+    session.add_active_message(reply.message_id)

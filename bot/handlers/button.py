@@ -9,13 +9,22 @@ from bot.config.strings import (
     MSG_AI_ERROR,
     MSG_CHOOSE_ACTION,
     MSG_CLEAR,
+    MSG_EXPIRED,
     MSG_NO_MESSAGE,
     MSG_THINKING,
+    MSG_TOO_LONG,
     MSG_UNAUTHORIZED,
     MSG_UNKNOWN_ACTION,
+    MSG_UNKNOWN_LANGUAGE,
 )
 from bot.handlers.auth import _is_authorized
 from bot.handlers.response import _send_response, _stream_response
+from bot.handlers.utils import (
+    LanguageNotDetectedException,
+    TextTooLongException,
+    close_active_messages,
+    detect_and_get_actions,
+)
 from bot.keyboard import NUMBER_EMOJIS, make_keyboard, make_reply_keyboard
 from bot.llm import get_completion, stream_completion
 from bot.prompts import PROMPTS, SYSTEM_PROMPT
@@ -47,6 +56,10 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
         return
 
     session = UserSession.from_context(context)
+
+    if callback_data == "reopen":
+        await _handle_reopen(update, context, session, query)
+        return
 
     if callback_data == "back":
         await query.edit_message_text(
@@ -138,3 +151,55 @@ async def _handle_reply(query, session: UserSession, original_text: str) -> None
         text=body,
         reply_markup=make_reply_keyboard(len(replies)),
     )
+
+
+async def _handle_reopen(
+    update: Update, context: ContextTypes.DEFAULT_TYPE,
+    session: UserSession, query,
+) -> None:
+    """Re-send an old message at the bottom of the chat with a fresh keyboard."""
+    old_msg_id = query.message.message_id
+    chat_id = update.effective_chat.id
+
+    original_text = session.get_message(old_msg_id)
+    lang = session.get_detected_language(old_msg_id)
+    action_types = session.get_action_types(old_msg_id)
+
+    if not original_text:
+        # Session data missing (e.g. bot restarted) -- recover from the
+        # Telegram reply chain: the bot message is a reply to the user's text.
+        replied = query.message.reply_to_message
+        if not (replied and replied.text):
+            await query.edit_message_text(text=MSG_EXPIRED, reply_markup=None)
+            return
+        try:
+            lang, action_types = await detect_and_get_actions(replied.text)
+        except TextTooLongException:
+            await query.edit_message_text(text=MSG_TOO_LONG, reply_markup=None)
+            return
+        except LanguageNotDetectedException:
+            await query.edit_message_text(text=MSG_UNKNOWN_LANGUAGE, reply_markup=None)
+            return
+        original_text = replied.text
+
+    await close_active_messages(session, context.bot, chat_id)
+
+    new_reply = await context.bot.send_message(
+        chat_id=chat_id,
+        text=MSG_CHOOSE_ACTION,
+        reply_markup=make_keyboard(action_types),
+        reply_to_message_id=query.message.reply_to_message.message_id
+        if query.message.reply_to_message
+        else None,
+    )
+
+    session.store_original_trigger_message(
+        new_reply.message_id, original_text, lang, action_types,
+    )
+    session.remove_active_message(old_msg_id)
+    session.add_active_message(new_reply.message_id)
+
+    try:
+        await query.message.delete()
+    except Exception:
+        pass
