@@ -4,12 +4,17 @@ import logging
 from telegram import Update
 from telegram.ext import ContextTypes
 
+from bot.config.strings import (
+    MSG_CHOOSE_ACTION,
+    MSG_TOO_LONG,
+    MSG_UNAUTHORIZED,
+    MSG_UNKNOWN_LANGUAGE,
+)
+from bot.handlers.auth import _is_authorized
 from bot.keyboard import make_keyboard
 from bot.language import detect_language
 from bot.session import UserSession
-from bot.config.strings import MSG_TOO_LONG, MSG_CHOOSE_ACTION, MSG_UNKNOWN_LANGUAGE, MSG_UNAUTHORIZED
 from bot.types import ActionType
-from bot.handlers.auth import _is_authorized
 
 logger = logging.getLogger(__name__)
 

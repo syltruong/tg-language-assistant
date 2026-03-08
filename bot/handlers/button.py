@@ -4,15 +4,23 @@ import logging
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from bot.config import STREAMING_ENABLED, N_SUGGESTED_REPLIES
-from bot.keyboard import make_keyboard, make_reply_keyboard, NUMBER_EMOJIS
-from bot.llm import get_completion, stream_completion
-from bot.prompts import SYSTEM_PROMPT, PROMPTS
-from bot.session import UserSession
-from bot.config.strings import MSG_CHOOSE_ACTION, MSG_CLEAR, MSG_UNKNOWN_ACTION, MSG_NO_MESSAGE, MSG_THINKING, MSG_AI_ERROR, MSG_UNAUTHORIZED
-from bot.types import ActionType, ReplySuggestion
+from bot.config import N_SUGGESTED_REPLIES, STREAMING_ENABLED
+from bot.config.strings import (
+    MSG_AI_ERROR,
+    MSG_CHOOSE_ACTION,
+    MSG_CLEAR,
+    MSG_NO_MESSAGE,
+    MSG_THINKING,
+    MSG_UNAUTHORIZED,
+    MSG_UNKNOWN_ACTION,
+)
 from bot.handlers.auth import _is_authorized
-from bot.handlers.response import _stream_response, _send_response
+from bot.handlers.response import _send_response, _stream_response
+from bot.keyboard import NUMBER_EMOJIS, make_keyboard, make_reply_keyboard
+from bot.llm import get_completion, stream_completion
+from bot.prompts import PROMPTS, SYSTEM_PROMPT
+from bot.session import UserSession
+from bot.types import ActionType, ReplySuggestion
 
 logger = logging.getLogger(__name__)
 
@@ -62,9 +70,9 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
     if not original_text:
         await query.edit_message_text(text=MSG_NO_MESSAGE)
         return
-    
+
     await query.edit_message_text(text=MSG_THINKING)
-    
+
     if callback_data == ActionType.REPLY:
         await _handle_reply(query, session, original_text)
         return

@@ -1,9 +1,14 @@
 import logging
 
-from telegram.ext import ApplicationBuilder, MessageHandler, CallbackQueryHandler, filters
+from telegram.ext import (
+    ApplicationBuilder,
+    CallbackQueryHandler,
+    MessageHandler,
+    filters,
+)
 
 from bot.config import TOKEN
-from bot.handlers import handle_message, handle_button_click
+from bot.handlers import handle_button_click, handle_message
 
 
 def main() -> None:

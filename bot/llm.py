@@ -3,7 +3,7 @@ from collections.abc import AsyncIterator
 
 from openai import AsyncOpenAI
 
-from bot.config import OPENAI_API_KEY, MODEL_NAME
+from bot.config import MODEL_NAME, OPENAI_API_KEY
 
 logger = logging.getLogger(__name__)
 

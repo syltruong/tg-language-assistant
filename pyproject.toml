@@ -14,3 +14,19 @@ dependencies = [
 dev = [
     "ruff>=0.15.5",
 ]
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "F",     # Pyflakes (unused imports, variables, etc.)
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "I",     # isort (import ordering)
+    "N",     # pep8-naming conventions
+    "UP",    # pyupgrade (modern Python syntax)
+    "B",     # flake8-bugbear (common bugs and design issues)
+    "SIM",   # flake8-simplify (simplifiable code)
+    "RUF",   # Ruff-specific rules
+]

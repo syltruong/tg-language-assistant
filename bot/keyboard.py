@@ -33,7 +33,7 @@ def make_keyboard(action_types: list[ActionType] = [
 ]) -> InlineKeyboardMarkup:
     """Return an inline keyboard whose buttons depend on action_types
     """
-    
+
     def _btn(action: ActionType) -> InlineKeyboardButton:
         return InlineKeyboardButton(ACTION_TITLES[action], callback_data=action)
 

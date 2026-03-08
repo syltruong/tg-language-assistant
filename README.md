@@ -14,6 +14,27 @@ uv sync                # installs Python 3.12 (if needed) and all dependencies
 uv run python -m bot.main
 ```
 
+## Linting
+
+[Ruff](https://docs.astral.sh/ruff/) is used for linting and formatting. Run it with:
+
+```bash
+uv run ruff check .        # check for lint errors
+uv run ruff check . --fix  # auto-fix fixable errors
+uv run ruff format .       # format code
+```
+
+## Adding Python Dependencies
+
+This project uses [uv](https://docs.astral.sh/uv/) for dependency management. To add a new package:
+
+```bash
+uv add <package-name>          # add a runtime dependency
+uv add --dev <package-name>    # add a development-only dependency
+```
+
+This updates `pyproject.toml` and `uv.lock` automatically. Commit both files so the change is reproducible for everyone.
+
 ## Roadmap
 
 ### Multi-lingual support
