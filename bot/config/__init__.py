@@ -1,5 +1,6 @@
-from dotenv import load_dotenv
 import os
+
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -12,7 +13,9 @@ if not OPENAI_API_KEY:
     raise RuntimeError("OPENAI_API_KEY is not set. See .env.example")
 
 # Set ENABLE_STREAMING=0 to disable streaming and always use the non-streaming path.
-STREAMING_ENABLED = os.getenv("ENABLE_STREAMING", "1").lower() in ("1", "true", "yes", "on")
+STREAMING_ENABLED = os.getenv("ENABLE_STREAMING", "1").lower() in (
+    "1", "true", "yes", "on",
+)
 
 STREAM_CHUNK_SIZE = int(os.getenv("STREAM_CHUNK_SIZE", "40"))
 

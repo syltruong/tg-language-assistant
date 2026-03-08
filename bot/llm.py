@@ -3,11 +3,18 @@ from collections.abc import AsyncIterator
 
 from openai import AsyncOpenAI
 
-from bot.config import OPENAI_API_KEY, MODEL_NAME
+from bot.config import MODEL_NAME, OPENAI_API_KEY
 
 logger = logging.getLogger(__name__)
 
-client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+_client: AsyncOpenAI | None = None
+
+
+def _get_client() -> AsyncOpenAI:
+    global _client
+    if _client is None:
+        _client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+    return _client
 
 
 def _build_messages(system_prompt: str, user_prompt: str) -> list[dict[str, str]]:
@@ -22,30 +29,22 @@ async def get_completion(system_prompt: str, user_prompt: str) -> str:
     model_input = _build_messages(system_prompt, user_prompt)
     logger.debug("model_input: %s", model_input)
 
-    response = await client.responses.create(
+    response = await _get_client().responses.create(
         model=MODEL_NAME,
         input=model_input,
     )
     return response.output_text
 
 
-async def stream_completion(prompt: str, system_prompt: str) -> AsyncIterator[str]:
+async def stream_completion(system_prompt: str, user_prompt: str) -> AsyncIterator[str]:
     """Yield text chunks from a streaming OpenAI response."""
     model_input = _build_messages(system_prompt, user_prompt)
     logger.debug("model_input: %s", model_input)
-    stream = await client.responses.create(
+    stream = await _get_client().responses.create(
         model=MODEL_NAME,
         input=model_input,
         stream=True,
     )
     async for event in stream:
-        chunk = ""
-        try:
-            chunk = event.choices[0].delta.content
-        except Exception:
-            try:
-                chunk = event.choices[0].delta.get("content", "")
-            except Exception:
-                chunk = ""
-        if chunk:
-            yield chunk
+        if event.type == "response.output_text.delta":
+            yield event.delta
