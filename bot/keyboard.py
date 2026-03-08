@@ -13,6 +13,10 @@ NUMBER_EMOJIS = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣
 
 _CANCEL_ROW = [InlineKeyboardButton("Cancel", callback_data="clear")]
 
+REOPEN_KEYBOARD = InlineKeyboardMarkup(
+    [[InlineKeyboardButton("👐 Reopen", callback_data="reopen")]]
+)
+
 def make_reply_keyboard(n: int) -> InlineKeyboardMarkup:
     """Return a keyboard with *n* numbered reply buttons and a Back button."""
     reply_row = [

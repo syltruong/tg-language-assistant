@@ -19,7 +19,7 @@ def main() -> None:
         .concurrent_updates(True)
         .build()
     )
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.UpdateType.EDITED_MESSAGE, handle_message))
     app.add_handler(CallbackQueryHandler(handle_button_click))
     app.run_polling(drop_pending_updates=True) # Drop pending updates at startup
 
