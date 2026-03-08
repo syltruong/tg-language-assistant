@@ -5,6 +5,7 @@ from telegram.ext import ContextTypes
 
 from bot.config.strings import (
     MSG_CHOOSE_ACTION,
+    MSG_THINKING,
     MSG_TOO_LONG,
     MSG_UNAUTHORIZED,
     MSG_UNKNOWN_LANGUAGE,
@@ -27,36 +28,34 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     Deflect if message is too long. Otherwise, ask user to choose an action.
     """
+    await update.effective_chat.send_action("typing")
+    reply = await update.message.reply_text(
+        text=MSG_THINKING,
+        reply_markup=None,
+        reply_to_message_id=update.message.message_id,
+    )
+
     session = UserSession.from_context(context)
     user_id = update.effective_user.id if update.effective_user else None
     if not _is_authorized(user_id):
         logger.warning("Unauthorized access attempt by user=%s", user_id)
-        await update.message.reply_text(MSG_UNAUTHORIZED)
+        await reply.edit_text(MSG_UNAUTHORIZED)
         return
-
-    await update.effective_chat.send_action("typing")
 
     try:
         lang, action_types = await detect_and_get_actions(update.message.text)
     except TextTooLongException:
-        await update.message.reply_text(
-            MSG_TOO_LONG,
-            reply_to_message_id=update.message.message_id,
-        )
+        await reply.edit_text(MSG_TOO_LONG)
         return
     except LanguageNotDetectedException:
-        await update.message.reply_text(
-            MSG_UNKNOWN_LANGUAGE,
-            reply_to_message_id=update.message.message_id,
-        )
+        await reply.edit_text(MSG_UNKNOWN_LANGUAGE)
         return
 
     await close_active_messages(session, context.bot, update.effective_chat.id)
 
-    reply = await update.message.reply_text(
+    await reply.edit_text(
         text=MSG_CHOOSE_ACTION,
         reply_markup=make_keyboard(action_types),
-        reply_to_message_id=update.message.message_id,
     )
     session.store_original_trigger_message(
         reply.message_id, update.message.text, lang, action_types,

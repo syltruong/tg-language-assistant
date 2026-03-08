@@ -36,6 +36,15 @@ logger = logging.getLogger(__name__)
 
 async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle inline-keyboard button clicks."""
+    query = update.callback_query
+    await query.answer()
+
+    await update.effective_chat.send_action("typing")
+    await query.edit_message_text(
+        text=MSG_THINKING,
+        reply_markup=None,
+    )
+
     user_id = update.effective_user.id if update.effective_user else None
     if not _is_authorized(user_id):
         logger.warning("Unauthorized button click by user=%s", user_id)
@@ -45,9 +54,6 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
         )
         return
 
-    # await update.effective_chat.send_action("typing")
-    query = update.callback_query
-    await query.answer()
     bot_message_id = query.message.message_id
     callback_data = query.data
 
@@ -85,8 +91,6 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
     if not original_text:
         await query.edit_message_text(text=MSG_NO_MESSAGE)
         return
-
-    await query.edit_message_text(text=MSG_THINKING)
 
     if callback_data == ActionType.REPLY:
         await _handle_reply(query, session, original_text)
