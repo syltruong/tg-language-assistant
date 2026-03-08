@@ -16,7 +16,7 @@ from bot.types import ActionType, ReplySuggestion
 class UserSession:
     """
     Thin wrapper around a ``context.user_data`` dict.
-    
+
     context.user_data: {
         _KEY_MESSAGES : { msg_id: text },
         _KEY_DETECTED_LANGUAGE : { msg_id: language },

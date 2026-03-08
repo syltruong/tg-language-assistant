@@ -25,14 +25,16 @@ def make_reply_keyboard(n: int) -> InlineKeyboardMarkup:
     ])
 
 
-def make_keyboard(action_types: list[ActionType] = [
-    ActionType.TRANSLATE,
-    ActionType.ANALYZE,
-    ActionType.REPLY,
-    ActionType.CORRECT,
-]) -> InlineKeyboardMarkup:
+def make_keyboard(action_types: list[ActionType] | None = None) -> InlineKeyboardMarkup:
     """Return an inline keyboard whose buttons depend on action_types
     """
+
+    action_types = action_types or [
+        ActionType.TRANSLATE,
+        ActionType.ANALYZE,
+        ActionType.REPLY,
+        ActionType.CORRECT,
+    ]
 
     def _btn(action: ActionType) -> InlineKeyboardButton:
         return InlineKeyboardButton(ACTION_TITLES[action], callback_data=action)
