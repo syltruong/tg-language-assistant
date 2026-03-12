@@ -16,3 +16,6 @@ logs:
 
 stop:
 	docker rm -f $(CONTAINER_NAME)
+
+test:
+	uv run pytest -v
