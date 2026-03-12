@@ -14,6 +14,17 @@ uv sync                # installs Python 3.12 (if needed) and all dependencies
 uv run python -m bot.main
 ```
 
+## Testing
+
+Tests live next to the source files they cover (e.g. `bot/routing/test_local.py` tests `bot/routing/local.py`).
+
+```bash
+uv run pytest                # run all tests
+uv run pytest -v             # verbose output with individual test names
+uv run pytest bot/routing/   # run tests in a specific directory
+uv run pytest -k "french"    # run only tests matching a keyword
+```
+
 ## Linting
 
 [Ruff](https://docs.astral.sh/ruff/) is used for linting and formatting. Run it with:
