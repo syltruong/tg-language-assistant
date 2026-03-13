@@ -1,6 +1,7 @@
 # TODO
 
 - [ ] `bot/handlers/button.py:95` — add type hint for `query` parameter in `_handle_non_reply_action`
+- [ ] Agentic entrypoint where the user enters a free text and we have to guess which user flow is the most suitable
 - [x] provision for i8n in the UI messages and have a catalog of messages indexed by language
 - [x] write unit test harness for the bot 
 - [ ] 1. incoming message handling: translate + register + one_line_context + vocabulary

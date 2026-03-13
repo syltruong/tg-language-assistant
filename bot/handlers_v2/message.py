@@ -34,7 +34,20 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
 
 async def _handle_message_in_ui_language(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Handle message in UI language.
+    1. Translate message to target language
+    2. Send translated message to user
+    """
+    
     pass
 
 async def _handle_message_in_target_language(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Handle message in target language.
+    1. Translate message to UI language
+    2. Infer a one-line context
+    3. Reply with keyboard markup
+    """
+
     pass
