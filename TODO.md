@@ -1,8 +1,9 @@
 # TODO
 
 - [ ] `bot/handlers/button.py:95` — add type hint for `query` parameter in `_handle_non_reply_action`
-- [ ] provision for i8n in the UI messages and have a catalog of messages indexed by language
-- [ ] write unit test harness for the bot 
+- [x] provision for i8n in the UI messages and have a catalog of messages indexed by language
+- [x] write unit test harness for the bot 
+- [ ] Full incoming message handling with keyboard markup replies
 
 
 ## About unit tests for Telegram
