@@ -23,6 +23,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
 
     text = update.message.text.strip()
+
+    # Note: the language detection is very crude.
+    # LLM-backed subsequent steps need to take into account the language detection is not perfect.
     lang = detect_language(text, list(SUPPORTED_LANGUAGES.keys()))
 
     if lang == locale:
@@ -38,6 +41,8 @@ async def _handle_message_in_ui_language(update: Update, context: ContextTypes.D
     Handle message in UI language.
     1. Translate message to target language
     2. Send translated message to user
+
+    Prompt idea: confirm the language of the message and translate it to the target language.
     """
     
     pass
