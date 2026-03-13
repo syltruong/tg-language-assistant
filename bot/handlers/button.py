@@ -5,17 +5,19 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from bot.config import N_SUGGESTED_REPLIES, STREAMING_ENABLED
-from bot.config.strings import (
-    MSG_AI_ERROR,
-    MSG_CHOOSE_ACTION,
-    MSG_CLEAR,
-    MSG_EXPIRED,
-    MSG_NO_MESSAGE,
-    MSG_THINKING,
-    MSG_TOO_LONG,
-    MSG_UNAUTHORIZED,
-    MSG_UNKNOWN_ACTION,
-    MSG_UNKNOWN_LANGUAGE,
+from bot.config.messages import (
+    DEFAULT_LOCALE,
+    MsgAiError,
+    MsgChooseAction,
+    MsgClear,
+    MsgExpired,
+    MsgNoMessage,
+    MsgThinking,
+    MsgTooLong,
+    MsgUnauthorized,
+    MsgUnknownAction,
+    MsgUnknownLanguage,
+    t,
 )
 from bot.handlers.auth import _is_authorized
 from bot.handlers.response import _send_response, _stream_response
@@ -36,21 +38,22 @@ logger = logging.getLogger(__name__)
 
 async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle inline-keyboard button clicks."""
+    locale = getattr(update.effective_user, "language_code", None) or DEFAULT_LOCALE
+
     query = update.callback_query
     await query.answer()
 
     await update.effective_chat.send_action("typing")
     await query.edit_message_text(
-        text=MSG_THINKING,
+        text=t(MsgThinking, locale),
         reply_markup=None,
     )
 
     user_id = update.effective_user.id if update.effective_user else None
     if not _is_authorized(user_id):
         logger.warning("Unauthorized button click by user=%s", user_id)
-        # Alert popup when an unauthorized user presses a button.
         await update.callback_query.answer(
-            text=MSG_UNAUTHORIZED, show_alert=True,
+            text=t(MsgUnauthorized, locale), show_alert=True,
         )
         return
 
@@ -58,18 +61,18 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
     callback_data = query.data
 
     if callback_data == "clear":
-        await query.edit_message_text(text=MSG_CLEAR, reply_markup=None)
+        await query.edit_message_text(text=t(MsgClear, locale), reply_markup=None)
         return
 
     session = UserSession.from_context(context)
 
     if callback_data == "reopen":
-        await _handle_reopen(update, context, session, query)
+        await _handle_reopen(update, context, session, query, locale)
         return
 
     if callback_data == "back":
         await query.edit_message_text(
-            text=MSG_CHOOSE_ACTION,
+            text=t(MsgChooseAction, locale),
             reply_markup=make_keyboard(session.get_action_types(bot_message_id)),
         )
         return
@@ -80,28 +83,29 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
         if idx < len(replies):
             await query.edit_message_text(text=replies[idx].reply)
         else:
-            await query.edit_message_text(text=MSG_NO_MESSAGE)
+            await query.edit_message_text(text=t(MsgNoMessage, locale))
         return
 
     if callback_data not in PROMPTS:
-        await query.answer(text=MSG_UNKNOWN_ACTION, show_alert=True)
+        await query.answer(text=t(MsgUnknownAction, locale), show_alert=True)
         return
 
     original_text = session.get_message(bot_message_id)
     if not original_text:
-        await query.edit_message_text(text=MSG_NO_MESSAGE)
+        await query.edit_message_text(text=t(MsgNoMessage, locale))
         return
 
     if callback_data == ActionType.REPLY:
-        await _handle_reply(query, session, original_text)
+        await _handle_reply(query, session, original_text, locale)
         return
 
     action_types = session.get_action_types(bot_message_id)
-    await _handle_non_reply_action(query, callback_data, original_text, action_types)
+    await _handle_non_reply_action(query, callback_data, original_text, action_types, locale)
 
 
 async def _handle_non_reply_action(
     query, action_type: ActionType, original_text: str, action_types,
+    locale: str,
 ) -> None:
     """Run an LLM completion for a non-reply action and update the message."""
     prompt = f"{PROMPTS[action_type]}\n<text>\n{original_text}\n</text>"
@@ -123,10 +127,12 @@ async def _handle_non_reply_action(
             await _send_response(query, text, reply_markup)
     except Exception as e:
         logging.error("OpenAI API error: %s", e)
-        await query.edit_message_text(text=MSG_AI_ERROR.format(error=e))
+        await query.edit_message_text(text=t(MsgAiError, locale, error=e))
 
 
-async def _handle_reply(query, session: UserSession, original_text: str) -> None:
+async def _handle_reply(
+    query, session: UserSession, original_text: str, locale: str,
+) -> None:
     """Generate suggested replies and present them as numbered buttons."""
 
     prompt_template = PROMPTS[ActionType.REPLY]
@@ -140,7 +146,7 @@ async def _handle_reply(query, session: UserSession, original_text: str) -> None
     except (json.JSONDecodeError, Exception) as e:
         logging.error("Failed to parse reply suggestions: %s", e)
         logging.error("Raw response: %s", raw)
-        await query.edit_message_text(text=MSG_AI_ERROR.format(error=e))
+        await query.edit_message_text(text=t(MsgAiError, locale, error=e))
         return
 
     session.store_replies(query.message.message_id, replies)
@@ -159,7 +165,7 @@ async def _handle_reply(query, session: UserSession, original_text: str) -> None
 
 async def _handle_reopen(
     update: Update, context: ContextTypes.DEFAULT_TYPE,
-    session: UserSession, query,
+    session: UserSession, query, locale: str,
 ) -> None:
     """Re-send an old message at the bottom of the chat with a fresh keyboard."""
     old_msg_id = query.message.message_id
@@ -170,19 +176,23 @@ async def _handle_reopen(
     action_types = session.get_action_types(old_msg_id)
 
     if not original_text:
-        # Session data missing (e.g. bot restarted) -- recover from the
-        # Telegram reply chain: the bot message is a reply to the user's text.
         replied = query.message.reply_to_message
         if not (replied and replied.text):
-            await query.edit_message_text(text=MSG_EXPIRED, reply_markup=None)
+            await query.edit_message_text(
+                text=t(MsgExpired, locale), reply_markup=None,
+            )
             return
         try:
             lang, action_types = await detect_and_get_actions(replied.text)
         except TextTooLongException:
-            await query.edit_message_text(text=MSG_TOO_LONG, reply_markup=None)
+            await query.edit_message_text(
+                text=t(MsgTooLong, locale), reply_markup=None,
+            )
             return
         except LanguageNotDetectedException:
-            await query.edit_message_text(text=MSG_UNKNOWN_LANGUAGE, reply_markup=None)
+            await query.edit_message_text(
+                text=t(MsgUnknownLanguage, locale), reply_markup=None,
+            )
             return
         original_text = replied.text
 
@@ -190,7 +200,7 @@ async def _handle_reopen(
 
     new_reply = await context.bot.send_message(
         chat_id=chat_id,
-        text=MSG_CHOOSE_ACTION,
+        text=t(MsgChooseAction, locale),
         reply_markup=make_keyboard(action_types),
         reply_to_message_id=query.message.reply_to_message.message_id
         if query.message.reply_to_message

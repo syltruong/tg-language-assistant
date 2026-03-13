@@ -3,12 +3,14 @@ import logging
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from bot.config.strings import (
-    MSG_CHOOSE_ACTION,
-    MSG_THINKING,
-    MSG_TOO_LONG,
-    MSG_UNAUTHORIZED,
-    MSG_UNKNOWN_LANGUAGE,
+from bot.config.messages import (
+    DEFAULT_LOCALE,
+    MsgChooseAction,
+    MsgThinking,
+    MsgTooLong,
+    MsgUnauthorized,
+    MsgUnknownLanguage,
+    t,
 )
 from bot.handlers.auth import _is_authorized
 from bot.handlers.utils import (
@@ -28,9 +30,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     Deflect if message is too long. Otherwise, ask user to choose an action.
     """
+    locale = getattr(update.effective_user, "language_code", None) or DEFAULT_LOCALE
+
     await update.effective_chat.send_action("typing")
     reply = await update.message.reply_text(
-        text=MSG_THINKING,
+        text=t(MsgThinking, locale),
         reply_markup=None,
         reply_to_message_id=update.message.message_id,
     )
@@ -39,22 +43,22 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id if update.effective_user else None
     if not _is_authorized(user_id):
         logger.warning("Unauthorized access attempt by user=%s", user_id)
-        await reply.edit_text(MSG_UNAUTHORIZED)
+        await reply.edit_text(t(MsgUnauthorized, locale))
         return
 
     try:
         lang, action_types = await detect_and_get_actions(update.message.text)
     except TextTooLongException:
-        await reply.edit_text(MSG_TOO_LONG)
+        await reply.edit_text(t(MsgTooLong, locale))
         return
     except LanguageNotDetectedException:
-        await reply.edit_text(MSG_UNKNOWN_LANGUAGE)
+        await reply.edit_text(t(MsgUnknownLanguage, locale))
         return
 
     await close_active_messages(session, context.bot, update.effective_chat.id)
 
     await reply.edit_text(
-        text=MSG_CHOOSE_ACTION,
+        text=t(MsgChooseAction, locale),
         reply_markup=make_keyboard(action_types),
     )
     session.store_original_trigger_message(

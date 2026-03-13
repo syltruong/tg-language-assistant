@@ -4,7 +4,7 @@ from collections.abc import AsyncIterator
 from telegram import InlineKeyboardMarkup
 
 from bot.config import STREAM_CHUNK_SIZE
-from bot.config.strings import MSG_NO_CONTENT
+from bot.config.messages import MsgNoContent, t
 
 
 async def _stream_response(
@@ -44,7 +44,7 @@ async def _stream_response(
             )
 
     await query.edit_message_text(
-        text=accumulated or MSG_NO_CONTENT,
+        text=accumulated or t(MsgNoContent),
         reply_markup=reply_markup,
     )
     logging.info(
