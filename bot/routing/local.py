@@ -14,8 +14,17 @@ from lingua import Language, LanguageDetectorBuilder
 from telegram import Message
 
 TEXT_MAX_LENGTH = 500
-SUPPORTED_LANGUAGES = [Language.FRENCH, Language.ENGLISH]
-_detector = LanguageDetectorBuilder.from_languages(*SUPPORTED_LANGUAGES).build()
+SUPPORTED_UI_LANGUAGES = {
+    Language.ENGLISH : "en"
+}
+SUPPORTED_TARGET_LANGUAGES = {
+    Language.FRENCH : "fr"
+}
+SUPPORTED_LANGUAGES = {**SUPPORTED_UI_LANGUAGES, **SUPPORTED_TARGET_LANGUAGES}
+
+# preferable to build the language detection once for all users
+# and reuse it for all language detection operations
+_detector = LanguageDetectorBuilder.from_languages(*SUPPORTED_LANGUAGES.keys()).build()
 
 class UserFacingError(Exception):
     def __init__(self, *args, **format_kwargs):
@@ -46,6 +55,10 @@ def filter_telegram_text_message(message: Message) -> str:
     if not any(unicodedata.category(ch).startswith("L") for ch in text):
         raise TextHasNoWrittenContentException()
 
-def detect_language(text: str, languages: list[Language]) -> Language:
+def detect_language(text: str, languages: list[Language]) -> str:
+    
+    for lang in languages:
+        assert lang in SUPPORTED_LANGUAGES, f"Language {lang} is not supported. Supported languages are {list(SUPPORTED_LANGUAGES.values())}"
     scores = [_detector.compute_language_confidence(text, language=language) for language in languages]
-    return languages[scores.index(max(scores))]
+    
+    return SUPPORTED_LANGUAGES[languages[scores.index(max(scores))]]

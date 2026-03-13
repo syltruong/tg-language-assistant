@@ -6,8 +6,8 @@ import pytest
 from lingua import Language
 
 from bot.routing.local import (
-    SUPPORTED_LANGUAGES,
     MessageHasNoTextException,
+    SUPPORTED_LANGUAGES,
     TextHasNoWrittenContentException,
     TextTooLongException,
     detect_language,
@@ -74,9 +74,9 @@ class TestFilterValidText:
 # ── detect_language ──────────────────────────────────────────────────
 
 
-def _others(target: Language) -> list[Language]:
-    """All supported languages except *target*."""
-    return [lang for lang in SUPPORTED_LANGUAGES if lang != target]
+def _supported_languages() -> list[Language]:
+    """All supported languages (UI + target) for detect_language."""
+    return list(SUPPORTED_LANGUAGES.keys())
 
 
 class TestDetectLanguageFrench:
@@ -85,9 +85,8 @@ class TestDetectLanguageFrench:
         "Je voudrais un café s'il vous plaît",
         "Les enfants jouent dans le jardin",
     ])
-    @pytest.mark.parametrize("other_language", _others(Language.FRENCH))
-    def test_french_detected(self, text, other_language):
-        assert detect_language(text, [Language.FRENCH, other_language]) == Language.FRENCH
+    def test_french_detected(self, text):
+        assert detect_language(text, _supported_languages()) == "fr"
 
 
 class TestDetectLanguageEnglish:
@@ -96,6 +95,5 @@ class TestDetectLanguageEnglish:
         "The weather is beautiful this morning",
         "I would like to order a coffee please",
     ])
-    @pytest.mark.parametrize("other_language", _others(Language.ENGLISH))
-    def test_english_detected(self, text, other_language):
-        assert detect_language(text, [Language.ENGLISH, other_language]) == Language.ENGLISH
+    def test_english_detected(self, text):
+        assert detect_language(text, _supported_languages()) == "en"
