@@ -1,7 +1,7 @@
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from bot.config.messages import DEFAULT_LOCALE, t, MsgUnknownLanguage
+from bot.config.messages import t, MsgUnknownLanguage
 from bot.routing.local import SUPPORTED_LANGUAGES, UserFacingError, detect_language, filter_telegram_text_message
 
 
@@ -11,7 +11,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     Validates the message, detects its language, and replies.
     """
     # TODO: allow user to set locale in the /start menu and retrieve from context.user_data
-    locale = DEFAULT_LOCALE
+    locale = "en"
     target_language = "fr"
 
     await update.effective_chat.send_action("typing")

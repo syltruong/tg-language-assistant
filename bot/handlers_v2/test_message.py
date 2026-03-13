@@ -1,10 +1,9 @@
 """Unit tests for the message handler."""
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from lingua import Language
 from telegram import Chat, Message, Update, User
 
-from bot.config.messages import MsgChooseAction, t
+from bot.config.messages import t
 from bot.handlers_v2.message import handle_message
 from bot.routing.local import (
     MessageHasNoTextException,
