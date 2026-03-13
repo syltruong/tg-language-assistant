@@ -50,7 +50,7 @@ def make_context() -> MagicMock:
 # ── Happy path ───────────────────────────────────────────────────────
 
 
-@patch("bot.handlers_v2.message.detect_language", return_value=Language.FRENCH)
+@patch("bot.handlers_v2.message.detect_language", return_value="fr")
 @patch("bot.handlers_v2.message.filter_telegram_text_message")
 class TestHandleMessageHappyPath:
     async def test_sends_typing_action(self, _mock_filter, _mock_detect):

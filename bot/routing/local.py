@@ -42,12 +42,11 @@ class TextTooLongException(UserFacingError):
 
 def filter_telegram_text_message(message: Message) -> str:
     """Filter out messages that don't have text."""
-    text = message.text
     
-    if text is None:
+    if message is None or message.text is None:
         raise MessageHasNoTextException()
     
-    text = text.strip()
+    text = message.text.strip()
     
     if len(text) > TEXT_MAX_LENGTH:
         raise TextTooLongException()

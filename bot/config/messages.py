@@ -87,6 +87,7 @@ CATALOGS: dict[str, dict[type, str]] = {
         MsgUnauthorized: "Sorry, you are not authorized to use this bot.",
         MsgAiError: "Error calling AI: {error}",
         MsgTooLong: "Message is too long. Please keep it under 500 characters.",
+        # TODO: change to a template and populate with user's chosen languages
         MsgUnknownLanguage: (
             "Sorry, I couldn't detect the language."
             " Please send text in French or English."
