@@ -1,0 +1,106 @@
+"""Locale-aware UI string catalog.
+
+Exception classes and ``MsgKey`` subclasses serve as dictionary keys.
+Call ``t(key, locale)`` to resolve the user-facing string.
+"""
+
+from __future__ import annotations
+
+from bot.routing.local import (
+    MessageHasNoTextException,
+    TextHasNoWrittenContentException,
+    TextTooLongException,
+)
+
+DEFAULT_LOCALE = "en"
+
+
+# ── Non-error UI string keys ─────────────────────────────────────────
+
+
+class MsgKey:
+    """Base class for non-error UI string keys."""
+
+
+class MsgChooseAction(MsgKey):
+    pass
+
+
+class MsgClear(MsgKey):
+    pass
+
+
+class MsgThinking(MsgKey):
+    pass
+
+
+class MsgNoContent(MsgKey):
+    pass
+
+
+class MsgExpired(MsgKey):
+    pass
+
+
+class MsgUnknownAction(MsgKey):
+    pass
+
+
+class MsgNoMessage(MsgKey):
+    pass
+
+
+class MsgUnauthorized(MsgKey):
+    pass
+
+
+class MsgAiError(MsgKey):
+    pass
+
+
+class MsgTooLong(MsgKey):
+    pass
+
+
+class MsgUnknownLanguage(MsgKey):
+    pass
+
+
+# ── Catalogs ─────────────────────────────────────────────────────────
+
+
+CATALOGS: dict[str, dict[type, str]] = {
+    "en": {
+        # Error strings (keyed by routing/local.py exceptions)
+        TextTooLongException: "Message is too long. Please keep it under 500 characters.",
+        MessageHasNoTextException: "No message to process. Send a message first.",
+        TextHasNoWrittenContentException: "Please send text with actual written content.",
+
+        # UI strings (MsgKey-keyed)
+        MsgChooseAction: "What can I help you with?",
+        MsgClear: "Okay thanks bye! Send another message if you need anything else ✨",
+        MsgThinking: "🤔 Thinking...",
+        MsgNoContent: "(no content)",
+        MsgExpired: "This message has expired. Please send a new one.",
+        MsgUnknownAction: "Unknown action.",
+        MsgNoMessage: "No message to process. Send a message first.",
+        MsgUnauthorized: "Sorry, you are not authorized to use this bot.",
+        MsgAiError: "Error calling AI: {error}",
+        MsgTooLong: "Message is too long. Please keep it under 500 characters.",
+        MsgUnknownLanguage: (
+            "Sorry, I couldn't detect the language."
+            " Please send text in French or English."
+        ),
+    },
+    # "fr": {
+    #     TextTooLongException: "Le message est trop long. ...",
+    #     ...
+    # },
+}
+
+
+def t(key: type, locale: str = DEFAULT_LOCALE, **kwargs) -> str:
+    """Resolve a UI string by key and locale, with English fallback."""
+    catalog = CATALOGS.get(locale, CATALOGS[DEFAULT_LOCALE])
+    template = catalog.get(key, CATALOGS[DEFAULT_LOCALE][key])
+    return template.format(**kwargs) if kwargs else template
