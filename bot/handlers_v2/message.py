@@ -2,7 +2,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from bot.config.messages import t, MsgUnknownLanguage
-from bot.routing.local import SUPPORTED_LANGUAGES, UserFacingError, detect_language, filter_telegram_text_message
+from bot.routing.local import SUPPORTED_LANGUAGES, UserFacingError, detect_language, filter_telegram_message
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -17,7 +17,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     await update.effective_chat.send_action("typing")
 
     try:
-        filter_telegram_text_message(update.message)
+        filter_telegram_message(update)
     except UserFacingError as exc:
         await update.message.reply_text(t(type(exc), locale))
         return

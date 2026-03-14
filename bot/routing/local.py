@@ -1,9 +1,10 @@
 """
 The first layer of processing an incoming message
 
-1. Is it text? (eg. not image, voice, video, file etc.)
-2. Does it contain any written content? Not just symbols, emojis, etc.
-3. What language is it?
+1. Is the user authorised?
+2. Is it text? (eg. not image, voice, video, file etc.)
+3. Does it contain any written content? Not just symbols, emojis, etc.
+4. What language is it?
    a. Gibberish
    b. Among a set of languages
 """
@@ -11,7 +12,9 @@ The first layer of processing an incoming message
 import unicodedata
 
 from lingua import Language, LanguageDetectorBuilder
-from telegram import Message
+from telegram import Update
+
+import os
 
 TEXT_MAX_LENGTH = 500
 SUPPORTED_UI_LANGUAGES = {
@@ -40,17 +43,33 @@ class TextHasNoWrittenContentException(UserFacingError):
 class TextTooLongException(UserFacingError):
     pass
 
-def filter_telegram_text_message(message: Message) -> str:
-    """Filter out messages that don't have text."""
-    
+
+class UnauthorizedException(UserFacingError):
+    pass
+
+
+def _is_authorized(user_id: int | None) -> bool:
+    """Return True if the user is allowed to use the bot."""
+    allowed_users = os.getenv("ALLOWED_USERS", "").split(",")
+    if not allowed_users:
+        return True
+    return user_id in allowed_users
+
+
+def filter_telegram_message(update: Update) -> None:
+    """Filter out unauthorised users and messages that don't have text."""
+    if not _is_authorized(update.effective_user.id if update.effective_user else None):
+        raise UnauthorizedException()
+
+    message = update.message
     if message is None or message.text is None:
         raise MessageHasNoTextException()
-    
+
     text = message.text.strip()
-    
+
     if len(text) > TEXT_MAX_LENGTH:
         raise TextTooLongException()
-    
+
     if not any(unicodedata.category(ch).startswith("L") for ch in text):
         raise TextHasNoWrittenContentException()
 

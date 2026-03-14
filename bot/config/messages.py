@@ -10,6 +10,7 @@ from bot.routing.local import (
     MessageHasNoTextException,
     TextHasNoWrittenContentException,
     TextTooLongException,
+    UnauthorizedException,
 )
 
 DEFAULT_LOCALE = "en"
@@ -75,6 +76,7 @@ CATALOGS: dict[str, dict[type, str]] = {
         TextTooLongException: "Message is too long. Please keep it under 500 characters.",
         MessageHasNoTextException: "No message to process. Send a message first.",
         TextHasNoWrittenContentException: "Please send text with actual written content.",
+        UnauthorizedException: "Sorry, you are not authorized to use this bot.",
 
         # UI strings (MsgKey-keyed)
         MsgChooseAction: "What can I help you with?",

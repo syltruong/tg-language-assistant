@@ -1,5 +1,5 @@
 """Test the local routing module."""
-from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
 
@@ -10,34 +10,45 @@ from bot.routing.local import (
     SUPPORTED_LANGUAGES,
     TextHasNoWrittenContentException,
     TextTooLongException,
+    UnauthorizedException,
     detect_language,
-    filter_telegram_text_message,
+    filter_telegram_message,
 )
-
-def _make_message(text: str | None) -> MagicMock:
-    msg = MagicMock()
-    msg.text = text
-    return msg
+from tests.factories import make_update
 
 
-# ── filter_telegram_text_message ─────────────────────────────────────
+# ── filter_telegram_message ───────────────────────────────────────────
 
 
+@patch("bot.routing.local._is_authorized", side_effect=lambda uid: uid == 123)
+class TestFilterUnauthorized:
+    @pytest.mark.parametrize("user_id", [999, 0])
+    def test_unauthorized_user_raises_when_allowlist_set(self, _mock_auth, user_id):
+        with pytest.raises(UnauthorizedException):
+            filter_telegram_message(make_update("Hello", user_id=user_id))
+
+    def test_authorized_user_passes_when_allowlist_set(self, _mock_auth):
+        filter_telegram_message(make_update("Hello", user_id=123))
+
+
+@patch("bot.routing.local._is_authorized", return_value=True)
 class TestFilterNoText:
-    def test_none_text_raises(self):
+    def test_none_text_raises(self, _mock_auth):
         with pytest.raises(MessageHasNoTextException):
-            filter_telegram_text_message(_make_message(None))
+            filter_telegram_message(make_update(None))
 
 
+@patch("bot.routing.local._is_authorized", return_value=True)
 class TestFilterTooLong:
-    def test_exceeds_max_length(self):
+    def test_exceeds_max_length(self, _mock_auth):
         with pytest.raises(TextTooLongException):
-            filter_telegram_text_message(_make_message("a" * 501))
+            filter_telegram_message(make_update("a" * 501))
 
-    def test_exactly_at_max_length_passes(self):
-        filter_telegram_text_message(_make_message("a" * 500))
+    def test_exactly_at_max_length_passes(self, _mock_auth):
+        filter_telegram_message(make_update("a" * 500))
 
 
+@patch("bot.routing.local._is_authorized", return_value=True)
 class TestFilterNoWrittenContent:
     @pytest.mark.parametrize("text", [
         "!!!???",
@@ -48,11 +59,12 @@ class TestFilterNoWrittenContent:
         "🇫🇷🇬🇧",
         "$$€€¥¥",
     ])
-    def test_no_letters_raises(self, text):
+    def test_no_letters_raises(self, _mock_auth, text):
         with pytest.raises(TextHasNoWrittenContentException):
-            filter_telegram_text_message(_make_message(text))
+            filter_telegram_message(make_update(text))
 
 
+@patch("bot.routing.local._is_authorized", return_value=True)
 class TestFilterValidText:
     @pytest.mark.parametrize("text", [
         "Hello",
@@ -63,12 +75,12 @@ class TestFilterValidText:
         "a",
         "Hello Bonjour Ciao",
     ])
-    def test_valid_text_passes(self, text):
-        filter_telegram_text_message(_make_message(text))
+    def test_valid_text_passes(self, _mock_auth, text):
+        filter_telegram_message(make_update(text))
 
-    def test_strips_whitespace_before_length_check(self):
+    def test_strips_whitespace_before_length_check(self, _mock_auth):
         padded = "  " + "a" * 500 + "  "
-        filter_telegram_text_message(_make_message(padded))
+        filter_telegram_message(make_update(padded))
 
 
 # ── detect_language ──────────────────────────────────────────────────
