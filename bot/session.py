@@ -12,7 +12,6 @@ from telegram.ext import ContextTypes
 
 from bot.types import ActionType, ReplySuggestion
 
-
 _MAX_ACTIVE_MESSAGES = 5
 
 

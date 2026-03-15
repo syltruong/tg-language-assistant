@@ -1,21 +1,19 @@
+from loguru import logger
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from bot.config.messages import t, MsgUnknownLanguage
+from bot.config.lang import LANGUAGE_NAMES, SUPPORTED_LANGUAGES
+from bot.config.messages import MsgUnknownLanguage, t
 from bot.handlers_v2.response import send_response, stream_response
 from bot.llm import get_completion, stream_completion
-from bot.config.lang import LANGUAGE_NAMES, SUPPORTED_LANGUAGES
+from bot.prompts_v2 import PROMPTS, SYSTEM_PROMPT
 from bot.routing.local import (
     UserFacingError,
     detect_language,
     filter_telegram_message,
 )
 from bot.session import UserSession
-
-from bot.prompts_v2 import PROMPTS, SYSTEM_PROMPT
 from bot.types import ActionType
-
-from loguru import logger
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

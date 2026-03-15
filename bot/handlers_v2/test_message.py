@@ -11,7 +11,6 @@ from bot.routing.local import (
 )
 from tests.factories import make_context, make_update
 
-
 # ── Happy path ───────────────────────────────────────────────────────
 
 

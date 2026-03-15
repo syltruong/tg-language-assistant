@@ -3,7 +3,6 @@
 from unittest.mock import patch
 
 import pytest
-
 from lingua import Language
 
 from bot.config.lang import SUPPORTED_LANGUAGES
@@ -16,7 +15,6 @@ from bot.routing.local import (
     filter_telegram_message,
 )
 from tests.factories import make_update
-
 
 # ── filter_telegram_message ───────────────────────────────────────────
 
