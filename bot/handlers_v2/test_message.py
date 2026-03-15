@@ -140,12 +140,12 @@ class TestLanguageBranching:
         )
 
 
-# ── _handle_message_in_ui_language ───────────────────────────────────
+# ── _handle_message_in_base_language ───────────────────────────────────
 
 
 @patch("bot.handlers_v2.message.stream_completion")
 @patch("bot.handlers_v2.message.stream_response", new_callable=AsyncMock)
-class TestHandleMessageInUiLanguage:
+class TestHandleMessageInBaseLanguage:
     async def test_calls_stream_response_with_reply(
         self, mock_stream_resp, mock_stream_comp,
     ):
@@ -154,7 +154,7 @@ class TestHandleMessageInUiLanguage:
         await handle_message(update, context)
 
         # detect_language not patched — runs real detection, "Hello friend" → "en"
-        # which matches default base_language, so _handle_message_in_ui_language runs
+        # which matches default base_language, so _handle_message_in_base_language runs
         # Assert that stream_response (the stream reply handler) is called once as expected
         mock_stream_resp.assert_called_once()
 

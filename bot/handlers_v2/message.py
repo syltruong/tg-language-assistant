@@ -42,7 +42,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     lang = detect_language(text, list(SUPPORTED_LANGUAGES.keys()))
 
     if lang == base_language:
-        await _handle_message_in_ui_language(update, context)
+        await _handle_message_in_base_language(update, context)
     elif lang == target_language:
         await _handle_message_in_target_language(update, context)
     else:
@@ -50,7 +50,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
 
 
-async def _handle_message_in_ui_language(
+async def _handle_message_in_base_language(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
     """
