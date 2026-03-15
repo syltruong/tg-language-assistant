@@ -4,8 +4,8 @@ from telegram.ext import ContextTypes
 from bot.config.messages import t, MsgUnknownLanguage
 from bot.handlers_v2.response import send_response, stream_response
 from bot.llm import get_completion, stream_completion
+from bot.config.lang import LANGUAGE_NAMES, SUPPORTED_LANGUAGES
 from bot.routing.local import (
-    SUPPORTED_LANGUAGES,
     UserFacingError,
     detect_language,
     filter_telegram_message,
@@ -68,12 +68,14 @@ async def _handle_message_in_base_language(
 
     text = update.message.text.strip()
 
-    # TODO: map ISO 639-1 codes to language names
+    base_name = LANGUAGE_NAMES[base_language]
+    target_name = LANGUAGE_NAMES[target_language]
+
     system_prompt = SYSTEM_PROMPT.format(
-        base_language=base_language, target_language=target_language
+        base_language=base_name, target_language=target_name
     )
     user_prompt = PROMPTS[ActionType.TRANSLATE].format(
-        base_language=base_language, target_language=target_language, text=text
+        base_language=base_name, target_language=target_name, text=text
     )
 
     try:

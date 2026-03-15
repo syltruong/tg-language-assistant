@@ -9,17 +9,15 @@ The first layer of processing an incoming message
    b. Among a set of languages
 """
 
+import os
 import unicodedata
 
 from lingua import Language, LanguageDetectorBuilder
 from telegram import Update
 
-import os
+from bot.config.lang import SUPPORTED_LANGUAGES
 
 TEXT_MAX_LENGTH = 500
-SUPPORTED_UI_LANGUAGES = {Language.ENGLISH: "en"}
-SUPPORTED_TARGET_LANGUAGES = {Language.FRENCH: "fr"}
-SUPPORTED_LANGUAGES = {**SUPPORTED_UI_LANGUAGES, **SUPPORTED_TARGET_LANGUAGES}
 
 # preferable to build the language detection once for all users
 # and reuse it for all language detection operations

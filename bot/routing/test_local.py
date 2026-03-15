@@ -6,9 +6,9 @@ import pytest
 
 from lingua import Language
 
+from bot.config.lang import SUPPORTED_LANGUAGES
 from bot.routing.local import (
     MessageHasNoTextException,
-    SUPPORTED_LANGUAGES,
     TextHasNoWrittenContentException,
     TextTooLongException,
     UnauthorizedException,

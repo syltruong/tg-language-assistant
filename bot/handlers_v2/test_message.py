@@ -101,18 +101,18 @@ class TestHandleMessageErrors:
 @patch("bot.handlers_v2.message.filter_telegram_message")
 class TestLanguageBranching:
     @patch(
-        "bot.handlers_v2.message._handle_message_in_ui_language",
+        "bot.handlers_v2.message._handle_message_in_base_language",
         new_callable=AsyncMock,
     )
     @patch("bot.handlers_v2.message.detect_language", return_value="en")
     async def test_base_language_calls_ui_handler(
-        self, _mock_detect, mock_ui_handler, _mock_filter,
+        self, _mock_detect, mock_base_handler, _mock_filter,
     ):
         update = make_update("Hello there")
         context = make_context()
         await handle_message(update, context)
 
-        mock_ui_handler.assert_called_once_with(update, context)
+        mock_base_handler.assert_called_once_with(update, context)
 
     @patch(
         "bot.handlers_v2.message._handle_message_in_target_language",
@@ -143,25 +143,22 @@ class TestLanguageBranching:
 # ── _handle_message_in_base_language ───────────────────────────────────
 
 
+@patch("bot.handlers_v2.message.filter_telegram_message")
 @patch("bot.handlers_v2.message.stream_completion")
 @patch("bot.handlers_v2.message.stream_response", new_callable=AsyncMock)
 class TestHandleMessageInBaseLanguage:
     async def test_calls_stream_response_with_reply(
-        self, mock_stream_resp, mock_stream_comp,
+        self, mock_stream_resp, mock_stream_comp, _mock_filter,
     ):
         update = make_update("Hello friend")
         context = make_context()
         await handle_message(update, context)
 
-        # detect_language not patched — runs real detection, "Hello friend" → "en"
-        # which matches default base_language, so _handle_message_in_base_language runs
-        # Assert that stream_response (the stream reply handler) is called once as expected
         mock_stream_resp.assert_called_once()
 
-    @patch("bot.handlers_v2.message.filter_telegram_message")
     @patch("bot.handlers_v2.message.detect_language", return_value="en")
     async def test_streams_translation_as_reply(
-        self, _mock_detect, _mock_filter, mock_stream_resp, _mock_stream_comp,
+        self, _mock_detect, mock_stream_resp, _mock_stream_comp, _mock_filter,
     ):
         update = make_update("Hello friend")
         context = make_context()
@@ -172,10 +169,9 @@ class TestHandleMessageInBaseLanguage:
         assert call_kwargs.kwargs["reply_to_message_id"] == update.message.message_id
         assert call_kwargs.kwargs["chat_id"] == update.effective_chat.id
 
-    @patch("bot.handlers_v2.message.filter_telegram_message")
     @patch("bot.handlers_v2.message.detect_language", return_value="en")
     async def test_falls_back_to_send_response_on_stream_error(
-        self, _mock_detect, _mock_filter, mock_stream_resp, _mock_stream_comp,
+        self, _mock_detect, mock_stream_resp, _mock_stream_comp, _mock_filter,
     ):
         mock_stream_resp.side_effect = Exception("stream broke")
 
