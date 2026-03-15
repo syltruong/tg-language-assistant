@@ -9,6 +9,7 @@ from bot.routing.local import (
     TextHasNoWrittenContentError,
     TextTooLongError,
 )
+from bot.session import UserSession
 from tests.factories import make_context, make_update
 
 # ── Happy path ───────────────────────────────────────────────────────
@@ -114,7 +115,12 @@ class TestLanguageBranching:
         context = make_context()
         await handle_message(update, context)
 
-        mock_base_handler.assert_called_once_with(update, context)
+        mock_base_handler.assert_called_once()
+        _, _, session = mock_base_handler.call_args[0]
+        assert session is not None
+        assert isinstance(session, UserSession)
+        assert session.base_language == "en"
+        assert session.target_language == "fr"
 
     @patch(
         "bot.handlers_v2.message._handle_message_in_target_language",
@@ -131,7 +137,12 @@ class TestLanguageBranching:
         context = make_context()
         await handle_message(update, context)
 
-        mock_target_handler.assert_called_once_with(update, context)
+        mock_target_handler.assert_called_once()
+        _, _, session = mock_target_handler.call_args[0]
+        assert session is not None
+        assert isinstance(session, UserSession)
+        assert session.base_language == "en"
+        assert session.target_language == "fr"
 
     @patch("bot.handlers_v2.message.detect_language", return_value="de")
     async def test_unknown_language_replies_with_error(

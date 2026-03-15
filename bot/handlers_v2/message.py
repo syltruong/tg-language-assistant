@@ -2,7 +2,7 @@ from loguru import logger
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from bot.config.lang import LANGUAGE_NAMES, SUPPORTED_LANGUAGES
+from bot.config.lang import SUPPORTED_LANGUAGES
 from bot.config.messages import MsgUnknownLanguage, t
 from bot.handlers_v2.response import send_response, stream_response
 from bot.llm import get_completion, stream_completion
@@ -40,16 +40,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     lang = detect_language(text, list(SUPPORTED_LANGUAGES.keys()))
 
     if lang == base_language:
-        await _handle_message_in_base_language(update, context)
+        await _handle_message_in_base_language(update, context, session)
     elif lang == target_language:
-        await _handle_message_in_target_language(update, context)
+        await _handle_message_in_target_language(update, context, session)
     else:
         await update.message.reply_text(t(MsgUnknownLanguage, base_language))
         return
 
 
 async def _handle_message_in_base_language(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    session: UserSession,
 ) -> None:
     """
     Handle message in UI language.
@@ -58,21 +60,15 @@ async def _handle_message_in_base_language(
 
     Prompt idea: confirm message language, then translate to target.
     """
-
-    # TODO: optimise and avoid calling UserSession.from_context(context) multiple times
-    session = UserSession.from_context(context)
-
     text = update.message.text.strip()
 
-    base_language_name = LANGUAGE_NAMES[session.base_language]
-    target_language_name = LANGUAGE_NAMES[session.target_language]
-
     system_prompt = SYSTEM_PROMPT.format(
-        base_language=base_language_name, target_language=target_language_name
+        base_language=session.base_language_name,
+        target_language=session.target_language_name,
     )
     user_prompt = PROMPTS[ActionType.TRANSLATE].format(
-        base_language=base_language_name,
-        target_language=target_language_name,
+        base_language=session.base_language_name,
+        target_language=session.target_language_name,
         text=text,
     )
 
@@ -99,7 +95,9 @@ async def _handle_message_in_base_language(
 
 
 async def _handle_message_in_target_language(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    session: UserSession,
 ) -> None:
     """
     Handle message in target language.

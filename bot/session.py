@@ -12,6 +12,7 @@ import contextlib
 
 from telegram.ext import ContextTypes
 
+from bot.config.lang import LANGUAGE_NAMES
 from bot.types import ActionType, ReplySuggestion
 
 _MAX_ACTIVE_MESSAGES = 5
@@ -65,6 +66,14 @@ class UserSession:
     @target_language.setter
     def target_language(self, value: str) -> None:
         self._data[self._KEY_TARGET_LANGUAGE] = value
+
+    @property
+    def base_language_name(self) -> str:
+        return LANGUAGE_NAMES[self.base_language]
+
+    @property
+    def target_language_name(self) -> str:
+        return LANGUAGE_NAMES[self.target_language]
 
     # ── per-message state ────────────────────────────────────────
 
