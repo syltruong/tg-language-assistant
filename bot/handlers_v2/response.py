@@ -56,6 +56,7 @@ async def send_response(
     *,
     reply_to_message_id: int | None = None,
     reply_markup: InlineKeyboardMarkup | None = None,
+    parse_mode: str | None = None,
 ) -> None:
     """Send a new message with the LLM response, replying to an existing message."""
     await bot.send_message(
@@ -63,4 +64,5 @@ async def send_response(
         text=text,
         reply_to_message_id=reply_to_message_id,
         reply_markup=reply_markup,
+        parse_mode=parse_mode,
     )

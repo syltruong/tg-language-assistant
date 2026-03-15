@@ -11,6 +11,7 @@ class ActionType(StrEnum):
     """
 
     TRANSLATE = "translate"
+    TRANSLATE_WITH_CONTEXT = "translate_with_context"
     ANALYZE = "analyze"
     REPLY = "reply"
     CORRECT = "correct"

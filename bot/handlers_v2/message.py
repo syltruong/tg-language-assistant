@@ -1,9 +1,12 @@
+import html
+import json
+
 from loguru import logger
 from telegram import Update
 from telegram.ext import ContextTypes
 
 from bot.config.lang import SUPPORTED_LANGUAGES
-from bot.config.messages import MsgUnknownLanguage, t
+from bot.config.messages import MsgUnknownLanguage, MsgWantToGoDeeper, t
 from bot.handlers_v2.response import send_response, stream_response
 from bot.llm import get_completion, stream_completion
 from bot.prompts_v2 import PROMPTS, SYSTEM_PROMPT
@@ -67,8 +70,8 @@ async def _handle_message_in_base_language(
         target_language=session.target_language_name,
     )
     user_prompt = PROMPTS[ActionType.TRANSLATE].format(
-        base_language=session.base_language_name,
-        target_language=session.target_language_name,
+        from_language=session.base_language_name,
+        to_language=session.target_language_name,
         text=text,
     )
 
@@ -81,11 +84,13 @@ async def _handle_message_in_base_language(
             reply_to_message_id=update.message.message_id,
         )
     except Exception as e:
+        # TODO: check that if stream_response raises an exception, the fallback is able to
+        # override the in-progress message with a new message.
         logger.warning(
             "Streaming failed, falling back to non-streaming: %s",
             e,
         )
-        result = await get_completion(system_prompt, user_prompt)
+        result = await get_completion(system_prompt=system_prompt, user_prompt=user_prompt)
         await send_response(
             bot=context.bot,
             chat_id=update.effective_chat.id,
@@ -106,4 +111,34 @@ async def _handle_message_in_target_language(
     3. Reply with keyboard markup
     """
 
-    pass
+    text = update.message.text.strip()
+
+    system_prompt = SYSTEM_PROMPT.format(
+        base_language=session.base_language_name,
+        target_language=session.target_language_name,
+    )
+    user_prompt = PROMPTS[ActionType.TRANSLATE_WITH_CONTEXT].format(
+        from_language=session.target_language_name,
+        to_language=session.base_language_name,
+        text=text,
+    )
+
+    # TODO: handle LLM not returning valid JSON
+    result = json.loads(
+        await get_completion(system_prompt=system_prompt, user_prompt=user_prompt)
+    )
+    translation = result["translation"]
+    one_line_context = result["one_line_context"]
+
+    formatted = (
+        f"<blockquote>{html.escape(translation)}</blockquote>\n"
+        f"👉 <i>{html.escape(one_line_context)}</i>\n\n"
+        f"{t(MsgWantToGoDeeper, base_language=session.base_language)}"
+    )
+    await send_response(
+        bot=context.bot,
+        chat_id=update.effective_chat.id,
+        text=formatted,
+        reply_to_message_id=update.message.message_id,
+        parse_mode="HTML",
+    )

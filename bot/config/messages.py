@@ -66,6 +66,8 @@ class MsgTooLong(MsgKey):
 class MsgUnknownLanguage(MsgKey):
     pass
 
+class MsgWantToGoDeeper(MsgKey):
+    pass
 
 # ── Catalogs ─────────────────────────────────────────────────────────
 
@@ -97,6 +99,7 @@ CATALOGS: dict[str, dict[type, str]] = {
             "Sorry, I couldn't detect the language."
             " Please send text in French or English."
         ),
+        MsgWantToGoDeeper: "Want to go deeper? 🤿",
     },
     # "fr": {
     #     TextTooLongError: "Le message est trop long. ...",
