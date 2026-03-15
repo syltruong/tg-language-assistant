@@ -10,14 +10,14 @@ from bot.config.messages import MsgUnknownLanguage, MsgWantToGoDeeper, t
 from bot.handlers_v2.keyboard import KEYBOARD
 from bot.handlers_v2.response import send_response, stream_response
 from bot.llm import get_completion, stream_completion
-from bot.prompts_v2 import PROMPTS, SYSTEM_PROMPT
+from bot.prompts_v2 import INSTANT_PROMPTS, SYSTEM_PROMPT
 from bot.routing.local import (
     UserFacingError,
     detect_language,
     filter_telegram_message,
 )
 from bot.session import UserSession
-from bot.types import ActionType
+from bot.types import InstantActionType
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle incoming text messages.
@@ -69,7 +69,7 @@ async def _handle_message_in_base_language(
         base_language=session.base_language_name,
         target_language=session.target_language_name,
     )
-    user_prompt = PROMPTS[ActionType.TRANSLATE].format(
+    user_prompt = INSTANT_PROMPTS[InstantActionType.TRANSLATE].format(
         from_language=session.base_language_name,
         to_language=session.target_language_name,
         text=text,
@@ -117,7 +117,7 @@ async def _handle_message_in_target_language(
         base_language=session.base_language_name,
         target_language=session.target_language_name,
     )
-    user_prompt = PROMPTS[ActionType.TRANSLATE_WITH_CONTEXT].format(
+    user_prompt = INSTANT_PROMPTS[InstantActionType.TRANSLATE_WITH_CONTEXT].format(
         from_language=session.target_language_name,
         to_language=session.base_language_name,
         text=text,

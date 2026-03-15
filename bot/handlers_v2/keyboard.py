@@ -4,13 +4,13 @@ from telegram.ext import ContextTypes
 
 from bot.handlers_v2.response import send_response
 from bot.session import UserSession
-from bot.types import ActionType
+from bot.types import KeyboardActionType
 
-ACTION_TITLES: dict[ActionType, str] = {
-    ActionType.ANALYZE: "📖 Analyze",
-    ActionType.CORRECT: "✏️ Correct",
-    ActionType.REPHRASE: "🔄 Rephrase",
-    ActionType.REPLY: "💬 Reply",
+ACTION_TITLES: dict[KeyboardActionType, str] = {
+    KeyboardActionType.ANALYZE: "📖 Analyze",
+    KeyboardActionType.CORRECT: "✏️ Correct",
+    KeyboardActionType.REPHRASE: "🧠 Rephrase",
+    KeyboardActionType.REPLY: "💬 Reply",
 }
 
 BUTTON_ACTIONS = list(ACTION_TITLES.keys())
@@ -18,12 +18,12 @@ BUTTON_ACTIONS = list(ACTION_TITLES.keys())
 KEYBOARD = InlineKeyboardMarkup(
     [
         [
-            InlineKeyboardButton(ACTION_TITLES[ActionType.ANALYZE], callback_data=ActionType.ANALYZE),
-            InlineKeyboardButton(ACTION_TITLES[ActionType.CORRECT], callback_data=ActionType.CORRECT),
+            InlineKeyboardButton(ACTION_TITLES[KeyboardActionType.ANALYZE], callback_data=KeyboardActionType.ANALYZE),
+            InlineKeyboardButton(ACTION_TITLES[KeyboardActionType.CORRECT], callback_data=KeyboardActionType.CORRECT),
         ],
         [
-            InlineKeyboardButton(ACTION_TITLES[ActionType.REPHRASE], callback_data=ActionType.REPHRASE),
-            InlineKeyboardButton(ACTION_TITLES[ActionType.REPLY], callback_data=ActionType.REPLY),
+            InlineKeyboardButton(ACTION_TITLES[KeyboardActionType.REPHRASE], callback_data=KeyboardActionType.REPHRASE),
+            InlineKeyboardButton(ACTION_TITLES[KeyboardActionType.REPLY], callback_data=KeyboardActionType.REPLY),
         ],
     ]
 )
@@ -42,10 +42,10 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
     session = UserSession.from_context(context)
 
     handlers = {
-        ActionType.ANALYZE: _handle_analyze,
-        ActionType.CORRECT: _handle_correct,
-        ActionType.REPHRASE: _handle_rephrase,
-        ActionType.REPLY: _handle_reply,
+        KeyboardActionType.ANALYZE: _handle_analyze,
+        KeyboardActionType.CORRECT: _handle_correct,
+        KeyboardActionType.REPHRASE: _handle_rephrase,
+        KeyboardActionType.REPLY: _handle_reply,
     }
 
     handler = handlers.get(callback_data)
