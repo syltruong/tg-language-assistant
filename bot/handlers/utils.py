@@ -12,14 +12,19 @@ logger = logging.getLogger(__name__)
 
 MAX_MESSAGE_LENGTH = 100
 
+
 class TextTooLongException(Exception):
     pass
+
 
 class LanguageNotDetectedException(Exception):
     pass
 
+
 async def close_active_messages(
-    session: UserSession, bot: Bot, chat_id: int,
+    session: UserSession,
+    bot: Bot,
+    chat_id: int,
 ) -> None:
     """Replace the keyboard on all tracked active messages with [Reopen]."""
     for msg_id in session.get_active_messages():

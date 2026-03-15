@@ -8,7 +8,9 @@ from bot.config.messages import MsgNoContent, t
 
 
 async def _stream_response(
-    query, stream: AsyncIterator[str], reply_markup: InlineKeyboardMarkup,
+    query,
+    stream: AsyncIterator[str],
+    reply_markup: InlineKeyboardMarkup,
 ) -> None:
     """Consume a streaming LLM response, progressively editing the Telegram message.
 
@@ -40,7 +42,8 @@ async def _stream_response(
             last_sent_len = len(accumulated)
             logging.info(
                 "Sent edit update (%d chars) for user=%s",
-                last_sent_len, user_id,
+                last_sent_len,
+                user_id,
             )
 
     await query.edit_message_text(
@@ -49,7 +52,8 @@ async def _stream_response(
     )
     logging.info(
         "Streaming finished for user=%s total_chars=%d",
-        user_id, len(accumulated),
+        user_id,
+        len(accumulated),
     )
 
 

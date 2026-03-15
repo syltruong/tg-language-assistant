@@ -17,21 +17,23 @@ REOPEN_KEYBOARD = InlineKeyboardMarkup(
     [[InlineKeyboardButton("👐 Reopen", callback_data="reopen")]]
 )
 
+
 def make_reply_keyboard(n: int) -> InlineKeyboardMarkup:
     """Return a keyboard with *n* numbered reply buttons and a Back button."""
     reply_row = [
         InlineKeyboardButton(NUMBER_EMOJIS[i], callback_data=f"reply_{i}")
         for i in range(n)
     ]
-    return InlineKeyboardMarkup([
-        reply_row,
-        [InlineKeyboardButton("⬅️ Back", callback_data="back")],
-    ])
+    return InlineKeyboardMarkup(
+        [
+            reply_row,
+            [InlineKeyboardButton("⬅️ Back", callback_data="back")],
+        ]
+    )
 
 
 def make_keyboard(action_types: list[ActionType] | None = None) -> InlineKeyboardMarkup:
-    """Return an inline keyboard whose buttons depend on action_types
-    """
+    """Return an inline keyboard whose buttons depend on action_types"""
 
     action_types = action_types or [
         ActionType.TRANSLATE,
@@ -46,7 +48,7 @@ def make_keyboard(action_types: list[ActionType] | None = None) -> InlineKeyboar
     buttons = [_btn(action) for action in action_types]
     row_size = 2
 
-    keyboard = [
-        buttons[i:i + row_size] for i in range(0, len(buttons), row_size)
-    ] + [_CANCEL_ROW]
+    keyboard = [buttons[i : i + row_size] for i in range(0, len(buttons), row_size)] + [
+        _CANCEL_ROW
+    ]
     return InlineKeyboardMarkup(keyboard)

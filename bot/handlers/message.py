@@ -62,6 +62,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=make_keyboard(action_types),
     )
     session.store_original_trigger_message(
-        reply.message_id, update.message.text, lang, action_types,
+        reply.message_id,
+        update.message.text,
+        lang,
+        action_types,
     )
     session.add_active_message(reply.message_id)

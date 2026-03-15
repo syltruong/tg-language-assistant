@@ -1,4 +1,5 @@
 """Test the local routing module."""
+
 from unittest.mock import patch
 
 import pytest
@@ -50,15 +51,18 @@ class TestFilterTooLong:
 
 @patch("bot.routing.local._is_authorized", return_value=True)
 class TestFilterNoWrittenContent:
-    @pytest.mark.parametrize("text", [
-        "!!!???",
-        "😀😂🔥",
-        "123 456",
-        "---___...",
-        "   ",
-        "🇫🇷🇬🇧",
-        "$$€€¥¥",
-    ])
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "!!!???",
+            "😀😂🔥",
+            "123 456",
+            "---___...",
+            "   ",
+            "🇫🇷🇬🇧",
+            "$$€€¥¥",
+        ],
+    )
     def test_no_letters_raises(self, _mock_auth, text):
         with pytest.raises(TextHasNoWrittenContentException):
             filter_telegram_message(make_update(text))
@@ -66,15 +70,18 @@ class TestFilterNoWrittenContent:
 
 @patch("bot.routing.local._is_authorized", return_value=True)
 class TestFilterValidText:
-    @pytest.mark.parametrize("text", [
-        "Hello",
-        "Bonjour",
-        "Hello 123!",
-        "你好",
-        "café ☕",
-        "a",
-        "Hello Bonjour Ciao",
-    ])
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "Hello",
+            "Bonjour",
+            "Hello 123!",
+            "你好",
+            "café ☕",
+            "a",
+            "Hello Bonjour Ciao",
+        ],
+    )
     def test_valid_text_passes(self, _mock_auth, text):
         filter_telegram_message(make_update(text))
 
@@ -92,20 +99,26 @@ def _supported_languages() -> list[Language]:
 
 
 class TestDetectLanguageFrench:
-    @pytest.mark.parametrize("text", [
-        "Bonjour, comment allez-vous aujourd'hui ?",
-        "Je voudrais un café s'il vous plaît",
-        "Les enfants jouent dans le jardin",
-    ])
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "Bonjour, comment allez-vous aujourd'hui ?",
+            "Je voudrais un café s'il vous plaît",
+            "Les enfants jouent dans le jardin",
+        ],
+    )
     def test_french_detected(self, text):
         assert detect_language(text, _supported_languages()) == "fr"
 
 
 class TestDetectLanguageEnglish:
-    @pytest.mark.parametrize("text", [
-        "Hello, how are you doing today?",
-        "The weather is beautiful this morning",
-        "I would like to order a coffee please",
-    ])
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "Hello, how are you doing today?",
+            "The weather is beautiful this morning",
+            "I would like to order a coffee please",
+        ],
+    )
     def test_english_detected(self, text):
         assert detect_language(text, _supported_languages()) == "en"

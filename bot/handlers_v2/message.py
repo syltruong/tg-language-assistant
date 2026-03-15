@@ -2,8 +2,20 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from bot.config.messages import t, MsgUnknownLanguage
-from bot.routing.local import SUPPORTED_LANGUAGES, UserFacingError, detect_language, filter_telegram_message
+from bot.handlers_v2.response import send_response, stream_response
+from bot.llm import get_completion, stream_completion
+from bot.routing.local import (
+    SUPPORTED_LANGUAGES,
+    UserFacingError,
+    detect_language,
+    filter_telegram_message,
+)
 from bot.session import UserSession
+
+from bot.prompts_v2 import PROMPTS, SYSTEM_PROMPT
+from bot.types import ActionType
+
+from loguru import logger
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -37,7 +49,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await update.message.reply_text(t(MsgUnknownLanguage, base_language))
         return
 
-async def _handle_message_in_ui_language(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+
+async def _handle_message_in_ui_language(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
     """
     Handle message in UI language.
     1. Translate message to target language
@@ -45,10 +60,45 @@ async def _handle_message_in_ui_language(update: Update, context: ContextTypes.D
 
     Prompt idea: confirm the language of the message and translate it to the target language.
     """
-    
-    pass
 
-async def _handle_message_in_target_language(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    session = UserSession.from_context(context)
+    base_language = session.base_language
+    target_language = session.target_language
+
+    text = update.message.text.strip()
+
+    # TODO: map ISO 639-1 codes to language names
+    system_prompt = SYSTEM_PROMPT.format(
+        base_language=base_language, target_language=target_language
+    )
+    user_prompt = PROMPTS[ActionType.TRANSLATE].format(
+        base_language=base_language, target_language=target_language, text=text
+    )
+
+    try:
+        stream = stream_completion(system_prompt, user_prompt)
+        await stream_response(
+            bot=context.bot,
+            chat_id=update.effective_chat.id,
+            stream=stream,
+            reply_to_message_id=update.message.message_id,
+        )
+    except Exception as e:
+        logger.warning(
+            "Streaming failed, falling back to non-streaming: %s",
+            e,
+        )
+        text = await get_completion(system_prompt, user_prompt)
+        await send_response(
+            bot=context.bot,
+            chat_id=update.effective_chat.id,
+            text=text,
+            reply_to_message_id=update.message.message_id,
+        )
+
+async def _handle_message_in_target_language(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
     """
     Handle message in target language.
     1. Translate message to UI language

@@ -49,6 +49,4 @@ class TestCatalogCompleteness:
             if locale == DEFAULT_LOCALE:
                 continue
             missing = en_keys - set(catalog.keys())
-            assert not missing, (
-                f"Locale '{locale}' is missing keys: {missing}"
-            )
+            assert not missing, f"Locale '{locale}' is missing keys: {missing}"

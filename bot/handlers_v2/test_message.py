@@ -1,4 +1,5 @@
 """Unit tests for the message handler."""
+
 from unittest.mock import patch
 
 from bot.config.messages import t
