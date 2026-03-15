@@ -36,7 +36,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     text = update.message.text.strip()
 
     # Note: the language detection is very crude.
-    # LLM-backed subsequent steps need to take into account the language detection is not perfect.
+    # LLM-backed steps must account for imperfect language detection.
     lang = detect_language(text, list(SUPPORTED_LANGUAGES.keys()))
 
     if lang == base_language:
@@ -56,7 +56,7 @@ async def _handle_message_in_base_language(
     1. Translate message to target language
     2. Send translated message to user
 
-    Prompt idea: confirm the language of the message and translate it to the target language.
+    Prompt idea: confirm message language, then translate to target.
     """
 
     # TODO: optimise and avoid calling UserSession.from_context(context) multiple times

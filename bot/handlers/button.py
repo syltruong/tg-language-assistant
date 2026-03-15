@@ -1,3 +1,4 @@
+import contextlib
 import json
 import logging
 
@@ -22,8 +23,8 @@ from bot.config.messages import (
 from bot.handlers.auth import _is_authorized
 from bot.handlers.response import _send_response, _stream_response
 from bot.handlers.utils import (
-    LanguageNotDetectedException,
-    TextTooLongException,
+    LanguageNotDetectedError,
+    TextTooLongError,
     close_active_messages,
     detect_and_get_actions,
 )
@@ -197,13 +198,13 @@ async def _handle_reopen(
             return
         try:
             lang, action_types = await detect_and_get_actions(replied.text)
-        except TextTooLongException:
+        except TextTooLongError:
             await query.edit_message_text(
                 text=t(MsgTooLong, locale),
                 reply_markup=None,
             )
             return
-        except LanguageNotDetectedException:
+        except LanguageNotDetectedError:
             await query.edit_message_text(
                 text=t(MsgUnknownLanguage, locale),
                 reply_markup=None,
@@ -231,7 +232,5 @@ async def _handle_reopen(
     session.remove_active_message(old_msg_id)
     session.add_active_message(new_reply.message_id)
 
-    try:
+    with contextlib.suppress(Exception):
         await query.message.delete()
-    except Exception:
-        pass

@@ -5,9 +5,9 @@ from unittest.mock import AsyncMock, patch
 from bot.config.messages import MsgUnknownLanguage, t
 from bot.handlers_v2.message import handle_message
 from bot.routing.local import (
-    MessageHasNoTextException,
-    TextHasNoWrittenContentException,
-    TextTooLongException,
+    MessageHasNoTextError,
+    TextHasNoWrittenContentError,
+    TextTooLongError,
 )
 from tests.factories import make_context, make_update
 
@@ -42,39 +42,39 @@ class TestHandleMessageHappyPath:
 class TestHandleMessageErrors:
     @patch(
         "bot.handlers_v2.message.filter_telegram_message",
-        side_effect=TextTooLongException(),
+        side_effect=TextTooLongError(),
     )
     async def test_too_long_replies_with_error(self, _mock_filter):
         update = make_update("a" * 501)
         await handle_message(update, make_context())
 
-        update.message.reply_text.assert_called_once_with(t(TextTooLongException))
+        update.message.reply_text.assert_called_once_with(t(TextTooLongError))
 
     @patch(
         "bot.handlers_v2.message.filter_telegram_message",
-        side_effect=MessageHasNoTextException(),
+        side_effect=MessageHasNoTextError(),
     )
     async def test_no_text_replies_with_error(self, _mock_filter):
         update = make_update("")
         await handle_message(update, make_context())
 
-        update.message.reply_text.assert_called_once_with(t(MessageHasNoTextException))
+        update.message.reply_text.assert_called_once_with(t(MessageHasNoTextError))
 
     @patch(
         "bot.handlers_v2.message.filter_telegram_message",
-        side_effect=TextHasNoWrittenContentException(),
+        side_effect=TextHasNoWrittenContentError(),
     )
     async def test_no_written_content_replies_with_error(self, _mock_filter):
         update = make_update("!!!")
         await handle_message(update, make_context())
 
         update.message.reply_text.assert_called_once_with(
-            t(TextHasNoWrittenContentException),
+            t(TextHasNoWrittenContentError),
         )
 
     @patch(
         "bot.handlers_v2.message.filter_telegram_message",
-        side_effect=TextTooLongException(),
+        side_effect=TextTooLongError(),
     )
     async def test_error_still_sends_typing(self, _mock_filter):
         update = make_update("a" * 501)
@@ -84,7 +84,7 @@ class TestHandleMessageErrors:
 
     @patch(
         "bot.handlers_v2.message.filter_telegram_message",
-        side_effect=TextTooLongException(),
+        side_effect=TextTooLongError(),
     )
     @patch("bot.handlers_v2.message.detect_language")
     async def test_error_skips_detect_language(self, mock_detect, _mock_filter):

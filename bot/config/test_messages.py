@@ -10,7 +10,7 @@ from bot.config.messages import (
     MsgThinking,
     t,
 )
-from bot.routing.local import TextTooLongException
+from bot.routing.local import TextTooLongError
 
 
 class TestTranslateFunction:
@@ -27,8 +27,8 @@ class TestTranslateFunction:
         assert result == CATALOGS["en"][MsgChooseAction]
 
     def test_resolves_exception_class_key(self):
-        result = t(TextTooLongException)
-        assert result == CATALOGS["en"][TextTooLongException]
+        result = t(TextTooLongError)
+        assert result == CATALOGS["en"][TextTooLongError]
 
     def test_format_kwargs_are_interpolated(self):
         result = t(MsgAiError, "en", error="timeout")

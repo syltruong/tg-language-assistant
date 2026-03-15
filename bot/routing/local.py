@@ -30,19 +30,19 @@ class UserFacingError(Exception):
         self.format_kwargs = format_kwargs
 
 
-class MessageHasNoTextException(UserFacingError):
+class MessageHasNoTextError(UserFacingError):
     pass
 
 
-class TextHasNoWrittenContentException(UserFacingError):
+class TextHasNoWrittenContentError(UserFacingError):
     pass
 
 
-class TextTooLongException(UserFacingError):
+class TextTooLongError(UserFacingError):
     pass
 
 
-class UnauthorizedException(UserFacingError):
+class UnauthorizedError(UserFacingError):
     pass
 
 
@@ -57,26 +57,27 @@ def _is_authorized(user_id: int | None) -> bool:
 def filter_telegram_message(update: Update) -> None:
     """Filter out unauthorised users and messages that don't have text."""
     if not _is_authorized(update.effective_user.id if update.effective_user else None):
-        raise UnauthorizedException()
+        raise UnauthorizedError()
 
     message = update.message
     if message is None or message.text is None:
-        raise MessageHasNoTextException()
+        raise MessageHasNoTextError()
 
     text = message.text.strip()
 
     if len(text) > TEXT_MAX_LENGTH:
-        raise TextTooLongException()
+        raise TextTooLongError()
 
     if not any(unicodedata.category(ch).startswith("L") for ch in text):
-        raise TextHasNoWrittenContentException()
+        raise TextHasNoWrittenContentError()
 
 
 def detect_language(text: str, languages: list[Language]) -> str:
 
     for lang in languages:
         assert lang in SUPPORTED_LANGUAGES, (
-            f"Language {lang} is not supported. Supported languages are {list(SUPPORTED_LANGUAGES.values())}"
+            f"Language {lang} is not supported. "
+            f"Supported: {list(SUPPORTED_LANGUAGES.values())}"
         )
     scores = [
         _detector.compute_language_confidence(text, language=language)

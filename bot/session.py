@@ -8,6 +8,8 @@ persistent storage backend later.
 
 from __future__ import annotations
 
+import contextlib
+
 from telegram.ext import ContextTypes
 
 from bot.types import ActionType, ReplySuggestion
@@ -108,7 +110,5 @@ class UserSession:
 
     def remove_active_message(self, msg_id: int) -> None:
         ids = self._data.get(self._KEY_ACTIVE_MESSAGES, [])
-        try:
+        with contextlib.suppress(ValueError):
             ids.remove(msg_id)
-        except ValueError:
-            pass

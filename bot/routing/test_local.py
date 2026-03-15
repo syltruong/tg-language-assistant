@@ -7,10 +7,10 @@ from lingua import Language
 
 from bot.config.lang import SUPPORTED_LANGUAGES
 from bot.routing.local import (
-    MessageHasNoTextException,
-    TextHasNoWrittenContentException,
-    TextTooLongException,
-    UnauthorizedException,
+    MessageHasNoTextError,
+    TextHasNoWrittenContentError,
+    TextTooLongError,
+    UnauthorizedError,
     detect_language,
     filter_telegram_message,
 )
@@ -23,7 +23,7 @@ from tests.factories import make_update
 class TestFilterUnauthorized:
     @pytest.mark.parametrize("user_id", [999, 0])
     def test_unauthorized_user_raises_when_allowlist_set(self, _mock_auth, user_id):
-        with pytest.raises(UnauthorizedException):
+        with pytest.raises(UnauthorizedError):
             filter_telegram_message(make_update("Hello", user_id=user_id))
 
     def test_authorized_user_passes_when_allowlist_set(self, _mock_auth):
@@ -33,14 +33,14 @@ class TestFilterUnauthorized:
 @patch("bot.routing.local._is_authorized", return_value=True)
 class TestFilterNoText:
     def test_none_text_raises(self, _mock_auth):
-        with pytest.raises(MessageHasNoTextException):
+        with pytest.raises(MessageHasNoTextError):
             filter_telegram_message(make_update(None))
 
 
 @patch("bot.routing.local._is_authorized", return_value=True)
 class TestFilterTooLong:
     def test_exceeds_max_length(self, _mock_auth):
-        with pytest.raises(TextTooLongException):
+        with pytest.raises(TextTooLongError):
             filter_telegram_message(make_update("a" * 501))
 
     def test_exactly_at_max_length_passes(self, _mock_auth):
@@ -62,7 +62,7 @@ class TestFilterNoWrittenContent:
         ],
     )
     def test_no_letters_raises(self, _mock_auth, text):
-        with pytest.raises(TextHasNoWrittenContentException):
+        with pytest.raises(TextHasNoWrittenContentError):
             filter_telegram_message(make_update(text))
 
 

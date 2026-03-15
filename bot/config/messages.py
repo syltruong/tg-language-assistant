@@ -7,10 +7,10 @@ Call ``t(key, locale)`` to resolve the user-facing string.
 from __future__ import annotations
 
 from bot.routing.local import (
-    MessageHasNoTextException,
-    TextHasNoWrittenContentException,
-    TextTooLongException,
-    UnauthorizedException,
+    MessageHasNoTextError,
+    TextHasNoWrittenContentError,
+    TextTooLongError,
+    UnauthorizedError,
 )
 
 DEFAULT_LOCALE = "en"
@@ -73,10 +73,14 @@ class MsgUnknownLanguage(MsgKey):
 CATALOGS: dict[str, dict[type, str]] = {
     "en": {
         # Error strings (keyed by routing/local.py exceptions)
-        TextTooLongException: "Message is too long. Please keep it under 500 characters.",
-        MessageHasNoTextException: "No message to process. Send a message first.",
-        TextHasNoWrittenContentException: "Please send text with actual written content.",
-        UnauthorizedException: "Sorry, you are not authorized to use this bot.",
+        TextTooLongError: (
+            "Message is too long. Please keep it under 500 characters."
+        ),
+        MessageHasNoTextError: "No message to process. Send a message first.",
+        TextHasNoWrittenContentError: (
+            "Please send text with actual written content."
+        ),
+        UnauthorizedError: "Sorry, you are not authorized to use this bot.",
         # UI strings (MsgKey-keyed)
         MsgChooseAction: "What can I help you with?",
         MsgClear: "Okay thanks bye! Send another message if you need anything else ✨",
@@ -95,7 +99,7 @@ CATALOGS: dict[str, dict[type, str]] = {
         ),
     },
     # "fr": {
-    #     TextTooLongException: "Le message est trop long. ...",
+    #     TextTooLongError: "Le message est trop long. ...",
     #     ...
     # },
 }

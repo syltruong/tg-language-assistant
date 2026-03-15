@@ -14,8 +14,8 @@ from bot.config.messages import (
 )
 from bot.handlers.auth import _is_authorized
 from bot.handlers.utils import (
-    LanguageNotDetectedException,
-    TextTooLongException,
+    LanguageNotDetectedError,
+    TextTooLongError,
     close_active_messages,
     detect_and_get_actions,
 )
@@ -48,10 +48,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         lang, action_types = await detect_and_get_actions(update.message.text)
-    except TextTooLongException:
+    except TextTooLongError:
         await reply.edit_text(t(MsgTooLong, locale))
         return
-    except LanguageNotDetectedException:
+    except LanguageNotDetectedError:
         await reply.edit_text(t(MsgUnknownLanguage, locale))
         return
 

@@ -13,11 +13,11 @@ logger = logging.getLogger(__name__)
 MAX_MESSAGE_LENGTH = 100
 
 
-class TextTooLongException(Exception):
+class TextTooLongError(Exception):
     pass
 
 
-class LanguageNotDetectedException(Exception):
+class LanguageNotDetectedError(Exception):
     pass
 
 
@@ -46,17 +46,17 @@ async def detect_and_get_actions(
     Returns ``(lang, action_types)``.
 
     Raises:
-        TextTooLongException: If *text* exceeds ``MAX_MESSAGE_LENGTH``.
-        LanguageNotDetectedException: If the language detector cannot
+        TextTooLongError: If *text* exceeds ``MAX_MESSAGE_LENGTH``.
+        LanguageNotDetectedError: If the language detector cannot
             classify *text* as French or English.
     """
     if len(text) > MAX_MESSAGE_LENGTH:
-        raise TextTooLongException(text)
+        raise TextTooLongError(text)
 
     loop = asyncio.get_running_loop()
     lang = await loop.run_in_executor(None, detect_language, text)
     if lang is None:
-        raise LanguageNotDetectedException(text)
+        raise LanguageNotDetectedError(text)
     action_types = (
         [ActionType.TRANSLATE]
         if lang == "source"
