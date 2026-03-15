@@ -11,6 +11,7 @@ from bot.config import TOKEN
 from bot.handlers_v2 import handle_message as handle_message_v2
 from bot.handlers_v2.keyboard import handle_button_click
 
+
 def main() -> None:
     logging.basicConfig(level=logging.INFO)
     app = ApplicationBuilder().token(TOKEN).concurrent_updates(True).build()

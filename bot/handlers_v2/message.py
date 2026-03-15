@@ -19,6 +19,7 @@ from bot.routing.local import (
 from bot.session import UserSession
 from bot.types import InstantActionType
 
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle incoming text messages.
 

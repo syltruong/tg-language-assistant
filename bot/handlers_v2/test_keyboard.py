@@ -16,7 +16,6 @@ from bot.session import UserSession
 from bot.types import KeyboardActionType
 from tests.factories import make_callback_update, make_context
 
-
 # ── KEYBOARD structure ─────────────────────────────────────────────────────
 
 
