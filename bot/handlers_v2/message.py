@@ -63,19 +63,17 @@ async def _handle_message_in_base_language(
 
     # TODO: optimise and avoid calling UserSession.from_context(context) multiple times
     session = UserSession.from_context(context)
-    base_language = session.base_language
-    target_language = session.target_language
 
     text = update.message.text.strip()
 
-    base_name = LANGUAGE_NAMES[base_language]
-    target_name = LANGUAGE_NAMES[target_language]
+    base_language_name = LANGUAGE_NAMES[session.base_language]
+    target_language_name = LANGUAGE_NAMES[session.target_language]
 
     system_prompt = SYSTEM_PROMPT.format(
-        base_language=base_name, target_language=target_name
+        base_language=base_language_name, target_language=target_language_name
     )
     user_prompt = PROMPTS[ActionType.TRANSLATE].format(
-        base_language=base_name, target_language=target_name, text=text
+        base_language=base_language_name, target_language=target_language_name, text=text
     )
 
     try:
