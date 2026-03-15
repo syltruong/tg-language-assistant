@@ -73,7 +73,9 @@ async def _handle_message_in_base_language(
         base_language=base_language_name, target_language=target_language_name
     )
     user_prompt = PROMPTS[ActionType.TRANSLATE].format(
-        base_language=base_language_name, target_language=target_language_name, text=text
+        base_language=base_language_name,
+        target_language=target_language_name,
+        text=text,
     )
 
     try:
@@ -96,6 +98,7 @@ async def _handle_message_in_base_language(
             text=result,
             reply_to_message_id=update.message.message_id,
         )
+
 
 async def _handle_message_in_target_language(
     update: Update, context: ContextTypes.DEFAULT_TYPE
