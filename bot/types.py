@@ -15,6 +15,7 @@ class ActionType(StrEnum):
     ANALYZE = "analyze"
     REPLY = "reply"
     CORRECT = "correct"
+    REPHRASE = "rephrase"
 
 
 @dataclass(frozen=True, slots=True)

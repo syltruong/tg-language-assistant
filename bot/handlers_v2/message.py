@@ -7,6 +7,7 @@ from telegram.ext import ContextTypes
 
 from bot.config.lang import SUPPORTED_LANGUAGES
 from bot.config.messages import MsgUnknownLanguage, MsgWantToGoDeeper, t
+from bot.handlers_v2.keyboard import KEYBOARD
 from bot.handlers_v2.response import send_response, stream_response
 from bot.llm import get_completion, stream_completion
 from bot.prompts_v2 import PROMPTS, SYSTEM_PROMPT
@@ -17,7 +18,6 @@ from bot.routing.local import (
 )
 from bot.session import UserSession
 from bot.types import ActionType
-
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle incoming text messages.
@@ -141,4 +141,5 @@ async def _handle_message_in_target_language(
         text=formatted,
         reply_to_message_id=update.message.message_id,
         parse_mode="HTML",
+        reply_markup=KEYBOARD,
     )
