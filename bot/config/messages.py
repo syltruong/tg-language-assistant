@@ -66,6 +66,13 @@ class MsgTooLong(MsgKey):
 class MsgUnknownLanguage(MsgKey):
     pass
 
+class MsgWantToGoDeeper(MsgKey):
+    pass
+
+
+class MsgNoReplyText(MsgKey):
+    pass
+
 
 # ── Catalogs ─────────────────────────────────────────────────────────
 
@@ -96,6 +103,11 @@ CATALOGS: dict[str, dict[type, str]] = {
         MsgUnknownLanguage: (
             "Sorry, I couldn't detect the language."
             " Please send text in French or English."
+        ),
+        MsgWantToGoDeeper: "Want to go deeper? 🤿",
+        MsgNoReplyText: (
+            "Sorry, the original message could not be accessed. "
+            "Please resend the message in this chat."
         ),
     },
     # "fr": {

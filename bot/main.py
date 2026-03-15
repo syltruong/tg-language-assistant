@@ -8,7 +8,8 @@ from telegram.ext import (
 )
 
 from bot.config import TOKEN
-from bot.handlers import handle_button_click, handle_message
+from bot.handlers_v2 import handle_message as handle_message_v2
+from bot.handlers_v2.keyboard import handle_button_click
 
 
 def main() -> None:
@@ -17,7 +18,7 @@ def main() -> None:
     app.add_handler(
         MessageHandler(
             filters.TEXT & ~filters.COMMAND & ~filters.UpdateType.EDITED_MESSAGE,
-            handle_message,
+            handle_message_v2,
         )
     )
     app.add_handler(CallbackQueryHandler(handle_button_click))

@@ -8,6 +8,7 @@
 - [ ] 2. incoming message handling: reply with keyboard markup
 - [ ] incoming message handling: automated message correction
 - [ ] keyboard markup to include a construct sentence suggestion
+- [ ] increase performance for gibberish support and debug log filtering path
 
 ## About unit tests for Telegram
 For testing with `python-telegram-bot`, the key challenge is that everything is async and deeply tied to Telegram's API. Here's a practical approach:
