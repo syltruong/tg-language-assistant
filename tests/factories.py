@@ -33,11 +33,13 @@ def make_update(
     return update
 
 
-def make_context() -> MagicMock:
+def make_context(user_data: dict | None = None) -> MagicMock:
     """Factory for fake Context objects."""
     from telegram.ext import ContextTypes
 
     context = MagicMock(spec=ContextTypes.DEFAULT_TYPE)
     context.bot = MagicMock()
     context.bot.send_message = AsyncMock()
+    context.bot.edit_message_text = AsyncMock()
+    context.user_data = user_data if user_data is not None else {}
     return context

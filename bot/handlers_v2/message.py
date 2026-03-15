@@ -61,6 +61,7 @@ async def _handle_message_in_ui_language(
     Prompt idea: confirm the language of the message and translate it to the target language.
     """
 
+    # TODO: optimise and avoid calling UserSession.from_context(context) multiple times
     session = UserSession.from_context(context)
     base_language = session.base_language
     target_language = session.target_language
@@ -88,11 +89,11 @@ async def _handle_message_in_ui_language(
             "Streaming failed, falling back to non-streaming: %s",
             e,
         )
-        text = await get_completion(system_prompt, user_prompt)
+        result = await get_completion(system_prompt, user_prompt)
         await send_response(
             bot=context.bot,
             chat_id=update.effective_chat.id,
-            text=text,
+            text=result,
             reply_to_message_id=update.message.message_id,
         )
 

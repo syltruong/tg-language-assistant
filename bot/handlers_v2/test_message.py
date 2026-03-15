@@ -1,8 +1,8 @@
 """Unit tests for the message handler."""
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
-from bot.config.messages import t
+from bot.config.messages import MsgUnknownLanguage, t
 from bot.handlers_v2.message import handle_message
 from bot.routing.local import (
     MessageHasNoTextException,
@@ -93,3 +93,106 @@ class TestHandleMessageErrors:
         await handle_message(update, make_context())
 
         mock_detect.assert_not_called()
+
+
+# ── Language branching ───────────────────────────────────────────────
+
+
+@patch("bot.handlers_v2.message.filter_telegram_message")
+class TestLanguageBranching:
+    @patch(
+        "bot.handlers_v2.message._handle_message_in_ui_language",
+        new_callable=AsyncMock,
+    )
+    @patch("bot.handlers_v2.message.detect_language", return_value="en")
+    async def test_base_language_calls_ui_handler(
+        self, _mock_detect, mock_ui_handler, _mock_filter,
+    ):
+        update = make_update("Hello there")
+        context = make_context()
+        await handle_message(update, context)
+
+        mock_ui_handler.assert_called_once_with(update, context)
+
+    @patch(
+        "bot.handlers_v2.message._handle_message_in_target_language",
+        new_callable=AsyncMock,
+    )
+    @patch("bot.handlers_v2.message.detect_language", return_value="fr")
+    async def test_target_language_calls_target_handler(
+        self, _mock_detect, mock_target_handler, _mock_filter,
+    ):
+        update = make_update("Bonjour")
+        context = make_context()
+        await handle_message(update, context)
+
+        mock_target_handler.assert_called_once_with(update, context)
+
+    @patch("bot.handlers_v2.message.detect_language", return_value="de")
+    async def test_unknown_language_replies_with_error(
+        self, _mock_detect, _mock_filter,
+    ):
+        update = make_update("Guten Tag")
+        await handle_message(update, make_context())
+
+        update.message.reply_text.assert_called_once_with(
+            t(MsgUnknownLanguage),
+        )
+
+
+# ── _handle_message_in_ui_language ───────────────────────────────────
+
+
+@patch("bot.handlers_v2.message.stream_completion")
+@patch("bot.handlers_v2.message.stream_response", new_callable=AsyncMock)
+class TestHandleMessageInUiLanguage:
+    async def test_calls_stream_response_with_reply(
+        self, mock_stream_resp, mock_stream_comp,
+    ):
+        update = make_update("Hello friend")
+        context = make_context()
+        await handle_message(update, context)
+
+        # detect_language not patched — runs real detection, "Hello friend" → "en"
+        # which matches default base_language, so _handle_message_in_ui_language runs
+        # Assert that stream_response (the stream reply handler) is called once as expected
+        mock_stream_resp.assert_called_once()
+
+    @patch("bot.handlers_v2.message.filter_telegram_message")
+    @patch("bot.handlers_v2.message.detect_language", return_value="en")
+    async def test_streams_translation_as_reply(
+        self, _mock_detect, _mock_filter, mock_stream_resp, _mock_stream_comp,
+    ):
+        update = make_update("Hello friend")
+        context = make_context()
+        await handle_message(update, context)
+
+        mock_stream_resp.assert_called_once()
+        call_kwargs = mock_stream_resp.call_args
+        assert call_kwargs.kwargs["reply_to_message_id"] == update.message.message_id
+        assert call_kwargs.kwargs["chat_id"] == update.effective_chat.id
+
+    @patch("bot.handlers_v2.message.filter_telegram_message")
+    @patch("bot.handlers_v2.message.detect_language", return_value="en")
+    async def test_falls_back_to_send_response_on_stream_error(
+        self, _mock_detect, _mock_filter, mock_stream_resp, _mock_stream_comp,
+    ):
+        mock_stream_resp.side_effect = Exception("stream broke")
+
+        update = make_update("Hello friend")
+        context = make_context()
+
+        with patch(
+            "bot.handlers_v2.message.get_completion",
+            new_callable=AsyncMock,
+            return_value="Bonjour ami",
+        ) as _mock_completion, patch(
+            "bot.handlers_v2.message.send_response",
+            new_callable=AsyncMock,
+        ) as mock_send_resp:
+            await handle_message(update, context)
+
+            mock_send_resp.assert_called_once()
+            call_kwargs = mock_send_resp.call_args
+            assert call_kwargs.kwargs["text"] == "Bonjour ami"
+            assert call_kwargs.kwargs["reply_to_message_id"] == update.message.message_id
