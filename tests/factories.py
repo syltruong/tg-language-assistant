@@ -39,8 +39,13 @@ def make_callback_update(
     user_id: int = 123,
     chat_id: int = 456,
     message_id: int = 789,
+    reply_text: str | None = None,
 ) -> MagicMock:
-    """Factory for fake Update with a callback_query (inline button click)."""
+    """Factory for fake Update with a callback_query (inline button click).
+
+    If reply_text is set, query.message.reply_to_message is a message with that text
+    (simulates the user message the bot reply was replying to).
+    """
     user = MagicMock(spec=User)
     user.id = user_id
     user.is_bot = False
@@ -51,6 +56,13 @@ def make_callback_update(
     message = MagicMock(spec=Message)
     message.message_id = message_id
     message.chat = chat
+
+    if reply_text is not None:
+        reply_to_message = MagicMock(spec=Message)
+        reply_to_message.text = reply_text
+        message.reply_to_message = reply_to_message
+    else:
+        message.reply_to_message = None
 
     query = MagicMock(spec=CallbackQuery)
     query.data = callback_data
