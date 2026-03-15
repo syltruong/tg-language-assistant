@@ -2,7 +2,7 @@
 
 from unittest.mock import AsyncMock, MagicMock
 
-from telegram import Chat, Message, Update, User
+from telegram import CallbackQuery, Chat, Message, Update, User
 
 
 def make_update(
@@ -29,6 +29,40 @@ def make_update(
     update.message = message
     update.effective_user = user
     update.effective_chat = chat
+    update.callback_query = None
+
+    return update
+
+
+def make_callback_update(
+    callback_data: str,
+    user_id: int = 123,
+    chat_id: int = 456,
+    message_id: int = 789,
+) -> MagicMock:
+    """Factory for fake Update with a callback_query (inline button click)."""
+    user = MagicMock(spec=User)
+    user.id = user_id
+    user.is_bot = False
+
+    chat = MagicMock(spec=Chat)
+    chat.id = chat_id
+
+    message = MagicMock(spec=Message)
+    message.message_id = message_id
+    message.chat = chat
+
+    query = MagicMock(spec=CallbackQuery)
+    query.data = callback_data
+    query.message = message
+    query.answer = AsyncMock()
+    query.edit_message_reply_markup = AsyncMock()
+
+    update = MagicMock(spec=Update)
+    update.callback_query = query
+    update.effective_user = user
+    update.effective_chat = chat
+    update.message = None
 
     return update
 

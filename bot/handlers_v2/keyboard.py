@@ -6,24 +6,24 @@ from bot.handlers_v2.response import send_response
 from bot.session import UserSession
 from bot.types import KeyboardActionType
 
-ACTION_TITLES: dict[KeyboardActionType, str] = {
+BUTTON_TITLES: dict[KeyboardActionType, str] = {
     KeyboardActionType.ANALYZE: "📖 Analyze",
     KeyboardActionType.CORRECT: "✏️ Correct",
     KeyboardActionType.REPHRASE: "🧠 Rephrase",
     KeyboardActionType.REPLY: "💬 Reply",
 }
 
-BUTTON_ACTIONS = list(ACTION_TITLES.keys())
+BUTTON_ACTIONS = list(BUTTON_TITLES.keys())
 
 KEYBOARD = InlineKeyboardMarkup(
     [
         [
-            InlineKeyboardButton(ACTION_TITLES[KeyboardActionType.ANALYZE], callback_data=KeyboardActionType.ANALYZE),
-            InlineKeyboardButton(ACTION_TITLES[KeyboardActionType.CORRECT], callback_data=KeyboardActionType.CORRECT),
+            InlineKeyboardButton(BUTTON_TITLES[KeyboardActionType.ANALYZE], callback_data=KeyboardActionType.ANALYZE),
+            InlineKeyboardButton(BUTTON_TITLES[KeyboardActionType.CORRECT], callback_data=KeyboardActionType.CORRECT),
         ],
         [
-            InlineKeyboardButton(ACTION_TITLES[KeyboardActionType.REPHRASE], callback_data=KeyboardActionType.REPHRASE),
-            InlineKeyboardButton(ACTION_TITLES[KeyboardActionType.REPLY], callback_data=KeyboardActionType.REPLY),
+            InlineKeyboardButton(BUTTON_TITLES[KeyboardActionType.REPHRASE], callback_data=KeyboardActionType.REPHRASE),
+            InlineKeyboardButton(BUTTON_TITLES[KeyboardActionType.REPLY], callback_data=KeyboardActionType.REPLY),
         ],
     ]
 )
