@@ -186,6 +186,7 @@ async def _handle_analyze(
         formatted = "Analysis failed. Please try again."
 
     # TODO: add a edit message abstraction for easy mocking in tests
+    # TODO: add keyboard markup
     await context.bot.edit_message_text(
         chat_id=query.message.chat.id,
         message_id=msg.message_id,
@@ -205,7 +206,7 @@ async def _handle_correct(
     msg = await send_response(
         bot=context.bot,
         chat_id=query.message.chat.id,
-        text="Correcting...",
+        text="Correcting... (not implemented yet)",
         reply_to_message_id=query.message.message_id,
     )
     # TODO: load prompt from prompts_v2/buttons/correct.md, call LLM, send response
@@ -222,7 +223,7 @@ async def _handle_rephrase(
     msg = await send_response(
         bot=context.bot,
         chat_id=query.message.chat.id,
-        text="Rephrasing...",
+        text="Rephrasing... (not implemented yet)",
         reply_to_message_id=query.message.message_id,
     )
     # TODO: load prompt from prompts_v2/buttons/rephrase.md, call LLM, send response
@@ -239,7 +240,7 @@ async def _handle_reply(
     msg = await send_response(
         bot=context.bot,
         chat_id=query.message.chat.id,
-        text="Replies...",
+        text="Replies... (not implemented yet)",
         reply_to_message_id=query.message.message_id,
     )
     # TODO: load prompt from prompts_v2/buttons/reply.md, call LLM, send response
