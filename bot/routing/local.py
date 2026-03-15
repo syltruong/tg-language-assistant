@@ -47,11 +47,17 @@ class UnauthorizedError(UserFacingError):
 
 
 def _is_authorized(user_id: int | None) -> bool:
-    """Return True if the user is allowed to use the bot."""
-    allowed_users = os.getenv("ALLOWED_USERS", "").split(",")
-    if not allowed_users:
+    """Return True if the user is allowed to use the bot.
+
+    When ALLOWED_USERS is empty or unset, all users are allowed (no whitelist).
+    """
+    raw = os.getenv("ALLOWED_USERS", "").strip()
+    if not raw:
         return True
-    return user_id in allowed_users
+    allowed = {int(uid.strip()) for uid in raw.split(",") if uid.strip()}
+    if not allowed:
+        return True
+    return user_id in allowed
 
 
 def filter_telegram_message(update: Update) -> None:
