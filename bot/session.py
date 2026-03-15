@@ -29,11 +29,16 @@ class UserSession:
     }
     """
 
+    _KEY_BASE_LANGUAGE = "base_language"
+    _KEY_TARGET_LANGUAGE = "target_language"
     _KEY_MESSAGES = "messages"
     _KEY_DETECTED_LANGUAGE = "detected_language"
     _KEY_ACTION_TYPES = "action_types"
     _KEY_REPLIES = "replies"
     _KEY_ACTIVE_MESSAGES = "active_message_ids"
+
+    _DEFAULT_BASE_LANGUAGE = "en"
+    _DEFAULT_TARGET_LANGUAGE = "fr"
 
     def __init__(self, user_data: dict) -> None:
         self._data = user_data
@@ -41,6 +46,26 @@ class UserSession:
     @classmethod
     def from_context(cls, context: ContextTypes.DEFAULT_TYPE) -> UserSession:
         return cls(context.user_data)
+
+    # ── user preferences ─────────────────────────────────────────
+
+    @property
+    def base_language(self) -> str:
+        return self._data.get(self._KEY_BASE_LANGUAGE, self._DEFAULT_BASE_LANGUAGE)
+
+    @base_language.setter
+    def base_language(self, value: str) -> None:
+        self._data[self._KEY_BASE_LANGUAGE] = value
+
+    @property
+    def target_language(self) -> str:
+        return self._data.get(self._KEY_TARGET_LANGUAGE, self._DEFAULT_TARGET_LANGUAGE)
+
+    @target_language.setter
+    def target_language(self, value: str) -> None:
+        self._data[self._KEY_TARGET_LANGUAGE] = value
+
+    # ── per-message state ────────────────────────────────────────
 
     def store_original_trigger_message(
         self, msg_id: int, text: str,

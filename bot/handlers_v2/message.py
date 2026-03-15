@@ -3,6 +3,7 @@ from telegram.ext import ContextTypes
 
 from bot.config.messages import t, MsgUnknownLanguage
 from bot.routing.local import SUPPORTED_LANGUAGES, UserFacingError, detect_language, filter_telegram_message
+from bot.session import UserSession
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -10,16 +11,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     Validates the message, detects its language, and replies.
     """
-    # TODO: allow user to set locale in the /start menu and retrieve from context.user_data
-    locale = "en"
-    target_language = "fr"
+    session = UserSession.from_context(context)
+    base_language = session.base_language
+    target_language = session.target_language
 
     await update.effective_chat.send_action("typing")
 
     try:
         filter_telegram_message(update)
     except UserFacingError as exc:
-        await update.message.reply_text(t(type(exc), locale))
+        await update.message.reply_text(t(type(exc), base_language))
         return
 
     text = update.message.text.strip()
@@ -28,12 +29,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     # LLM-backed subsequent steps need to take into account the language detection is not perfect.
     lang = detect_language(text, list(SUPPORTED_LANGUAGES.keys()))
 
-    if lang == locale:
+    if lang == base_language:
         await _handle_message_in_ui_language(update, context)
     elif lang == target_language:
         await _handle_message_in_target_language(update, context)
     else:
-        await update.message.reply_text(t(MsgUnknownLanguage, locale))
+        await update.message.reply_text(t(MsgUnknownLanguage, base_language))
         return
 
 async def _handle_message_in_ui_language(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
