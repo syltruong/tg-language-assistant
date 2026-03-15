@@ -1,3 +1,4 @@
+import contextlib
 import json
 import logging
 
@@ -22,8 +23,8 @@ from bot.config.messages import (
 from bot.handlers.auth import _is_authorized
 from bot.handlers.response import _send_response, _stream_response
 from bot.handlers.utils import (
-    LanguageNotDetectedException,
-    TextTooLongException,
+    LanguageNotDetectedError,
+    TextTooLongError,
     close_active_messages,
     detect_and_get_actions,
 )
@@ -53,7 +54,8 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
     if not _is_authorized(user_id):
         logger.warning("Unauthorized button click by user=%s", user_id)
         await update.callback_query.answer(
-            text=t(MsgUnauthorized, locale), show_alert=True,
+            text=t(MsgUnauthorized, locale),
+            show_alert=True,
         )
         return
 
@@ -100,11 +102,16 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
         return
 
     action_types = session.get_action_types(bot_message_id)
-    await _handle_non_reply_action(query, callback_data, original_text, action_types, locale)
+    await _handle_non_reply_action(
+        query, callback_data, original_text, action_types, locale
+    )
 
 
 async def _handle_non_reply_action(
-    query, action_type: ActionType, original_text: str, action_types,
+    query,
+    action_type: ActionType,
+    original_text: str,
+    action_types,
     locale: str,
 ) -> None:
     """Run an LLM completion for a non-reply action and update the message."""
@@ -118,7 +125,8 @@ async def _handle_non_reply_action(
                 await _stream_response(query, stream, reply_markup)
             except Exception as e:
                 logging.warning(
-                    "Streaming failed, falling back to non-streaming: %s", e,
+                    "Streaming failed, falling back to non-streaming: %s",
+                    e,
                 )
                 text = await get_completion(SYSTEM_PROMPT, prompt)
                 await _send_response(query, text, reply_markup)
@@ -131,7 +139,10 @@ async def _handle_non_reply_action(
 
 
 async def _handle_reply(
-    query, session: UserSession, original_text: str, locale: str,
+    query,
+    session: UserSession,
+    original_text: str,
+    locale: str,
 ) -> None:
     """Generate suggested replies and present them as numbered buttons."""
 
@@ -152,8 +163,7 @@ async def _handle_reply(
     session.store_replies(query.message.message_id, replies)
 
     lines = [
-        f"{NUMBER_EMOJIS[i]}  {r.reply}  ({r.tone})"
-        for i, r in enumerate(replies)
+        f"{NUMBER_EMOJIS[i]}  {r.reply}  ({r.tone})" for i, r in enumerate(replies)
     ]
     body = "\n\n".join(lines)
 
@@ -164,8 +174,11 @@ async def _handle_reply(
 
 
 async def _handle_reopen(
-    update: Update, context: ContextTypes.DEFAULT_TYPE,
-    session: UserSession, query, locale: str,
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    session: UserSession,
+    query,
+    locale: str,
 ) -> None:
     """Re-send an old message at the bottom of the chat with a fresh keyboard."""
     old_msg_id = query.message.message_id
@@ -179,19 +192,22 @@ async def _handle_reopen(
         replied = query.message.reply_to_message
         if not (replied and replied.text):
             await query.edit_message_text(
-                text=t(MsgExpired, locale), reply_markup=None,
+                text=t(MsgExpired, locale),
+                reply_markup=None,
             )
             return
         try:
             lang, action_types = await detect_and_get_actions(replied.text)
-        except TextTooLongException:
+        except TextTooLongError:
             await query.edit_message_text(
-                text=t(MsgTooLong, locale), reply_markup=None,
+                text=t(MsgTooLong, locale),
+                reply_markup=None,
             )
             return
-        except LanguageNotDetectedException:
+        except LanguageNotDetectedError:
             await query.edit_message_text(
-                text=t(MsgUnknownLanguage, locale), reply_markup=None,
+                text=t(MsgUnknownLanguage, locale),
+                reply_markup=None,
             )
             return
         original_text = replied.text
@@ -208,12 +224,13 @@ async def _handle_reopen(
     )
 
     session.store_original_trigger_message(
-        new_reply.message_id, original_text, lang, action_types,
+        new_reply.message_id,
+        original_text,
+        lang,
+        action_types,
     )
     session.remove_active_message(old_msg_id)
     session.add_active_message(new_reply.message_id)
 
-    try:
+    with contextlib.suppress(Exception):
         await query.message.delete()
-    except Exception:
-        pass

@@ -1,9 +1,13 @@
 # TODO
 
 - [ ] `bot/handlers/button.py:95` — add type hint for `query` parameter in `_handle_non_reply_action`
-- [ ] provision for i8n in the UI messages and have a catalog of messages indexed by language
-- [ ] write unit test harness for the bot 
-
+- [ ] Agentic entrypoint where the user enters a free text and we have to guess which user flow is the most suitable
+- [x] provision for i8n in the UI messages and have a catalog of messages indexed by language
+- [x] write unit test harness for the bot 
+- [ ] 1. incoming message handling: translate + register + one_line_context + vocabulary
+- [ ] 2. incoming message handling: reply with keyboard markup
+- [ ] incoming message handling: automated message correction
+- [ ] keyboard markup to include a construct sentence suggestion
 
 ## About unit tests for Telegram
 For testing with `python-telegram-bot`, the key challenge is that everything is async and deeply tied to Telegram's API. Here's a practical approach:
