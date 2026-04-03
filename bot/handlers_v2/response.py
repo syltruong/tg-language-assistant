@@ -44,7 +44,7 @@ async def stream_response(
     await bot.edit_message_text(
         chat_id=chat_id,
         message_id=message_id,
-        text=accumulated or t(MsgNoContent),
+        text=accumulated or t(MsgNoContent), # TODO: handle case where LLM returns no content (e.g. due to moderation filter) more gracefully
         reply_markup=reply_markup,
     )
 

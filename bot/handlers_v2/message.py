@@ -108,6 +108,8 @@ async def _handle_message_in_target_language(
     """
     Handle message in target language.
     1. Translate message to UI language
+    (TODO: remove the one-line context understanding, consider having a optional follow-up step
+    where the user can ask for context if the translation is good but they don't understand why the LLM made that translation choice)
     2. Infer a one-line context
     3. Reply with keyboard markup
     """
