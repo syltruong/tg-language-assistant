@@ -59,7 +59,8 @@ class TestActionTitles:
 
 @patch("bot.handlers_v2.keyboard.send_response", new_callable=AsyncMock)
 class TestHandleButtonClick:
-    async def test_calls_answer(self, mock_send_response):
+    @patch("bot.handlers_v2.keyboard.get_completion", new_callable=AsyncMock, return_value='{"vocabulary":[],"grammar":[]}')
+    async def test_calls_answer(self, _mock_get_completion, mock_send_response):
         update = make_callback_update(KeyboardActionType.ANALYZE, reply_text="Hello")
         context = make_context()
 
@@ -67,7 +68,8 @@ class TestHandleButtonClick:
 
         update.callback_query.answer.assert_called_once_with()
 
-    async def test_removes_keyboard_to_prevent_double_click(self, mock_send_response):
+    @patch("bot.handlers_v2.keyboard.get_completion", new_callable=AsyncMock, return_value='{"vocabulary":[],"grammar":[]}')
+    async def test_removes_keyboard_to_prevent_double_click(self, _mock_get_completion, mock_send_response):
         update = make_callback_update(KeyboardActionType.CORRECT, reply_text="Hi")
         context = make_context()
 
@@ -83,7 +85,7 @@ class TestHandleButtonClick:
             (KeyboardActionType.ANALYZE, "Analyzing..."),
             (KeyboardActionType.CORRECT, "Correcting..."),
             (KeyboardActionType.REPHRASE, "Rephrasing..."),
-            (KeyboardActionType.REPLY, "Replies..."),
+            (KeyboardActionType.REPLY, "Generating replies..."),
         ],
     )
     @patch("bot.handlers_v2.keyboard.get_completion", new_callable=AsyncMock, return_value='{"vocabulary":[],"grammar":[]}')
@@ -190,7 +192,7 @@ class TestHandleAnalyze:
         self, mock_send_response, mock_get_completion
     ):
         mock_get_completion.side_effect = Exception("API error")
-        update, context, session, sent_message = self._make_mocks(mock_send_response)
+        update, context, session, _sent_message = self._make_mocks(mock_send_response)
 
         await _handle_analyze(update.callback_query, context, session, "Hello")
 

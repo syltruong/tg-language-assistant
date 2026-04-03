@@ -4,6 +4,7 @@ from loguru import logger
 from telegram import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
+from bot.config import N_SUGGESTED_REPLIES
 from bot.config.messages import MsgNoReplyText, t
 from bot.handlers_v2.response import send_response
 from bot.llm import get_completion
@@ -129,13 +130,13 @@ def _format_analyze_result(raw: str) -> str:
                 _format_dict_item(item if isinstance(item, dict) else {}, primary)
                 for item in value
             ]
-            block = "\n\n".join(l for l in lines if l.strip())
+            block = "\n\n".join(line for line in lines if line.strip())
             if block:
                 parts.append(f"<b>{title}</b>\n{block}")
         elif isinstance(value, list) and value and isinstance(value[0], dict):
             title = key.replace("_", " ").title()
             lines = [_format_dict_item(i) for i in value]
-            block = "\n\n".join(l for l in lines if l.strip())
+            block = "\n\n".join(line for line in lines if line.strip())
             if block:
                 parts.append(f"<b>{title}</b>\n{block}")
         elif isinstance(value, (str, int, float, bool)) and value:
@@ -148,6 +149,62 @@ def _format_analyze_result(raw: str) -> str:
     if not parts:
         logger.warning("No vocabulary or grammar points for this text.")
         return "No vocabulary or grammar points for this text."
+    return "\n\n".join(parts)
+
+
+def _format_reply_result(raw: str) -> str:
+    """Turn reply JSON array into readable HTML."""
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as e:
+        logger.warning("Reply JSON decode error: %s", e)
+        return "Could not generate replies. Please try again."
+
+    if not isinstance(data, list):
+        return "Could not generate replies. Please try again."
+
+    parts = []
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        reply = _escape_html(str(item.get("reply", "")).strip())
+        tone = _escape_html(str(item.get("tone", "")).strip())
+        if reply:
+            line = f"• {reply}"
+            if tone:
+                line += f"  <i>({tone})</i>"
+            parts.append(line)
+
+    if not parts:
+        return "Could not generate replies. Please try again."
+    return "\n\n".join(parts)
+
+
+def _format_rephrase_result(raw: str) -> str:
+    """Turn rephrase JSON array into readable HTML."""
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as e:
+        logger.warning("Rephrase JSON decode error: %s", e)
+        return "Could not generate rephrasings. Please try again."
+
+    if not isinstance(data, list):
+        return "Could not generate rephrasings. Please try again."
+
+    parts = []
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        rephrasing = _escape_html(str(item.get("rephrasing", "")).strip())
+        note = _escape_html(str(item.get("note", "")).strip())
+        if rephrasing:
+            line = f"• {rephrasing}"
+            if note:
+                line += f"  <i>({note})</i>"
+            parts.append(line)
+
+    if not parts:
+        return "Could not generate rephrasings. Please try again."
     return "\n\n".join(parts)
 
 
@@ -186,12 +243,17 @@ async def _handle_analyze(
         formatted = "Analysis failed. Please try again."
 
     # TODO: add a edit message abstraction for easy mocking in tests
-    # TODO: add keyboard markup
     await context.bot.edit_message_text(
         chat_id=query.message.chat.id,
         message_id=msg.message_id,
         text=formatted,
         parse_mode="HTML",
+    )
+    # Re-attach keyboard to the original translation message so other actions remain available
+    await context.bot.edit_message_reply_markup(
+        chat_id=query.message.chat.id,
+        message_id=query.message.message_id,
+        reply_markup=KEYBOARD,
     )
 
 
@@ -206,10 +268,38 @@ async def _handle_correct(
     msg = await send_response(
         bot=context.bot,
         chat_id=query.message.chat.id,
-        text="Correcting... (not implemented yet)",
+        text="Correcting...",
         reply_to_message_id=query.message.message_id,
     )
-    # TODO: load prompt from prompts_v2/buttons/correct.md, call LLM, send response
+
+    system_prompt = SYSTEM_PROMPT.format(
+        base_language=session.base_language_name,
+        target_language=session.target_language_name,
+    )
+    user_prompt = KEYBOARD_PROMPTS[KeyboardActionType.CORRECT].format(
+        base_language=session.base_language_name,
+        target_language=session.target_language_name,
+        text=text,
+    )
+
+    try:
+        formatted = await get_completion(system_prompt=system_prompt, user_prompt=user_prompt)
+        logger.info("Correct completion received (msg_id=%s)", query.message.message_id)
+    except Exception as e:
+        logger.exception("Correct completion failed: %s", e)
+        # TODO: localise
+        formatted = "Correction failed. Please try again."
+
+    await context.bot.edit_message_text(
+        chat_id=query.message.chat.id,
+        message_id=msg.message_id,
+        text=formatted,
+    )
+    await context.bot.edit_message_reply_markup(
+        chat_id=query.message.chat.id,
+        message_id=query.message.message_id,
+        reply_markup=KEYBOARD,
+    )
 
 
 async def _handle_rephrase(
@@ -223,10 +313,40 @@ async def _handle_rephrase(
     msg = await send_response(
         bot=context.bot,
         chat_id=query.message.chat.id,
-        text="Rephrasing... (not implemented yet)",
+        text="Rephrasing...",
         reply_to_message_id=query.message.message_id,
     )
-    # TODO: load prompt from prompts_v2/buttons/rephrase.md, call LLM, send response
+
+    system_prompt = SYSTEM_PROMPT.format(
+        base_language=session.base_language_name,
+        target_language=session.target_language_name,
+    )
+    user_prompt = KEYBOARD_PROMPTS[KeyboardActionType.REPHRASE].format(
+        base_language=session.base_language_name,
+        target_language=session.target_language_name,
+        text=text,
+    )
+
+    try:
+        raw = await get_completion(system_prompt=system_prompt, user_prompt=user_prompt)
+        logger.info("Rephrase completion received (msg_id=%s)", query.message.message_id)
+        formatted = _format_rephrase_result(raw)
+    except Exception as e:
+        logger.exception("Rephrase completion failed: %s", e)
+        # TODO: localise
+        formatted = "Rephrasing failed. Please try again."
+
+    await context.bot.edit_message_text(
+        chat_id=query.message.chat.id,
+        message_id=msg.message_id,
+        text=formatted,
+        parse_mode="HTML",
+    )
+    await context.bot.edit_message_reply_markup(
+        chat_id=query.message.chat.id,
+        message_id=query.message.message_id,
+        reply_markup=KEYBOARD,
+    )
 
 
 async def _handle_reply(
@@ -240,7 +360,38 @@ async def _handle_reply(
     msg = await send_response(
         bot=context.bot,
         chat_id=query.message.chat.id,
-        text="Replies... (not implemented yet)",
+        text="Generating replies...",
         reply_to_message_id=query.message.message_id,
     )
-    # TODO: load prompt from prompts_v2/buttons/reply.md, call LLM, send response
+
+    system_prompt = SYSTEM_PROMPT.format(
+        base_language=session.base_language_name,
+        target_language=session.target_language_name,
+    )
+    user_prompt = KEYBOARD_PROMPTS[KeyboardActionType.REPLY].format(
+        base_language=session.base_language_name,
+        target_language=session.target_language_name,
+        n=N_SUGGESTED_REPLIES,
+        text=text,
+    )
+
+    try:
+        raw = await get_completion(system_prompt=system_prompt, user_prompt=user_prompt)
+        logger.info("Reply completion:\n{dump}", dump=json.dumps(json.loads(raw), indent=2, ensure_ascii=False))
+        formatted = _format_reply_result(raw)
+    except Exception as e:
+        logger.exception("Reply completion failed: %s", e)
+        # TODO: localise
+        formatted = "Could not generate replies. Please try again."
+
+    await context.bot.edit_message_text(
+        chat_id=query.message.chat.id,
+        message_id=msg.message_id,
+        text=formatted,
+        parse_mode="HTML",
+    )
+    await context.bot.edit_message_reply_markup(
+        chat_id=query.message.chat.id,
+        message_id=query.message.message_id,
+        reply_markup=KEYBOARD,
+    )
