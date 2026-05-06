@@ -22,10 +22,12 @@ from tests.factories import make_context, make_update
 @patch(
     "bot.handlers_v2.message.get_completion",
     new_callable=AsyncMock,
-    return_value=json.dumps({
-        "translation": "Hello",
-        "one_line_context": "Greeting.",
-    }),
+    return_value=json.dumps(
+        {
+            "translation": "Hello",
+            "one_line_context": "Greeting.",
+        }
+    ),
 )
 @patch("bot.handlers_v2.message.detect_language", return_value="fr")
 @patch("bot.handlers_v2.message.filter_telegram_message")
@@ -255,10 +257,12 @@ class TestHandleMessageInTargetLanguage:
         mock_get_completion,
         _mock_send_response,
     ):
-        mock_get_completion.return_value = json.dumps({
-            "translation": "Hello, how are you?",
-            "one_line_context": "Common greeting.",
-        })
+        mock_get_completion.return_value = json.dumps(
+            {
+                "translation": "Hello, how are you?",
+                "one_line_context": "Common greeting.",
+            }
+        )
         update = make_update("Bonjour")
         context = make_context()
         session = UserSession.from_context(context)
@@ -280,10 +284,12 @@ class TestHandleMessageInTargetLanguage:
     ):
         translation = "Hello, how are you?"
         one_line_context = "Common casual greeting."
-        mock_get_completion.return_value = json.dumps({
-            "translation": translation,
-            "one_line_context": one_line_context,
-        })
+        mock_get_completion.return_value = json.dumps(
+            {
+                "translation": translation,
+                "one_line_context": one_line_context,
+            }
+        )
         update = make_update("Bonjour")
         update.message.message_id = 1001
         context = make_context()
@@ -307,10 +313,12 @@ class TestHandleMessageInTargetLanguage:
         mock_get_completion,
         mock_send_response,
     ):
-        mock_get_completion.return_value = json.dumps({
-            "translation": "Hi",
-            "one_line_context": "Greeting.",
-        })
+        mock_get_completion.return_value = json.dumps(
+            {
+                "translation": "Hi",
+                "one_line_context": "Greeting.",
+            }
+        )
         update = make_update("Salut")
         update.message.message_id = 2002
         context = make_context()

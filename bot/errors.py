@@ -27,6 +27,7 @@ class UnauthorizedError(UserFacingError):
     pass
 
 
-class UnsupportedLanguage(UserFacingError):
+class UnsupportedLanguageError(UserFacingError):
     """Raised when the detected language is neither the user's base nor target language."""
+
     pass

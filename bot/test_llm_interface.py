@@ -1,5 +1,3 @@
-import pytest
-
 from bot.llm_interface import FakeLLMClient, LLMClient, OpenAILLMClient
 
 

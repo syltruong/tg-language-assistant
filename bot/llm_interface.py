@@ -1,8 +1,7 @@
 import logging
-from typing import runtime_checkable
+from typing import Protocol, runtime_checkable
 
 from openai import AsyncOpenAI
-from typing_extensions import Protocol
 
 logger = logging.getLogger(__name__)
 

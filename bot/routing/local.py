@@ -21,7 +21,6 @@ from bot.errors import (
     TextHasNoWrittenContentError,
     TextTooLongError,
     UnauthorizedError,
-    UserFacingError,
 )
 
 TEXT_MAX_LENGTH = 500

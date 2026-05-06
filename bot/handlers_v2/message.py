@@ -91,7 +91,9 @@ async def _handle_message_in_base_language(
             "Streaming failed, falling back to non-streaming: %s",
             e,
         )
-        result = await get_completion(system_prompt=system_prompt, user_prompt=user_prompt)
+        result = await get_completion(
+            system_prompt=system_prompt, user_prompt=user_prompt
+        )
         await send_response(
             bot=context.bot,
             chat_id=update.effective_chat.id,
@@ -133,7 +135,9 @@ async def _handle_message_in_target_language(
         one_line_context = result["one_line_context"]
     except (json.JSONDecodeError, KeyError) as e:
         logger.warning("translate_with_context returned unexpected output: %s", e)
-        await update.message.reply_text(t(MsgAiError, session.base_language, error=str(e)))
+        await update.message.reply_text(
+            t(MsgAiError, session.base_language, error=str(e))
+        )
         return
 
     formatted = (

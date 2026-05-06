@@ -1,5 +1,3 @@
-import pytest
-
 from bot.auth import AllowlistAuthorizer, Authorizer, FakeAuthorizer
 
 
