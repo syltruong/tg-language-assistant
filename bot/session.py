@@ -12,6 +12,7 @@ import contextlib
 
 from telegram.ext import ContextTypes
 
+from bot.actions.verbs.base import LanguagePair
 from bot.config.lang import LANGUAGE_NAMES
 from bot.types import ActionType, ReplySuggestion
 
@@ -38,6 +39,7 @@ class UserSession:
     _KEY_ACTION_TYPES = "action_types"
     _KEY_REPLIES = "replies"
     _KEY_ACTIVE_MESSAGES = "active_message_ids"
+    _KEY_ACTIVE_KEYBOARD_ID = "active_keyboard_id"
 
     _DEFAULT_BASE_LANGUAGE = "en"
     _DEFAULT_TARGET_LANGUAGE = "fr"
@@ -74,6 +76,18 @@ class UserSession:
     @property
     def target_language_name(self) -> str:
         return LANGUAGE_NAMES[self.target_language]
+
+    @property
+    def language_pair(self) -> LanguagePair:
+        return LanguagePair(base=self.base_language, target=self.target_language)
+
+    @property
+    def active_keyboard_id(self) -> int | None:
+        return self._data.get(self._KEY_ACTIVE_KEYBOARD_ID)
+
+    @active_keyboard_id.setter
+    def active_keyboard_id(self, value: int | None) -> None:
+        self._data[self._KEY_ACTIVE_KEYBOARD_ID] = value
 
     # ── per-message state ────────────────────────────────────────
 

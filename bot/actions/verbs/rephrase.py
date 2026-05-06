@@ -34,4 +34,8 @@ class RephraseAction(Action):
                 if note:
                     line += f"  <i>({note})</i>"
                 parts.append(line)
-        return "\n\n".join(parts) if parts else "Could not generate rephrasings. Please try again."
+        return (
+            "\n\n".join(parts)
+            if parts
+            else "Could not generate rephrasings. Please try again."
+        )

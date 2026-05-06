@@ -7,7 +7,7 @@ from bot.localizer import Localizer
 
 @dataclass(frozen=True)
 class LanguagePair:
-    base: str    # ISO code, e.g. "en"
+    base: str  # ISO code, e.g. "en"
     target: str  # ISO code, e.g. "fr"
 
 

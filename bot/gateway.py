@@ -51,8 +51,9 @@ class FakeLanguageDetector:
 
 class LinguaLanguageDetector:
     def __init__(self) -> None:
-        from bot.config.lang import SUPPORTED_LANGUAGES
         from lingua import LanguageDetectorBuilder
+
+        from bot.config.lang import SUPPORTED_LANGUAGES
 
         self._detector = LanguageDetectorBuilder.from_languages(
             *SUPPORTED_LANGUAGES.keys()

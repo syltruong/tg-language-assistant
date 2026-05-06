@@ -14,9 +14,8 @@ def _escape(s: str) -> str:
 def _format_item(item: dict, primary_key: str | None = None) -> str:
     key_order = [primary_key] if primary_key else []
     for k in item:
-        if k != primary_key and item.get(k) not in (None, ""):
-            if k not in key_order:
-                key_order.append(k)
+        if k != primary_key and item.get(k) not in (None, "") and k not in key_order:
+            key_order.append(k)
     lines = []
     for k in key_order:
         v = item.get(k)
@@ -72,4 +71,8 @@ class AnalyzeAction(Action):
             elif isinstance(value, dict) and value:
                 title = key.replace("_", " ").title()
                 parts.append(f"<b>{title}</b>\n{_format_item(value)}")
-        return "\n\n".join(parts) if parts else "No vocabulary or grammar points for this text."
+        return (
+            "\n\n".join(parts)
+            if parts
+            else "No vocabulary or grammar points for this text."
+        )

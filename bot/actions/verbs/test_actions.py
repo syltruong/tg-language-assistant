@@ -1,15 +1,14 @@
-from bot.actions.verbs.base import LanguagePair
 from bot.actions.verbs.analyze import AnalyzeAction
+from bot.actions.verbs.base import LanguagePair
 from bot.actions.verbs.correct import CorrectAction
-from bot.actions.verbs.reply import ReplyAction
 from bot.actions.verbs.rephrase import RephraseAction
+from bot.actions.verbs.reply import ReplyAction
 from bot.actions.verbs.translate import TranslateAction
 from bot.localizer import Localizer
 from bot.types import ActionType
 
 _LP = LanguagePair(base="en", target="fr")
 _LOCALIZER = Localizer()
-
 
 
 class TestTranslateAction:
@@ -30,7 +29,11 @@ class TestAnalyzeAction:
         result = action.format(
             {
                 "vocabulary": [
-                    {"form_in_text": "tkt", "definition": "don't worry", "base_form": "t'inquiète"}
+                    {
+                        "form_in_text": "tkt",
+                        "definition": "don't worry",
+                        "base_form": "t'inquiète",
+                    }
                 ],
                 "grammar": [],
             },
@@ -47,7 +50,11 @@ class TestAnalyzeAction:
             {
                 "vocabulary": [],
                 "grammar": [
-                    {"quote": "tu vas bien", "structure": "inversion", "explanation": "formal question form"}
+                    {
+                        "quote": "tu vas bien",
+                        "structure": "inversion",
+                        "explanation": "formal question form",
+                    }
                 ],
             },
             _LP,
@@ -74,12 +81,14 @@ class TestAnalyzeActionParse:
 
     def test_parse_raises_for_malformed_json(self):
         import pytest
+
         action = AnalyzeAction(localizer=_LOCALIZER, prompt_template="")
         with pytest.raises(ValueError):
             action.parse("not json")
 
     def test_parse_raises_when_required_key_missing(self):
         import pytest
+
         action = AnalyzeAction(localizer=_LOCALIZER, prompt_template="")
         with pytest.raises(ValueError):
             action.parse('{"vocabulary": []}')
@@ -91,7 +100,10 @@ class TestRephraseAction:
 
         action = RephraseAction(localizer=_LOCALIZER, prompt_template="")
         result = action.format(
-            [{"rephrasing": "C'est super", "note": "casual"}, {"rephrasing": "C'est excellent", "note": "formal"}],
+            [
+                {"rephrasing": "C'est super", "note": "casual"},
+                {"rephrasing": "C'est excellent", "note": "formal"},
+            ],
             _LP,
         )
         assert "C'est super" in result
@@ -110,12 +122,14 @@ class TestRephraseAction:
 
     def test_parse_raises_for_malformed_json(self):
         import pytest
+
         action = RephraseAction(localizer=_LOCALIZER, prompt_template="")
         with pytest.raises(ValueError):
             action.parse("not json")
 
     def test_parse_raises_when_not_a_list(self):
         import pytest
+
         action = RephraseAction(localizer=_LOCALIZER, prompt_template="")
         with pytest.raises(ValueError):
             action.parse('{"rephrasing": "Salut"}')
@@ -127,7 +141,10 @@ class TestReplyAction:
 
         action = ReplyAction(localizer=_LOCALIZER, prompt_template="")
         result = action.format(
-            [{"reply": "Bien sûr !", "tone": "warm"}, {"reply": "Peut-être.", "tone": "reserved"}],
+            [
+                {"reply": "Bien sûr !", "tone": "warm"},
+                {"reply": "Peut-être.", "tone": "reserved"},
+            ],
             _LP,
         )
         assert "Bien sûr !" in result
@@ -145,12 +162,14 @@ class TestReplyAction:
 
     def test_parse_raises_for_malformed_json(self):
         import pytest
+
         action = ReplyAction(localizer=_LOCALIZER, prompt_template="")
         with pytest.raises(ValueError):
             action.parse("not json")
 
     def test_parse_raises_when_not_a_list(self):
         import pytest
+
         action = ReplyAction(localizer=_LOCALIZER, prompt_template="")
         with pytest.raises(ValueError):
             action.parse('{"reply": "Oui"}')
@@ -184,6 +203,7 @@ class TestActionRegistry:
 
     def test_get_unknown_action_raises(self):
         import pytest
+
         registry = self._make_registry()
         with pytest.raises(KeyError):
             registry.get("nonexistent")

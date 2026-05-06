@@ -34,4 +34,8 @@ class ReplyAction(Action):
                 if tone:
                     line += f"  <i>({tone})</i>"
                 parts.append(line)
-        return "\n\n".join(parts) if parts else "Could not generate replies. Please try again."
+        return (
+            "\n\n".join(parts)
+            if parts
+            else "Could not generate replies. Please try again."
+        )
