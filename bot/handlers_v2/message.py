@@ -11,8 +11,8 @@ from bot.handlers_v2.keyboard import KEYBOARD
 from bot.handlers_v2.response import send_response, stream_response
 from bot.llm import get_completion, stream_completion
 from bot.prompts_v2 import INSTANT_PROMPTS, SYSTEM_PROMPT
+from bot.errors import UserFacingError
 from bot.routing.local import (
-    UserFacingError,
     detect_language,
     filter_telegram_message,
 )
