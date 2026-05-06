@@ -87,5 +87,6 @@ def make_context(user_data: dict | None = None) -> MagicMock:
     context.bot = MagicMock()
     context.bot.send_message = AsyncMock()
     context.bot.edit_message_text = AsyncMock()
+    context.bot.edit_message_reply_markup = AsyncMock()
     context.user_data = user_data if user_data is not None else {}
     return context

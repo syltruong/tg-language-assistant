@@ -6,7 +6,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from bot.config.lang import SUPPORTED_LANGUAGES
-from bot.config.messages import MsgUnknownLanguage, MsgWantToGoDeeper, t
+from bot.config.messages import MsgAiError, MsgUnknownLanguage, MsgWantToGoDeeper, t
 from bot.handlers_v2.keyboard import KEYBOARD
 from bot.handlers_v2.response import send_response, stream_response
 from bot.llm import get_completion, stream_completion
@@ -126,12 +126,15 @@ async def _handle_message_in_target_language(
         text=text,
     )
 
-    # TODO: handle LLM not returning valid JSON
-    result = json.loads(
-        await get_completion(system_prompt=system_prompt, user_prompt=user_prompt)
-    )
-    translation = result["translation"]
-    one_line_context = result["one_line_context"]
+    raw = await get_completion(system_prompt=system_prompt, user_prompt=user_prompt)
+    try:
+        result = json.loads(raw)
+        translation = result["translation"]
+        one_line_context = result["one_line_context"]
+    except (json.JSONDecodeError, KeyError) as e:
+        logger.warning("translate_with_context returned unexpected output: %s", e)
+        await update.message.reply_text(t(MsgAiError, session.base_language, error=str(e)))
+        return
 
     formatted = (
         f"<blockquote>{html.escape(translation)}</blockquote>\n"

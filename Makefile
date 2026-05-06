@@ -1,7 +1,7 @@
 IMAGE_NAME = tg-language-assistant
 CONTAINER_NAME = tg-language-assistant
 
-.PHONY: start deploy logs stop
+.PHONY: start deploy logs stop test check
 
 start:
 	uv run python -m bot.main
@@ -18,4 +18,8 @@ stop:
 	docker rm -f $(CONTAINER_NAME)
 
 test:
+	uv run pytest -v
+
+check:
+	uv run ruff check .
 	uv run pytest -v
