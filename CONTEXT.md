@@ -34,6 +34,18 @@ A use pattern where the user drives both sides of a practice conversation, typin
 ### Anchor Message
 The original message the user sent that started a conversation turn. Re-sending the anchor message is the mechanism for re-entering a previous flow.
 
+### Language Role
+A factual classification of an Anchor Message relative to the user's Language Pair: **target** (the message is in the language the user is learning) or **base** (the message is in the language the user is comfortable in). Determined at ingestion time from the detected language. Does not encode user intent — the same target-language message may be received from a partner or composed by the user.
+_Avoid_: message direction, inbound, outbound
+
+### Message Gateway
+The entry point to the system. Receives a raw Telegram Update, delegates authorization to the Authorizer, validates message text, detects language, resolves Language Role, and produces a classified Anchor Message — or rejects with a typed error. Nothing downstream receives a partially-resolved message.
+_Avoid_: message ingester, message handler, router
+
+### Authorizer
+The module that decides whether a Telegram user is permitted to use the bot. Answers one question: `is_authorized(user_id) → bool`. The Message Gateway delegates to it — the Gateway does not know the authorization rules. The current implementation checks against an `ALLOWED_USERS` allowlist. Future implementations will handle rate limiting and subscription tiers. Authentication (verifying identity) is handled by Telegram's infrastructure — the bot never does authentication, only authorization.
+_Avoid_: authentication, auth middleware, access control
+
 ### Conversation Turn
 A unit of interaction initiated by one anchor message. Each turn has exactly one active keyboard at any time. When a new keyboard is posted, the previous one is silently removed from the chat.
 
@@ -50,10 +62,53 @@ Per-user in-memory state managed by Telegram's `context.user_data`. Tracks langu
 A per-user persistent collection of vocabulary entries built two ways: **passively** (words/phrases automatically extracted from Vocabulary Hint and Analyze actions) and **actively** (user taps the Save button in the inline keyboard, which saves the anchor message and its translation as an entry). Passive and active entries are distinguished in the list. Accessible via `/history`. Active entries are surfaced separately as "Favourites."
 
 ### User Preferences
-The subset of user state that must survive a bot restart: **language pair** and **instant action preference**. Message history and conversation logs are not considered preferences — they are optional features built on top of persistence.
+The subset of user state that must survive a bot restart: **language pair** and **instant action preference**. Message history and conversation logs are not considered preferences — they are optional features built on top of persistence. Accessed exclusively through the User Repository — no module reads User Preferences directly from storage.
+
+### User Repository
+The module that owns persistence of User Preferences. Follows the repository abstraction established in ADR-0001 (SQLite backend, swappable interface). The sole read/write interface for language pair and instant action preference across bot restarts.
+_Avoid_: user store, preferences manager
+
+### Vocabulary Repository
+The future persistence module for Vocabulary Lists. Deferred until after core architecture is stable — the Vocabulary List exists as a domain concept but is not yet persisted across restarts.
+
+### Message Trigger
+The module that coordinates the Instant Action flow: resolves which Action to run (from the user's Instant Action preference, Language Role, and Action Registry), calls the Action Runner to get a formatted result, then calls the Response Publisher to deliver it. Owns no LLM logic and no formatting — its only domain knowledge is how to resolve an Action from a classified Anchor Message. Receives Action Registry, Action Runner, Response Publisher, and Session via constructor injection.
+_Avoid_: message handler, message dispatcher
+
+### Keyboard Trigger
+The module that coordinates the Keyboard Action flow: identifies the Action type from the button payload, retrieves the Anchor Message the keyboard was attached to, calls the Action Runner to get a formatted result, then calls the Response Publisher to deliver it. Owns no LLM logic and no formatting — its only domain knowledge is how to resolve an Action from a callback query. Receives Action Registry, Action Runner, Response Publisher, and Session via constructor injection.
+_Avoid_: callback handler, keyboard handler
+
+### Action
+A self-contained unit of bot behaviour. Carries: a prompt template, a response format (`plain_text` or `structured_json`), a schema (structured JSON actions only, used by Output Validation), and a formatter method. The formatter receives the validated LLM output and the Language Pair from the Action Runner, and uses an injected Localizer for any UI strings it needs to wrap around LLM content. Instant Actions and Keyboard Actions are both Actions — they differ only in what triggers them.
+_Avoid_: handler, command
+
+### Action Registry
+The module that constructs and exposes all known Action objects at startup. Wires constructor dependencies into each Action (Localizer, prompt templates loaded from disk). The single place where adding a new Action requires a change. Neither the Action Runner nor the triggers know how Actions are constructed.
+_Avoid_: prompt manager, action factory
+
+### Action Runner
+The module that executes the domain round-trip for any Action: injects the Language Pair into the prompt template, calls the LLM Interface, runs Output Validation, calls the Action's formatter with the validated result and Language Pair, and returns the formatted result. Makes no Telegram API calls — returns a value, does not deliver it.
+_Avoid_: handler, dispatcher
+
+### Response Publisher
+The module that delivers a formatted result to the user via Telegram. Reads the current Active Keyboard ID from Session, removes the old keyboard via the Telegram API, posts the new response (streaming or non-streaming depending on the Action's response format), and updates Session with the new Active Keyboard ID. Owns the entire Telegram delivery concern including Active Keyboard lifecycle.
+_Avoid_: response handler, sender
+
+### LLM Interface
+An explicit protocol defining two methods: `complete(system_prompt, user_prompt) → str` and `stream(system_prompt, user_prompt) → AsyncIterator[str]`. The OpenAI adapter is one concrete implementation. A `FakeLLMClient` — a deterministic stub for testing and local development — is a second concrete implementation, defined alongside the protocol (not in `tests/`). The Action Runner receives an `LLMClient` via constructor injection; it never imports a concrete implementation directly.
+_Avoid_: LLM client, OpenAI wrapper, llm.py
 
 ### Output Validation
-Validation applied to LLM responses before delivering them to the user. Scoped to **structural validation only**: retry if the response is malformed JSON or missing required fields. Quality scoring (using a second LLM call to judge the first) is out of scope — translation quality issues are addressed through prompt improvement, not a judge layer.
+Validation applied to LLM responses before delivering them to the user. Scoped to **structural validation only**: retry if the response is malformed JSON or missing required fields. Quality scoring (using a second LLM call to judge the first) is out of scope — translation quality issues are addressed through prompt improvement, not a judge layer. Only applies to `structured_json` Actions — `plain_text` Actions bypass validation.
+
+### Localizer
+The module that translates UI strings (non-LLM text) into the user's base language. Takes a message key and a base language; returns the localized string. Used by the Message Gateway (error messages), the Keyboard Trigger (button labels), and any module that sends non-LLM text to the user. Does not know about LLM output — only about static UI strings.
+_Avoid_: message catalog, t(), translations
+
+### Domain Errors
+Typed error classes that represent named failure modes in the domain (e.g., unauthorized user, missing message text, message too long, unsupported language). Defined in a shared module with no dependencies on other bot modules — both the module that raises an error and the Localizer that maps it to a UI string import from the same place. No error type is defined in the module that raises it.
+_Avoid_: exceptions, error codes
 
 ### Safety Guardrails
 Deferred until public launch. Until then, `ALLOWED_USERS` is the sole access control mechanism. When rate limiting is introduced, it must be designed tier-aware from the start (to support future subscription tiers). Subscription management is a separate workstream and does not belong to the language learning feature roadmap.
