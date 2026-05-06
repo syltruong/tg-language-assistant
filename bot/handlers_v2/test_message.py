@@ -10,11 +10,22 @@ from bot.handlers_v2.message import (
 )
 from bot.routing.local import (
     MessageHasNoTextError,
+    MessageRoute,
     TextHasNoWrittenContentError,
     TextTooLongError,
+    route_message,
 )
 from bot.session import UserSession
 from tests.factories import make_context, make_update
+
+
+class FakeLanguageDetector:
+    def __init__(self, result: str) -> None:
+        self._result = result
+
+    def detect(self, text: str, languages: list) -> str:
+        return self._result
+
 
 # ── Happy path ───────────────────────────────────────────────────────
 
@@ -22,16 +33,20 @@ from tests.factories import make_context, make_update
 @patch(
     "bot.handlers_v2.message.get_completion",
     new_callable=AsyncMock,
-    return_value=json.dumps({
-        "translation": "Hello",
-        "one_line_context": "Greeting.",
-    }),
+    return_value=json.dumps(
+        {
+            "translation": "Hello",
+            "one_line_context": "Greeting.",
+        }
+    ),
 )
-@patch("bot.handlers_v2.message.detect_language", return_value="fr")
+@patch(
+    "bot.handlers_v2.message.route_message", return_value=MessageRoute.TARGET_LANGUAGE
+)
 @patch("bot.handlers_v2.message.filter_telegram_message")
 class TestHandleMessageHappyPath:
     async def test_sends_typing_action(
-        self, _mock_filter, _mock_detect, _mock_get_completion
+        self, _mock_filter, _mock_route, _mock_get_completion
     ):
         update = make_update("Bonjour")
         await handle_message(update, make_context())
@@ -39,20 +54,20 @@ class TestHandleMessageHappyPath:
         update.effective_chat.send_action.assert_called_once_with("typing")
 
     async def test_calls_filter_with_message(
-        self, mock_filter, _mock_detect, _mock_get_completion
+        self, mock_filter, _mock_route, _mock_get_completion
     ):
         update = make_update("Bonjour")
         await handle_message(update, make_context())
 
         mock_filter.assert_called_once_with(update)
 
-    async def test_calls_detect_language(
-        self, _mock_filter, mock_detect, _mock_get_completion
+    async def test_calls_route_message(
+        self, _mock_filter, mock_route, _mock_get_completion
     ):
         update = make_update("Bonjour")
         await handle_message(update, make_context())
 
-        mock_detect.assert_called_once()
+        mock_route.assert_called_once()
 
 
 # ── UserFacingError paths ────────────────────────────────────────────
@@ -105,12 +120,12 @@ class TestHandleMessageErrors:
         "bot.handlers_v2.message.filter_telegram_message",
         side_effect=TextTooLongError(),
     )
-    @patch("bot.handlers_v2.message.detect_language")
-    async def test_error_skips_detect_language(self, mock_detect, _mock_filter):
+    @patch("bot.handlers_v2.message.route_message")
+    async def test_error_skips_route_message(self, mock_route, _mock_filter):
         update = make_update("a" * 501)
         await handle_message(update, make_context())
 
-        mock_detect.assert_not_called()
+        mock_route.assert_not_called()
 
 
 # ── Language branching ───────────────────────────────────────────────
@@ -122,10 +137,12 @@ class TestLanguageBranching:
         "bot.handlers_v2.message._handle_message_in_base_language",
         new_callable=AsyncMock,
     )
-    @patch("bot.handlers_v2.message.detect_language", return_value="en")
+    @patch(
+        "bot.handlers_v2.message.route_message", return_value=MessageRoute.BASE_LANGUAGE
+    )
     async def test_base_language_calls_ui_handler(
         self,
-        _mock_detect,
+        _mock_route,
         mock_base_handler,
         _mock_filter,
     ):
@@ -144,10 +161,13 @@ class TestLanguageBranching:
         "bot.handlers_v2.message._handle_message_in_target_language",
         new_callable=AsyncMock,
     )
-    @patch("bot.handlers_v2.message.detect_language", return_value="fr")
+    @patch(
+        "bot.handlers_v2.message.route_message",
+        return_value=MessageRoute.TARGET_LANGUAGE,
+    )
     async def test_target_language_calls_target_handler(
         self,
-        _mock_detect,
+        _mock_route,
         mock_target_handler,
         _mock_filter,
     ):
@@ -162,10 +182,10 @@ class TestLanguageBranching:
         assert session.base_language == "en"
         assert session.target_language == "fr"
 
-    @patch("bot.handlers_v2.message.detect_language", return_value="de")
+    @patch("bot.handlers_v2.message.route_message", return_value=MessageRoute.UNKNOWN)
     async def test_unknown_language_replies_with_error(
         self,
-        _mock_detect,
+        _mock_route,
         _mock_filter,
     ):
         update = make_update("Guten Tag")
@@ -174,6 +194,36 @@ class TestLanguageBranching:
         update.message.reply_text.assert_called_once_with(
             t(MsgUnknownLanguage),
         )
+
+
+# ── route_message ─────────────────────────────────────────────────────
+
+
+class TestRouteMessage:
+    def _make_session(self, base: str = "en", target: str = "fr") -> UserSession:
+        return UserSession(
+            {
+                "base_language": base,
+                "target_language": target,
+            }
+        )
+
+    def test_returns_base_language_when_detected_matches_base(self):
+        session = self._make_session(base="en", target="fr")
+        detector = FakeLanguageDetector("en")
+        assert route_message("Hello", session, detector) == MessageRoute.BASE_LANGUAGE
+
+    def test_returns_target_language_when_detected_matches_target(self):
+        session = self._make_session(base="en", target="fr")
+        detector = FakeLanguageDetector("fr")
+        assert (
+            route_message("Bonjour", session, detector) == MessageRoute.TARGET_LANGUAGE
+        )
+
+    def test_returns_unknown_when_detected_matches_neither(self):
+        session = self._make_session(base="en", target="fr")
+        detector = FakeLanguageDetector("de")
+        assert route_message("Guten Tag", session, detector) == MessageRoute.UNKNOWN
 
 
 # ── _handle_message_in_base_language ───────────────────────────────────
@@ -195,10 +245,12 @@ class TestHandleMessageInBaseLanguage:
 
         mock_stream_resp.assert_called_once()
 
-    @patch("bot.handlers_v2.message.detect_language", return_value="en")
+    @patch(
+        "bot.handlers_v2.message.route_message", return_value=MessageRoute.BASE_LANGUAGE
+    )
     async def test_streams_translation_as_reply(
         self,
-        _mock_detect,
+        _mock_route,
         mock_stream_resp,
         _mock_stream_comp,
         _mock_filter,
@@ -212,10 +264,12 @@ class TestHandleMessageInBaseLanguage:
         assert call_kwargs.kwargs["reply_to_message_id"] == update.message.message_id
         assert call_kwargs.kwargs["chat_id"] == update.effective_chat.id
 
-    @patch("bot.handlers_v2.message.detect_language", return_value="en")
+    @patch(
+        "bot.handlers_v2.message.route_message", return_value=MessageRoute.BASE_LANGUAGE
+    )
     async def test_falls_back_to_send_response_on_stream_error(
         self,
-        _mock_detect,
+        _mock_route,
         mock_stream_resp,
         _mock_stream_comp,
         _mock_filter,
@@ -255,10 +309,12 @@ class TestHandleMessageInTargetLanguage:
         mock_get_completion,
         _mock_send_response,
     ):
-        mock_get_completion.return_value = json.dumps({
-            "translation": "Hello, how are you?",
-            "one_line_context": "Common greeting.",
-        })
+        mock_get_completion.return_value = json.dumps(
+            {
+                "translation": "Hello, how are you?",
+                "one_line_context": "Common greeting.",
+            }
+        )
         update = make_update("Bonjour")
         context = make_context()
         session = UserSession.from_context(context)
@@ -280,10 +336,12 @@ class TestHandleMessageInTargetLanguage:
     ):
         translation = "Hello, how are you?"
         one_line_context = "Common casual greeting."
-        mock_get_completion.return_value = json.dumps({
-            "translation": translation,
-            "one_line_context": one_line_context,
-        })
+        mock_get_completion.return_value = json.dumps(
+            {
+                "translation": translation,
+                "one_line_context": one_line_context,
+            }
+        )
         update = make_update("Bonjour")
         update.message.message_id = 1001
         context = make_context()
@@ -307,10 +365,12 @@ class TestHandleMessageInTargetLanguage:
         mock_get_completion,
         mock_send_response,
     ):
-        mock_get_completion.return_value = json.dumps({
-            "translation": "Hi",
-            "one_line_context": "Greeting.",
-        })
+        mock_get_completion.return_value = json.dumps(
+            {
+                "translation": "Hi",
+                "one_line_context": "Greeting.",
+            }
+        )
         update = make_update("Salut")
         update.message.message_id = 2002
         context = make_context()

@@ -11,11 +11,14 @@ The first layer of processing an incoming message
 
 import os
 import unicodedata
+from enum import StrEnum
+from typing import Protocol
 
 from lingua import Language, LanguageDetectorBuilder
 from telegram import Update
 
 from bot.config.lang import SUPPORTED_LANGUAGES
+from bot.session import UserSession
 
 TEXT_MAX_LENGTH = 500
 
@@ -91,3 +94,30 @@ def detect_language(text: str, languages: list[Language]) -> str:
     ]
 
     return SUPPORTED_LANGUAGES[languages[scores.index(max(scores))]]
+
+
+class LanguageDetector(Protocol):
+    def detect(self, text: str, languages: list) -> str: ...
+
+
+class LocalLanguageDetector:
+    def detect(self, text: str, languages: list) -> str:
+        return detect_language(text, languages)
+
+
+class MessageRoute(StrEnum):
+    BASE_LANGUAGE = "base_language"
+    TARGET_LANGUAGE = "target_language"
+    UNKNOWN = "unknown"
+
+
+def route_message(
+    text: str, session: UserSession, detector: LanguageDetector
+) -> MessageRoute:
+    lang = detector.detect(text, list(SUPPORTED_LANGUAGES.keys()))
+    if lang == session.base_language:
+        return MessageRoute.BASE_LANGUAGE
+    elif lang == session.target_language:
+        return MessageRoute.TARGET_LANGUAGE
+    else:
+        return MessageRoute.UNKNOWN

@@ -17,6 +17,7 @@ class ActionType(StrEnum):
     CORRECT = "correct"
     REPHRASE = "rephrase"
 
+
 class InstantActionType(StrEnum):
     """Bot actions available to users via inline keyboard buttons.
 
@@ -27,6 +28,7 @@ class InstantActionType(StrEnum):
 
     TRANSLATE = "translate"
     TRANSLATE_WITH_CONTEXT = "translate_with_context"
+
 
 class KeyboardActionType(StrEnum):
     """Bot actions available to users via inline keyboard buttons.
@@ -40,6 +42,7 @@ class KeyboardActionType(StrEnum):
     REPLY = "reply"
     CORRECT = "correct"
     REPHRASE = "rephrase"
+
 
 @dataclass(frozen=True, slots=True)
 class ReplySuggestion:

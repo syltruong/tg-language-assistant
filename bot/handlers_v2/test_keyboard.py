@@ -59,7 +59,11 @@ class TestActionTitles:
 
 @patch("bot.handlers_v2.keyboard.send_response", new_callable=AsyncMock)
 class TestHandleButtonClick:
-    @patch("bot.handlers_v2.keyboard.get_completion", new_callable=AsyncMock, return_value='{"vocabulary":[],"grammar":[]}')
+    @patch(
+        "bot.handlers_v2.keyboard.get_completion",
+        new_callable=AsyncMock,
+        return_value='{"vocabulary":[],"grammar":[]}',
+    )
     async def test_calls_answer(self, _mock_get_completion, mock_send_response):
         update = make_callback_update(KeyboardActionType.ANALYZE, reply_text="Hello")
         context = make_context()
@@ -68,8 +72,14 @@ class TestHandleButtonClick:
 
         update.callback_query.answer.assert_called_once_with()
 
-    @patch("bot.handlers_v2.keyboard.get_completion", new_callable=AsyncMock, return_value='{"vocabulary":[],"grammar":[]}')
-    async def test_removes_keyboard_to_prevent_double_click(self, _mock_get_completion, mock_send_response):
+    @patch(
+        "bot.handlers_v2.keyboard.get_completion",
+        new_callable=AsyncMock,
+        return_value='{"vocabulary":[],"grammar":[]}',
+    )
+    async def test_removes_keyboard_to_prevent_double_click(
+        self, _mock_get_completion, mock_send_response
+    ):
         update = make_callback_update(KeyboardActionType.CORRECT, reply_text="Hi")
         context = make_context()
 
@@ -88,7 +98,11 @@ class TestHandleButtonClick:
             (KeyboardActionType.REPLY, "Generating replies..."),
         ],
     )
-    @patch("bot.handlers_v2.keyboard.get_completion", new_callable=AsyncMock, return_value='{"vocabulary":[],"grammar":[]}')
+    @patch(
+        "bot.handlers_v2.keyboard.get_completion",
+        new_callable=AsyncMock,
+        return_value='{"vocabulary":[],"grammar":[]}',
+    )
     async def test_dispatches_to_handler_and_sends_placeholder(
         self, _mock_get_completion, mock_send_response, callback_data, expected_text
     ):
@@ -142,7 +156,9 @@ class TestHandleAnalyze:
         sent_message = MagicMock()
         sent_message.message_id = 12345
         send_response_mock.return_value = sent_message
-        context = make_context(user_data={"base_language": "en", "target_language": "fr"})
+        context = make_context(
+            user_data={"base_language": "en", "target_language": "fr"}
+        )
         context.bot.edit_message_text = AsyncMock()
         session = UserSession.from_context(context)
         return update, context, session, sent_message
@@ -164,17 +180,30 @@ class TestHandleAnalyze:
     async def test_edits_message_with_formatted_result_when_completion_succeeds(
         self, mock_send_response, mock_get_completion
     ):
-        mock_get_completion.return_value = json.dumps({
-            "vocabulary": [
-                {"form_in_text": "tkt", "base_form": "t'inquiète", "definition": "don't worry", "note": "IM shortcut"},
-            ],
-            "grammar": [
-                {"quote": "C'est parti", "structure": "Presentative", "explanation": "Idiomatic kick-off."},
-            ],
-        })
+        mock_get_completion.return_value = json.dumps(
+            {
+                "vocabulary": [
+                    {
+                        "form_in_text": "tkt",
+                        "base_form": "t'inquiète",
+                        "definition": "don't worry",
+                        "note": "IM shortcut",
+                    },
+                ],
+                "grammar": [
+                    {
+                        "quote": "C'est parti",
+                        "structure": "Presentative",
+                        "explanation": "Idiomatic kick-off.",
+                    },
+                ],
+            }
+        )
         update, context, session, sent_message = self._make_mocks(mock_send_response)
 
-        await _handle_analyze(update.callback_query, context, session, "tkt c'est parti")
+        await _handle_analyze(
+            update.callback_query, context, session, "tkt c'est parti"
+        )
 
         context.bot.edit_message_text.assert_called_once()
         call_kwargs = context.bot.edit_message_text.call_args.kwargs
@@ -197,7 +226,9 @@ class TestHandleAnalyze:
         await _handle_analyze(update.callback_query, context, session, "Hello")
 
         context.bot.edit_message_text.assert_called_once()
-        assert "Analysis failed" in context.bot.edit_message_text.call_args.kwargs["text"]
+        assert (
+            "Analysis failed" in context.bot.edit_message_text.call_args.kwargs["text"]
+        )
 
     async def test_send_response_called_first_then_edit_uses_returned_message_id(
         self, mock_send_response, mock_get_completion

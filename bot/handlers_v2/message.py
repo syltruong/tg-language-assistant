@@ -5,16 +5,17 @@ from loguru import logger
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from bot.config.lang import SUPPORTED_LANGUAGES
 from bot.config.messages import MsgAiError, MsgUnknownLanguage, MsgWantToGoDeeper, t
 from bot.handlers_v2.keyboard import KEYBOARD
 from bot.handlers_v2.response import send_response, stream_response
 from bot.llm import get_completion, stream_completion
 from bot.prompts_v2 import INSTANT_PROMPTS, SYSTEM_PROMPT
 from bot.routing.local import (
+    LocalLanguageDetector,
+    MessageRoute,
     UserFacingError,
-    detect_language,
     filter_telegram_message,
+    route_message,
 )
 from bot.session import UserSession
 from bot.types import InstantActionType
@@ -27,7 +28,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     """
     session = UserSession.from_context(context)
     base_language = session.base_language
-    target_language = session.target_language
 
     await update.effective_chat.send_action("typing")
 
@@ -39,17 +39,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     text = update.message.text.strip()
 
-    # Note: the language detection is very crude.
-    # LLM-backed steps must account for imperfect language detection.
-    lang = detect_language(text, list(SUPPORTED_LANGUAGES.keys()))
-
-    if lang == base_language:
+    detector = LocalLanguageDetector()
+    route = route_message(text, session, detector)
+    if route == MessageRoute.BASE_LANGUAGE:
         await _handle_message_in_base_language(update, context, session)
-    elif lang == target_language:
+    elif route == MessageRoute.TARGET_LANGUAGE:
         await _handle_message_in_target_language(update, context, session)
     else:
         await update.message.reply_text(t(MsgUnknownLanguage, base_language))
-        return
 
 
 async def _handle_message_in_base_language(
@@ -91,7 +88,9 @@ async def _handle_message_in_base_language(
             "Streaming failed, falling back to non-streaming: %s",
             e,
         )
-        result = await get_completion(system_prompt=system_prompt, user_prompt=user_prompt)
+        result = await get_completion(
+            system_prompt=system_prompt, user_prompt=user_prompt
+        )
         await send_response(
             bot=context.bot,
             chat_id=update.effective_chat.id,
@@ -133,7 +132,9 @@ async def _handle_message_in_target_language(
         one_line_context = result["one_line_context"]
     except (json.JSONDecodeError, KeyError) as e:
         logger.warning("translate_with_context returned unexpected output: %s", e)
-        await update.message.reply_text(t(MsgAiError, session.base_language, error=str(e)))
+        await update.message.reply_text(
+            t(MsgAiError, session.base_language, error=str(e))
+        )
         return
 
     formatted = (
