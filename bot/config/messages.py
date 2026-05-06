@@ -6,7 +6,7 @@ Call ``t(key, locale)`` to resolve the user-facing string.
 
 from __future__ import annotations
 
-from bot.routing.local import (
+from bot.errors import (
     MessageHasNoTextError,
     TextHasNoWrittenContentError,
     TextTooLongError,

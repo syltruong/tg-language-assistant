@@ -16,34 +16,19 @@ from lingua import Language, LanguageDetectorBuilder
 from telegram import Update
 
 from bot.config.lang import SUPPORTED_LANGUAGES
+from bot.errors import (
+    MessageHasNoTextError,
+    TextHasNoWrittenContentError,
+    TextTooLongError,
+    UnauthorizedError,
+    UserFacingError,
+)
 
 TEXT_MAX_LENGTH = 500
 
 # preferable to build the language detection once for all users
 # and reuse it for all language detection operations
 _detector = LanguageDetectorBuilder.from_languages(*SUPPORTED_LANGUAGES.keys()).build()
-
-
-class UserFacingError(Exception):
-    def __init__(self, *args, **format_kwargs):
-        super().__init__(*args)
-        self.format_kwargs = format_kwargs
-
-
-class MessageHasNoTextError(UserFacingError):
-    pass
-
-
-class TextHasNoWrittenContentError(UserFacingError):
-    pass
-
-
-class TextTooLongError(UserFacingError):
-    pass
-
-
-class UnauthorizedError(UserFacingError):
-    pass
 
 
 def _is_authorized(user_id: int | None) -> bool:
