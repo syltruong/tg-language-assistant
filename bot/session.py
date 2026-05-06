@@ -1,9 +1,5 @@
-"""Per-user session state backed by ``context.user_data``.
-
-Wraps the raw dict access patterns used throughout the handlers into a
-single, typed abstraction.  This makes state access self-documenting,
-centralises defaults, and provides a clean seam for swapping in a
-persistent storage backend later.
+"""Per-user session state backed by ``context.user_data`` for ephemeral state
+and a ``UserRepository`` for persistent preferences.
 """
 
 from __future__ import annotations
@@ -14,13 +10,19 @@ from telegram.ext import ContextTypes
 
 from bot.config.lang import LANGUAGE_NAMES
 from bot.types import ActionType, ReplySuggestion
+from bot.user_repository import UserPreferences, UserRepository
 
 _MAX_ACTIVE_MESSAGES = 5
 
 
 class UserSession:
     """
-    Thin wrapper around a ``context.user_data`` dict.
+    Combines a persistent preference store (UserRepository) with an ephemeral
+    per-request dict (context.user_data) for transient state such as message
+    history and active message IDs.
+
+    Preferences (base_language, target_language, instant_action) are read from
+    and written to the repository.  Everything else remains in context.user_data.
 
     context.user_data: {
         _KEY_MESSAGES : { msg_id: text },
@@ -31,41 +33,60 @@ class UserSession:
     }
     """
 
-    _KEY_BASE_LANGUAGE = "base_language"
-    _KEY_TARGET_LANGUAGE = "target_language"
     _KEY_MESSAGES = "messages"
     _KEY_DETECTED_LANGUAGE = "detected_language"
     _KEY_ACTION_TYPES = "action_types"
     _KEY_REPLIES = "replies"
     _KEY_ACTIVE_MESSAGES = "active_message_ids"
 
-    _DEFAULT_BASE_LANGUAGE = "en"
-    _DEFAULT_TARGET_LANGUAGE = "fr"
-
-    def __init__(self, user_data: dict) -> None:
+    def __init__(
+        self,
+        user_data: dict,
+        preferences: UserPreferences,
+        repo: UserRepository,
+        user_id: int,
+    ) -> None:
         self._data = user_data
+        self._preferences = preferences
+        self._repo = repo
+        self._user_id = user_id
 
     @classmethod
-    def from_context(cls, context: ContextTypes.DEFAULT_TYPE) -> UserSession:
-        return cls(context.user_data)
+    async def from_context(
+        cls,
+        context: ContextTypes.DEFAULT_TYPE,
+        user_id: int,
+        repo: UserRepository,
+    ) -> UserSession:
+        prefs = await repo.get_preferences(user_id)
+        return cls(
+            user_data=context.user_data,
+            preferences=prefs,
+            repo=repo,
+            user_id=user_id,
+        )
 
     # ── user preferences ─────────────────────────────────────────
 
     @property
     def base_language(self) -> str:
-        return self._data.get(self._KEY_BASE_LANGUAGE, self._DEFAULT_BASE_LANGUAGE)
+        return self._preferences.base_language
 
-    @base_language.setter
-    def base_language(self, value: str) -> None:
-        self._data[self._KEY_BASE_LANGUAGE] = value
+    async def set_base_language(self, value: str) -> None:
+        self._preferences = self._preferences.model_copy(
+            update={"base_language": value}
+        )
+        await self._repo.save_preferences(self._user_id, self._preferences)
 
     @property
     def target_language(self) -> str:
-        return self._data.get(self._KEY_TARGET_LANGUAGE, self._DEFAULT_TARGET_LANGUAGE)
+        return self._preferences.target_language
 
-    @target_language.setter
-    def target_language(self, value: str) -> None:
-        self._data[self._KEY_TARGET_LANGUAGE] = value
+    async def set_target_language(self, value: str) -> None:
+        self._preferences = self._preferences.model_copy(
+            update={"target_language": value}
+        )
+        await self._repo.save_preferences(self._user_id, self._preferences)
 
     @property
     def base_language_name(self) -> str:

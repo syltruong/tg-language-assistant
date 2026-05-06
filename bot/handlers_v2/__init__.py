@@ -1,3 +1,3 @@
-from bot.handlers_v2.message import handle_message
+from bot.handlers_v2.message import MessageHandlerService, handle_message
 
-__all__ = ["handle_message"]
+__all__ = ["MessageHandlerService", "handle_message"]

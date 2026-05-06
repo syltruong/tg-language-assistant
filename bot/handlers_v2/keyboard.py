@@ -11,6 +11,7 @@ from bot.llm import get_completion
 from bot.prompts_v2 import KEYBOARD_PROMPTS, SYSTEM_PROMPT
 from bot.session import UserSession
 from bot.types import KeyboardActionType
+from bot.user_repository import UserRepository
 
 # TODO: localise the button titles
 BUTTON_TITLES: dict[KeyboardActionType, str] = {
@@ -25,18 +26,42 @@ BUTTON_ACTIONS = list(BUTTON_TITLES.keys())
 KEYBOARD = InlineKeyboardMarkup(
     [
         [
-            InlineKeyboardButton(BUTTON_TITLES[KeyboardActionType.ANALYZE], callback_data=KeyboardActionType.ANALYZE),
-            InlineKeyboardButton(BUTTON_TITLES[KeyboardActionType.CORRECT], callback_data=KeyboardActionType.CORRECT),
+            InlineKeyboardButton(
+                BUTTON_TITLES[KeyboardActionType.ANALYZE],
+                callback_data=KeyboardActionType.ANALYZE,
+            ),
+            InlineKeyboardButton(
+                BUTTON_TITLES[KeyboardActionType.CORRECT],
+                callback_data=KeyboardActionType.CORRECT,
+            ),
         ],
         [
-            InlineKeyboardButton(BUTTON_TITLES[KeyboardActionType.REPHRASE], callback_data=KeyboardActionType.REPHRASE),
-            InlineKeyboardButton(BUTTON_TITLES[KeyboardActionType.REPLY], callback_data=KeyboardActionType.REPLY),
+            InlineKeyboardButton(
+                BUTTON_TITLES[KeyboardActionType.REPHRASE],
+                callback_data=KeyboardActionType.REPHRASE,
+            ),
+            InlineKeyboardButton(
+                BUTTON_TITLES[KeyboardActionType.REPLY],
+                callback_data=KeyboardActionType.REPLY,
+            ),
         ],
     ]
 )
 
 
-async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+class KeyboardHandlerService:
+    def __init__(self, repo: UserRepository) -> None:
+        self._repo = repo
+
+    async def handle(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        await handle_button_click(update, context, self._repo)
+
+
+async def handle_button_click(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    repo: UserRepository,
+) -> None:
     """Handle inline-keyboard button clicks (v2 dispatcher)."""
     query = update.callback_query
     await query.answer()
@@ -46,7 +71,7 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
     await query.edit_message_reply_markup(reply_markup=None)
 
     callback_data = query.data
-    session = UserSession.from_context(context)
+    session = await UserSession.from_context(context, update.effective_user.id, repo)
 
     handlers = {
         KeyboardActionType.ANALYZE: _handle_analyze,
@@ -98,11 +123,7 @@ def _format_dict_item(item: dict, primary_key: str | None = None) -> str:
 
 def _escape_html(s: str) -> str:
     """Escape HTML specials for safe inclusion in message text."""
-    return (
-        s.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-    )
+    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
 def _format_analyze_result(raw: str) -> str:
@@ -235,7 +256,10 @@ async def _handle_analyze(
 
     try:
         raw = await get_completion(system_prompt=system_prompt, user_prompt=user_prompt)
-        logger.info("Analyze completion:\n{dump}", dump=json.dumps(json.loads(raw), indent=2, ensure_ascii=False))
+        logger.info(
+            "Analyze completion:\n{dump}",
+            dump=json.dumps(json.loads(raw), indent=2, ensure_ascii=False),
+        )
         formatted = _format_analyze_result(raw)
     except Exception as e:
         logger.exception("Analyze completion failed: %s", e)
@@ -283,7 +307,9 @@ async def _handle_correct(
     )
 
     try:
-        formatted = await get_completion(system_prompt=system_prompt, user_prompt=user_prompt)
+        formatted = await get_completion(
+            system_prompt=system_prompt, user_prompt=user_prompt
+        )
         logger.info("Correct completion received (msg_id=%s)", query.message.message_id)
     except Exception as e:
         logger.exception("Correct completion failed: %s", e)
@@ -329,7 +355,9 @@ async def _handle_rephrase(
 
     try:
         raw = await get_completion(system_prompt=system_prompt, user_prompt=user_prompt)
-        logger.info("Rephrase completion received (msg_id=%s)", query.message.message_id)
+        logger.info(
+            "Rephrase completion received (msg_id=%s)", query.message.message_id
+        )
         formatted = _format_rephrase_result(raw)
     except Exception as e:
         logger.exception("Rephrase completion failed: %s", e)
@@ -377,7 +405,10 @@ async def _handle_reply(
 
     try:
         raw = await get_completion(system_prompt=system_prompt, user_prompt=user_prompt)
-        logger.info("Reply completion:\n{dump}", dump=json.dumps(json.loads(raw), indent=2, ensure_ascii=False))
+        logger.info(
+            "Reply completion:\n{dump}",
+            dump=json.dumps(json.loads(raw), indent=2, ensure_ascii=False),
+        )
         formatted = _format_reply_result(raw)
     except Exception as e:
         logger.exception("Reply completion failed: %s", e)

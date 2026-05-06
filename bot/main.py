@@ -9,8 +9,9 @@ from telegram.ext import (
 )
 
 from bot.config import TOKEN
-from bot.handlers_v2 import handle_message as handle_message_v2
-from bot.handlers_v2.keyboard import handle_button_click
+from bot.handlers_v2.keyboard import KeyboardHandlerService
+from bot.handlers_v2.message import MessageHandlerService
+from bot.user_repository import SqliteUserRepository
 
 
 class _InterceptHandler(logging.Handler):
@@ -25,19 +26,26 @@ class _InterceptHandler(logging.Handler):
         while frame and frame.f_code.co_filename == logging.__file__:
             frame = frame.f_back  # type: ignore[assignment]
             depth += 1
-        logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+        logger.opt(depth=depth, exception=record.exc_info).log(
+            level, record.getMessage()
+        )
 
 
 def main() -> None:
     logging.basicConfig(handlers=[_InterceptHandler()], level=logging.INFO, force=True)
+
+    repo = SqliteUserRepository.from_env()
+    message_service = MessageHandlerService(repo)
+    keyboard_service = KeyboardHandlerService(repo)
+
     app = ApplicationBuilder().token(TOKEN).concurrent_updates(True).build()
     app.add_handler(
         MessageHandler(
             filters.TEXT & ~filters.COMMAND & ~filters.UpdateType.EDITED_MESSAGE,
-            handle_message_v2,
+            message_service.handle,
         )
     )
-    app.add_handler(CallbackQueryHandler(handle_button_click))
+    app.add_handler(CallbackQueryHandler(keyboard_service.handle))
     app.run_polling(drop_pending_updates=True)  # Drop pending updates at startup
 
 

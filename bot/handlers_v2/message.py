@@ -18,14 +18,27 @@ from bot.routing.local import (
 )
 from bot.session import UserSession
 from bot.types import InstantActionType
+from bot.user_repository import UserRepository
 
 
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+class MessageHandlerService:
+    def __init__(self, repo: UserRepository) -> None:
+        self._repo = repo
+
+    async def handle(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        await handle_message(update, context, self._repo)
+
+
+async def handle_message(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    repo: UserRepository,
+) -> None:
     """Handle incoming text messages.
 
     Validates the message, detects its language, and replies.
     """
-    session = UserSession.from_context(context)
+    session = await UserSession.from_context(context, update.effective_user.id, repo)
     base_language = session.base_language
     target_language = session.target_language
 
@@ -91,7 +104,9 @@ async def _handle_message_in_base_language(
             "Streaming failed, falling back to non-streaming: %s",
             e,
         )
-        result = await get_completion(system_prompt=system_prompt, user_prompt=user_prompt)
+        result = await get_completion(
+            system_prompt=system_prompt, user_prompt=user_prompt
+        )
         await send_response(
             bot=context.bot,
             chat_id=update.effective_chat.id,
@@ -133,7 +148,9 @@ async def _handle_message_in_target_language(
         one_line_context = result["one_line_context"]
     except (json.JSONDecodeError, KeyError) as e:
         logger.warning("translate_with_context returned unexpected output: %s", e)
-        await update.message.reply_text(t(MsgAiError, session.base_language, error=str(e)))
+        await update.message.reply_text(
+            t(MsgAiError, session.base_language, error=str(e))
+        )
         return
 
     formatted = (
