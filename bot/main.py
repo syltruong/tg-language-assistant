@@ -8,9 +8,10 @@ from telegram.ext import (
     filters,
 )
 
-from bot.config import TOKEN
-from bot.handlers_v2 import handle_message as handle_message_v2
-from bot.handlers_v2.keyboard import handle_button_click
+from bot.config import MODEL_NAME, OPENAI_API_KEY, TOKEN
+from bot.handlers_v2.keyboard import KeyboardHandlerService
+from bot.handlers_v2.message import MessageHandlerService
+from bot.llm import OpenAILLMClient
 
 
 class _InterceptHandler(logging.Handler):
@@ -25,20 +26,27 @@ class _InterceptHandler(logging.Handler):
         while frame and frame.f_code.co_filename == logging.__file__:
             frame = frame.f_back  # type: ignore[assignment]
             depth += 1
-        logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+        logger.opt(depth=depth, exception=record.exc_info).log(
+            level, record.getMessage()
+        )
 
 
 def main() -> None:
     logging.basicConfig(handlers=[_InterceptHandler()], level=logging.INFO, force=True)
+
+    llm = OpenAILLMClient(api_key=OPENAI_API_KEY, model=MODEL_NAME)
+    msg_svc = MessageHandlerService(llm)
+    kbd_svc = KeyboardHandlerService(llm)
+
     app = ApplicationBuilder().token(TOKEN).concurrent_updates(True).build()
     app.add_handler(
         MessageHandler(
             filters.TEXT & ~filters.COMMAND & ~filters.UpdateType.EDITED_MESSAGE,
-            handle_message_v2,
+            msg_svc.handle,
         )
     )
-    app.add_handler(CallbackQueryHandler(handle_button_click))
-    app.run_polling(drop_pending_updates=True)  # Drop pending updates at startup
+    app.add_handler(CallbackQueryHandler(kbd_svc.handle))
+    app.run_polling(drop_pending_updates=True)
 
 
 if __name__ == "__main__":

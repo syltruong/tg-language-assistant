@@ -1,4 +1,4 @@
-"""Unit tests for the keyboard handler."""
+"""Unit tests for the keyboard handler service."""
 
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -9,12 +9,19 @@ from bot.handlers_v2.keyboard import (
     BUTTON_ACTIONS,
     BUTTON_TITLES,
     KEYBOARD,
-    _handle_analyze,
-    handle_button_click,
+    KeyboardHandlerService,
 )
+from bot.llm import FakeLLMClient
 from bot.session import UserSession
 from bot.types import KeyboardActionType
 from tests.factories import make_callback_update, make_context
+
+
+def _make_svc(
+    complete_return: str = '{"vocabulary":[],"grammar":[]}',
+) -> KeyboardHandlerService:
+    return KeyboardHandlerService(FakeLLMClient(complete_return=complete_return))
+
 
 # ── KEYBOARD structure ─────────────────────────────────────────────────────
 
@@ -54,26 +61,26 @@ class TestActionTitles:
         assert set(BUTTON_ACTIONS) == set(KeyboardActionType)
 
 
-# ── handle_button_click ─────────────────────────────────────────────────────
+# ── handle (via KeyboardHandlerService) ────────────────────────────────────
 
 
 @patch("bot.handlers_v2.keyboard.send_response", new_callable=AsyncMock)
 class TestHandleButtonClick:
-    @patch("bot.handlers_v2.keyboard.get_completion", new_callable=AsyncMock, return_value='{"vocabulary":[],"grammar":[]}')
-    async def test_calls_answer(self, _mock_get_completion, mock_send_response):
+    async def test_calls_answer(self, mock_send_response):
+        svc = _make_svc()
         update = make_callback_update(KeyboardActionType.ANALYZE, reply_text="Hello")
         context = make_context()
 
-        await handle_button_click(update, context)
+        await svc.handle(update, context)
 
         update.callback_query.answer.assert_called_once_with()
 
-    @patch("bot.handlers_v2.keyboard.get_completion", new_callable=AsyncMock, return_value='{"vocabulary":[],"grammar":[]}')
-    async def test_removes_keyboard_to_prevent_double_click(self, _mock_get_completion, mock_send_response):
+    async def test_removes_keyboard_to_prevent_double_click(self, mock_send_response):
+        svc = _make_svc()
         update = make_callback_update(KeyboardActionType.CORRECT, reply_text="Hi")
         context = make_context()
 
-        await handle_button_click(update, context)
+        await svc.handle(update, context)
 
         update.callback_query.edit_message_reply_markup.assert_called_once_with(
             reply_markup=None,
@@ -88,16 +95,16 @@ class TestHandleButtonClick:
             (KeyboardActionType.REPLY, "Generating replies..."),
         ],
     )
-    @patch("bot.handlers_v2.keyboard.get_completion", new_callable=AsyncMock, return_value='{"vocabulary":[],"grammar":[]}')
     async def test_dispatches_to_handler_and_sends_placeholder(
-        self, _mock_get_completion, mock_send_response, callback_data, expected_text
+        self, mock_send_response, callback_data, expected_text
     ):
+        svc = _make_svc()
         update = make_callback_update(callback_data, reply_text="Message to process")
         update.callback_query.message.message_id = 999
         update.callback_query.message.chat.id = 111
         context = make_context()
 
-        await handle_button_click(update, context)
+        await svc.handle(update, context)
 
         mock_send_response.assert_called_once()
         call_kwargs = mock_send_response.call_args.kwargs
@@ -108,10 +115,11 @@ class TestHandleButtonClick:
     async def test_no_reply_text_sends_error_and_does_not_call_handler(
         self, mock_send_response
     ):
-        update = make_callback_update(KeyboardActionType.ANALYZE)  # no reply_text
+        svc = _make_svc()
+        update = make_callback_update(KeyboardActionType.ANALYZE)
         context = make_context()
 
-        await handle_button_click(update, context)
+        await svc.handle(update, context)
 
         mock_send_response.assert_called_once()
         assert "could not be accessed" in mock_send_response.call_args.kwargs["text"]
@@ -119,10 +127,11 @@ class TestHandleButtonClick:
     async def test_unknown_callback_data_does_not_call_send_response(
         self, mock_send_response
     ):
+        svc = _make_svc()
         update = make_callback_update("unknown_action")
         context = make_context()
 
-        await handle_button_click(update, context)
+        await svc.handle(update, context)
 
         update.callback_query.answer.assert_called_once()
         update.callback_query.edit_message_reply_markup.assert_called_once()
@@ -132,7 +141,6 @@ class TestHandleButtonClick:
 # ── _handle_analyze ─────────────────────────────────────────────────────────
 
 
-@patch("bot.handlers_v2.keyboard.get_completion", new_callable=AsyncMock)
 @patch("bot.handlers_v2.keyboard.send_response", new_callable=AsyncMock)
 class TestHandleAnalyze:
     def _make_mocks(self, send_response_mock, chat_id=111, message_id=999):
@@ -142,39 +150,58 @@ class TestHandleAnalyze:
         sent_message = MagicMock()
         sent_message.message_id = 12345
         send_response_mock.return_value = sent_message
-        context = make_context(user_data={"base_language": "en", "target_language": "fr"})
+        context = make_context(
+            user_data={"base_language": "en", "target_language": "fr"}
+        )
         context.bot.edit_message_text = AsyncMock()
         session = UserSession.from_context(context)
         return update, context, session, sent_message
 
-    async def test_calls_get_completion_with_prompts_containing_text_and_languages(
-        self, mock_send_response, mock_get_completion
+    async def test_calls_complete_with_prompts_containing_text_and_languages(
+        self, mock_send_response
     ):
-        mock_get_completion.return_value = '{"vocabulary":[],"grammar":[]}'
+        fake_llm = FakeLLMClient(complete_return='{"vocabulary":[],"grammar":[]}')
+        svc = KeyboardHandlerService(fake_llm)
         update, context, session, _ = self._make_mocks(mock_send_response)
 
-        await _handle_analyze(update.callback_query, context, session, "Bonjour")
+        await svc._handle_analyze(update.callback_query, context, session, "Bonjour")
 
-        mock_get_completion.assert_called_once()
-        call_kwargs = mock_get_completion.call_args.kwargs
-        assert "English" in call_kwargs["system_prompt"]
-        assert "French" in call_kwargs["system_prompt"]
-        assert "Bonjour" in call_kwargs["user_prompt"]
+        assert len(fake_llm.complete_calls) == 1
+        system, user = fake_llm.complete_calls[0]
+        assert "English" in system
+        assert "French" in system
+        assert "Bonjour" in user
 
     async def test_edits_message_with_formatted_result_when_completion_succeeds(
-        self, mock_send_response, mock_get_completion
+        self, mock_send_response
     ):
-        mock_get_completion.return_value = json.dumps({
-            "vocabulary": [
-                {"form_in_text": "tkt", "base_form": "t'inquiète", "definition": "don't worry", "note": "IM shortcut"},
-            ],
-            "grammar": [
-                {"quote": "C'est parti", "structure": "Presentative", "explanation": "Idiomatic kick-off."},
-            ],
-        })
+        fake_llm = FakeLLMClient(
+            complete_return=json.dumps(
+                {
+                    "vocabulary": [
+                        {
+                            "form_in_text": "tkt",
+                            "base_form": "t'inquiète",
+                            "definition": "don't worry",
+                            "note": "IM shortcut",
+                        },
+                    ],
+                    "grammar": [
+                        {
+                            "quote": "C'est parti",
+                            "structure": "Presentative",
+                            "explanation": "Idiomatic kick-off.",
+                        },
+                    ],
+                }
+            )
+        )
+        svc = KeyboardHandlerService(fake_llm)
         update, context, session, sent_message = self._make_mocks(mock_send_response)
 
-        await _handle_analyze(update.callback_query, context, session, "tkt c'est parti")
+        await svc._handle_analyze(
+            update.callback_query, context, session, "tkt c'est parti"
+        )
 
         context.bot.edit_message_text.assert_called_once()
         call_kwargs = context.bot.edit_message_text.call_args.kwargs
@@ -188,25 +215,32 @@ class TestHandleAnalyze:
         assert "<b>Grammar</b>" in body
         assert "C'est parti" in body
 
-    async def test_edits_message_with_error_fallback_when_get_completion_raises(
-        self, mock_send_response, mock_get_completion
+    async def test_edits_message_with_error_fallback_when_complete_raises(
+        self, mock_send_response
     ):
-        mock_get_completion.side_effect = Exception("API error")
+        class _FailLLM(FakeLLMClient):
+            async def complete(self, system: str, user: str) -> str:
+                raise RuntimeError("API error")
+
+        svc = KeyboardHandlerService(_FailLLM())
         update, context, session, _sent_message = self._make_mocks(mock_send_response)
 
-        await _handle_analyze(update.callback_query, context, session, "Hello")
+        await svc._handle_analyze(update.callback_query, context, session, "Hello")
 
         context.bot.edit_message_text.assert_called_once()
-        assert "Analysis failed" in context.bot.edit_message_text.call_args.kwargs["text"]
+        assert (
+            "Analysis failed" in context.bot.edit_message_text.call_args.kwargs["text"]
+        )
 
     async def test_send_response_called_first_then_edit_uses_returned_message_id(
-        self, mock_send_response, mock_get_completion
+        self, mock_send_response
     ):
-        mock_get_completion.return_value = '{"vocabulary":[],"grammar":[]}'
+        fake_llm = FakeLLMClient(complete_return='{"vocabulary":[],"grammar":[]}')
+        svc = KeyboardHandlerService(fake_llm)
         update, context, session, sent_message = self._make_mocks(mock_send_response)
         assert sent_message.message_id == 12345
 
-        await _handle_analyze(update.callback_query, context, session, "Hi")
+        await svc._handle_analyze(update.callback_query, context, session, "Hi")
 
         mock_send_response.assert_called_once()
         assert mock_send_response.call_args.kwargs["text"] == "Analyzing..."
