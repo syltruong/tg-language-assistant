@@ -1,4 +1,5 @@
 import logging
+import os
 
 from loguru import logger
 from telegram.ext import (
@@ -8,9 +9,22 @@ from telegram.ext import (
     filters,
 )
 
-from bot.config import TOKEN
-from bot.handlers_v2 import handle_message as handle_message_v2
-from bot.handlers_v2.keyboard import handle_button_click
+from bot.actions.registry import ActionRegistry
+from bot.auth import AllowlistAuthorizer
+from bot.config import ALLOWED_USERS, MODEL_NAME, OPENAI_API_KEY, TOKEN
+from bot.gateway import LinguaLanguageDetector, MessageGateway
+from bot.llm_interface import OpenAILLMClient
+from bot.localizer import Localizer
+from bot.publisher import ResponsePublisher
+from bot.runner import ActionRunner
+from bot.triggers.keyboard import KeyboardTrigger
+from bot.triggers.message import MessageTrigger
+
+
+def _load_system_prompt() -> str:
+    path = os.path.join(os.path.dirname(__file__), "system.md")
+    with open(path, encoding="utf-8") as f:
+        return f.read().strip()
 
 
 class _InterceptHandler(logging.Handler):
@@ -25,20 +39,46 @@ class _InterceptHandler(logging.Handler):
         while frame and frame.f_code.co_filename == logging.__file__:
             frame = frame.f_back  # type: ignore[assignment]
             depth += 1
-        logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+        logger.opt(depth=depth, exception=record.exc_info).log(
+            level, record.getMessage()
+        )
 
 
 def main() -> None:
     logging.basicConfig(handlers=[_InterceptHandler()], level=logging.INFO, force=True)
+
     app = ApplicationBuilder().token(TOKEN).concurrent_updates(True).build()
+
+    localizer = Localizer()
+    authorizer = AllowlistAuthorizer(allowlist=ALLOWED_USERS)
+    language_detector = LinguaLanguageDetector()
+    gateway = MessageGateway(authorizer=authorizer, language_detector=language_detector)
+    registry = ActionRegistry(localizer=localizer)
+    llm = OpenAILLMClient(api_key=OPENAI_API_KEY, model=MODEL_NAME)
+    runner = ActionRunner(llm=llm, system_prompt_template=_load_system_prompt())
+    publisher = ResponsePublisher(bot=app.bot)
+
+    message_trigger = MessageTrigger(
+        gateway=gateway,
+        registry=registry,
+        runner=runner,
+        publisher=publisher,
+        localizer=localizer,
+    )
+    keyboard_trigger = KeyboardTrigger(
+        registry=registry,
+        runner=runner,
+        publisher=publisher,
+    )
+
     app.add_handler(
         MessageHandler(
             filters.TEXT & ~filters.COMMAND & ~filters.UpdateType.EDITED_MESSAGE,
-            handle_message_v2,
+            message_trigger.handle,
         )
     )
-    app.add_handler(CallbackQueryHandler(handle_button_click))
-    app.run_polling(drop_pending_updates=True)  # Drop pending updates at startup
+    app.add_handler(CallbackQueryHandler(keyboard_trigger.handle))
+    app.run_polling(drop_pending_updates=True)
 
 
 if __name__ == "__main__":

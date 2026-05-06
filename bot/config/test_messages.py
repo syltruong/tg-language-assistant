@@ -10,7 +10,7 @@ from bot.config.messages import (
     MsgThinking,
     t,
 )
-from bot.routing.local import TextTooLongError
+from bot.errors import TextTooLongError
 
 
 class TestTranslateFunction:

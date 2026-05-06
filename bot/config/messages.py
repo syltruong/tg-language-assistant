@@ -6,7 +6,7 @@ Call ``t(key, locale)`` to resolve the user-facing string.
 
 from __future__ import annotations
 
-from bot.routing.local import (
+from bot.errors import (
     MessageHasNoTextError,
     TextHasNoWrittenContentError,
     TextTooLongError,
@@ -66,6 +66,7 @@ class MsgTooLong(MsgKey):
 class MsgUnknownLanguage(MsgKey):
     pass
 
+
 class MsgWantToGoDeeper(MsgKey):
     pass
 
@@ -80,13 +81,9 @@ class MsgNoReplyText(MsgKey):
 CATALOGS: dict[str, dict[type, str]] = {
     "en": {
         # Error strings (keyed by routing/local.py exceptions)
-        TextTooLongError: (
-            "Message is too long. Please keep it under 500 characters."
-        ),
+        TextTooLongError: ("Message is too long. Please keep it under 500 characters."),
         MessageHasNoTextError: "No message to process. Send a message first.",
-        TextHasNoWrittenContentError: (
-            "Please send text with actual written content."
-        ),
+        TextHasNoWrittenContentError: ("Please send text with actual written content."),
         UnauthorizedError: "Sorry, you are not authorized to use this bot.",
         # UI strings (MsgKey-keyed)
         MsgChooseAction: "What can I help you with?",

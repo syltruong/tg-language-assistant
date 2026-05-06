@@ -1,0 +1,121 @@
+import json
+
+import pytest
+
+from bot.actions.verbs.analyze import AnalyzeAction
+from bot.actions.verbs.base import LanguagePair
+from bot.actions.verbs.translate import TranslateAction
+from bot.gateway import AnchorMessage, LanguageRole
+from bot.llm_interface import FakeLLMClient
+from bot.localizer import Localizer
+from bot.runner import ActionRunner
+
+EN_FR = LanguagePair(base="en", target="fr")
+_TRANSLATE_TEMPLATE = "Translate {text} from {from_language} to {to_language}."
+_SYSTEM_TEMPLATE = "You help {base_language} speakers learn {target_language}."
+
+
+def _make_runner(response: str) -> ActionRunner:
+    return ActionRunner(
+        llm=FakeLLMClient(response=response),
+        system_prompt_template=_SYSTEM_TEMPLATE,
+    )
+
+
+class _SequenceFakeLLMClient:
+    """Returns responses in sequence; repeats the last one when exhausted."""
+
+    def __init__(self, responses: list[str]) -> None:
+        self._responses = responses
+        self._index = 0
+
+    async def complete(self, system_prompt: str, user_prompt: str) -> str:
+        response = self._responses[min(self._index, len(self._responses) - 1)]
+        self._index += 1
+        return response
+
+
+def _make_sequence_runner(responses: list[str]) -> ActionRunner:
+    return ActionRunner(
+        llm=_SequenceFakeLLMClient(responses),
+        system_prompt_template=_SYSTEM_TEMPLATE,
+    )
+
+
+def _make_translate_action() -> TranslateAction:
+    return TranslateAction(
+        localizer=Localizer(),
+        prompt_template=_TRANSLATE_TEMPLATE,
+    )
+
+
+_ANALYZE_TEMPLATE = "Analyze {text} in {target_language} for a {base_language} speaker."
+
+
+def _make_analyze_action() -> AnalyzeAction:
+    return AnalyzeAction(
+        localizer=Localizer(),
+        prompt_template=_ANALYZE_TEMPLATE,
+    )
+
+
+_VALID_ANALYZE_JSON = json.dumps(
+    {
+        "vocabulary": [{"form_in_text": "bonjour", "translation": "hello"}],
+        "grammar": [],
+    }
+)
+
+
+class TestActionRunnerStructuredJson:
+    @pytest.mark.asyncio
+    async def test_retries_on_malformed_json_and_succeeds_on_valid_response(self):
+        runner = _make_sequence_runner(
+            ["not-json", "also-not-json", _VALID_ANALYZE_JSON]
+        )
+        action = _make_analyze_action()
+        anchor = AnchorMessage(
+            text="Bonjour", detected_language="fr", language_role=LanguageRole.TARGET
+        )
+
+        result = await runner.run(action, anchor, EN_FR)
+
+        assert "bonjour" in result
+
+    @pytest.mark.asyncio
+    async def test_raises_after_max_retries_exhausted(self):
+        runner = _make_sequence_runner(["not-json", "not-json", "not-json"])
+        action = _make_analyze_action()
+        anchor = AnchorMessage(
+            text="Bonjour", detected_language="fr", language_role=LanguageRole.TARGET
+        )
+
+        with pytest.raises(ValueError):
+            await runner.run(action, anchor, EN_FR)
+
+    @pytest.mark.asyncio
+    async def test_structured_json_action_returns_formatted_string(self):
+        runner = _make_runner(_VALID_ANALYZE_JSON)
+        action = _make_analyze_action()
+        anchor = AnchorMessage(
+            text="Bonjour", detected_language="fr", language_role=LanguageRole.TARGET
+        )
+
+        result = await runner.run(action, anchor, EN_FR)
+
+        assert "bonjour" in result
+        assert "hello" in result
+
+
+class TestActionRunnerPlainText:
+    @pytest.mark.asyncio
+    async def test_plain_text_action_returns_llm_response(self):
+        runner = _make_runner("Bonjour")
+        action = _make_translate_action()
+        anchor = AnchorMessage(
+            text="Hello", detected_language="en", language_role=LanguageRole.BASE
+        )
+
+        result = await runner.run(action, anchor, EN_FR)
+
+        assert result == "Bonjour"

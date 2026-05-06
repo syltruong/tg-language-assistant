@@ -20,7 +20,7 @@ dev = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-norecursedirs = [".venv"]
+norecursedirs = [".venv", ".claude"]
 pythonpath = ["."]
 
 [tool.ruff]
