@@ -3,16 +3,17 @@
 from telegram import Bot, InlineKeyboardMarkup
 
 from bot.session import UserSession
+from bot.types import FormattedResult
 
 
 class FakeResponsePublisher:
     def __init__(self) -> None:
-        self.published: list[tuple[str, int, int, InlineKeyboardMarkup | None]] = []
+        self.published: list[tuple[FormattedResult, int, int, InlineKeyboardMarkup | None]] = []
         self.reattached: list[tuple[int, int, InlineKeyboardMarkup]] = []
 
     async def publish(
         self,
-        result: str,
+        result: FormattedResult,
         chat_id: int,
         reply_to_message_id: int,
         session: UserSession,
@@ -36,7 +37,7 @@ class ResponsePublisher:
 
     async def publish(
         self,
-        result: str,
+        result: FormattedResult,
         chat_id: int,
         reply_to_message_id: int,
         session: UserSession,
@@ -51,7 +52,8 @@ class ResponsePublisher:
 
         msg = await self._bot.send_message(
             chat_id=chat_id,
-            text=result,
+            text=result.text,
+            parse_mode=result.parse_mode,
             reply_to_message_id=reply_to_message_id,
             reply_markup=reply_markup,
         )

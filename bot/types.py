@@ -35,3 +35,9 @@ class KeyboardActionType(StrEnum):
 class ReplySuggestion:
     reply: str
     tone: str
+
+
+@dataclass(frozen=True, slots=True)
+class FormattedResult:
+    text: str
+    parse_mode: str | None

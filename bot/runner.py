@@ -5,6 +5,7 @@ from bot.config import N_SUGGESTED_REPLIES
 from bot.config.lang import LANGUAGE_NAMES
 from bot.gateway import AnchorMessage, LanguageRole
 from bot.llm_interface import LLMClient
+from bot.types import FormattedResult
 
 _MAX_PARSE_RETRIES = 3
 
@@ -20,10 +21,10 @@ class FakeActionRunner:
         action: Action,
         anchor: AnchorMessage,
         language_pair: LanguagePair,
-    ) -> str:
+    ) -> FormattedResult:
         self.last_action = action
         self.last_anchor = anchor
-        return self._result
+        return FormattedResult(text=self._result, parse_mode=None)
 
 
 class ActionRunner:
@@ -36,7 +37,7 @@ class ActionRunner:
         action: Action,
         anchor: AnchorMessage,
         language_pair: LanguagePair,
-    ) -> str:
+    ) -> FormattedResult:
         base_name = LANGUAGE_NAMES[language_pair.base]
         target_name = LANGUAGE_NAMES[language_pair.target]
         from_name = LANGUAGE_NAMES[anchor.detected_language]
@@ -60,7 +61,8 @@ class ActionRunner:
         for attempt in range(_MAX_PARSE_RETRIES):
             raw = await self._llm.complete(system_prompt, user_prompt)
             try:
-                return action.format(action.parse(raw), language_pair)
+                text = action.format(action.parse(raw), language_pair)
+                return FormattedResult(text=text, parse_mode=action.parse_mode)
             except ValueError:
                 if attempt == _MAX_PARSE_RETRIES - 1:
                     raise

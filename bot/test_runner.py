@@ -9,6 +9,7 @@ from bot.gateway import AnchorMessage, LanguageRole
 from bot.llm_interface import FakeLLMClient
 from bot.localizer import Localizer
 from bot.runner import ActionRunner
+from bot.types import FormattedResult
 
 EN_FR = LanguagePair(base="en", target="fr")
 _TRANSLATE_TEMPLATE = "Translate {text} from {from_language} to {to_language}."
@@ -80,7 +81,7 @@ class TestActionRunnerStructuredJson:
 
         result = await runner.run(action, anchor, EN_FR)
 
-        assert "bonjour" in result
+        assert "bonjour" in result.text
 
     @pytest.mark.asyncio
     async def test_raises_after_max_retries_exhausted(self):
@@ -94,7 +95,7 @@ class TestActionRunnerStructuredJson:
             await runner.run(action, anchor, EN_FR)
 
     @pytest.mark.asyncio
-    async def test_structured_json_action_returns_formatted_string(self):
+    async def test_structured_json_action_returns_formatted_result(self):
         runner = _make_runner(_VALID_ANALYZE_JSON)
         action = _make_analyze_action()
         anchor = AnchorMessage(
@@ -103,13 +104,15 @@ class TestActionRunnerStructuredJson:
 
         result = await runner.run(action, anchor, EN_FR)
 
-        assert "bonjour" in result
-        assert "hello" in result
+        assert isinstance(result, FormattedResult)
+        assert "bonjour" in result.text
+        assert "hello" in result.text
+        assert result.parse_mode == "HTML"
 
 
 class TestActionRunnerPlainText:
     @pytest.mark.asyncio
-    async def test_plain_text_action_returns_llm_response(self):
+    async def test_plain_text_action_returns_formatted_result(self):
         runner = _make_runner("Bonjour")
         action = _make_translate_action()
         anchor = AnchorMessage(
@@ -118,4 +121,6 @@ class TestActionRunnerPlainText:
 
         result = await runner.run(action, anchor, EN_FR)
 
-        assert result == "Bonjour"
+        assert isinstance(result, FormattedResult)
+        assert result.text == "Bonjour"
+        assert result.parse_mode is None
