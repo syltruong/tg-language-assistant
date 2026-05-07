@@ -117,38 +117,6 @@ class TestResponsePublisherParseMode:
         assert call_kwargs["parse_mode"] is None
 
 
-class TestResponsePublisherReattachKeyboard:
-    @pytest.mark.asyncio
-    async def test_reattach_calls_edit_with_markup(self):
-        from bot.keyboard import KEYBOARD
-
-        bot = _make_bot()
-        session = UserSession({})
-        publisher = ResponsePublisher(bot=bot)
-
-        await publisher.reattach_keyboard(
-            chat_id=1, message_id=77, reply_markup=KEYBOARD, session=session
-        )
-
-        bot.edit_message_reply_markup.assert_called_once_with(
-            chat_id=1, message_id=77, reply_markup=KEYBOARD
-        )
-
-    @pytest.mark.asyncio
-    async def test_reattach_updates_active_keyboard_id(self):
-        from bot.keyboard import KEYBOARD
-
-        bot = _make_bot()
-        session = UserSession({"active_keyboard_id": 99})
-        publisher = ResponsePublisher(bot=bot)
-
-        await publisher.reattach_keyboard(
-            chat_id=1, message_id=77, reply_markup=KEYBOARD, session=session
-        )
-
-        assert session.active_keyboard_id == 77
-
-
 class TestResponsePublisherSendsResult:
     @pytest.mark.asyncio
     async def test_sends_result_to_correct_chat(self):

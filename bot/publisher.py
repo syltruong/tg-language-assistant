@@ -9,7 +9,6 @@ from bot.types import FormattedResult
 class FakeResponsePublisher:
     def __init__(self) -> None:
         self.published: list[tuple[FormattedResult, int, int, InlineKeyboardMarkup | None]] = []
-        self.reattached: list[tuple[int, int, InlineKeyboardMarkup]] = []
 
     async def publish(
         self,
@@ -20,16 +19,6 @@ class FakeResponsePublisher:
         reply_markup: InlineKeyboardMarkup | None = None,
     ) -> None:
         self.published.append((result, chat_id, reply_to_message_id, reply_markup))
-
-    async def reattach_keyboard(
-        self,
-        chat_id: int,
-        message_id: int,
-        reply_markup: InlineKeyboardMarkup,
-        session: UserSession,
-    ) -> None:
-        self.reattached.append((chat_id, message_id, reply_markup))
-
 
 class ResponsePublisher:
     def __init__(self, bot: Bot) -> None:
@@ -59,16 +48,3 @@ class ResponsePublisher:
         )
         session.active_keyboard_id = msg.message_id
 
-    async def reattach_keyboard(
-        self,
-        chat_id: int,
-        message_id: int,
-        reply_markup: InlineKeyboardMarkup,
-        session: UserSession,
-    ) -> None:
-        await self._bot.edit_message_reply_markup(
-            chat_id=chat_id,
-            message_id=message_id,
-            reply_markup=reply_markup,
-        )
-        session.active_keyboard_id = message_id
