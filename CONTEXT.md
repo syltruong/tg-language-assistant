@@ -47,7 +47,7 @@ The module that decides whether a Telegram user is permitted to use the bot. Ans
 _Avoid_: authentication, auth middleware, access control
 
 ### Conversation Turn
-A unit of interaction initiated by one anchor message. Each turn has exactly one active keyboard at any time. When a new keyboard is posted, the previous one is silently removed from the chat.
+A unit of interaction initiated by one anchor message. Each turn has exactly one active keyboard at any time. When a new keyboard is posted, the previous one is silently removed from the chat. All bot responses within a turn — the Instant Action result and every Keyboard Action result — are posted as replies to the Anchor Message, making them siblings in the Telegram thread. The Active Keyboard always travels to the most recent result, keeping it visible at the bottom of the conversation.
 
 ### Reply Suggestion
 One of N candidate replies generated in the target language in response to an incoming message. Shown as a numbered list in a single message. Each suggestion is selectable via a numbered inline button. Selecting a reply posts it as a new anchor message with its own keyboard, re-entering the standard message flow. The suggestions keyboard is deactivated when this happens. To revisit other suggestions, the user re-generates by tapping Reply on the original message again (suggestions may differ — this is acceptable in a learning context).
@@ -76,7 +76,7 @@ The module that coordinates the Instant Action flow: resolves which Action to ru
 _Avoid_: message handler, message dispatcher
 
 ### Keyboard Trigger
-The module that coordinates the Keyboard Action flow: identifies the Action type from the button payload, retrieves the Anchor Message the keyboard was attached to, calls the Action Runner to get a formatted result, then calls the Response Publisher to deliver it. Owns no LLM logic and no formatting — its only domain knowledge is how to resolve an Action from a callback query. Receives Action Registry, Action Runner, Response Publisher, and Session via constructor injection.
+The module that coordinates the Keyboard Action flow: identifies the Action type from the button payload, resolves the Anchor Message as the `reply_to_message` of the keyboard-bearing message, calls the Action Runner to get a formatted result, then calls the Response Publisher to deliver it — replying to the Anchor Message and attaching the keyboard to the new result. The Active Keyboard travels to each new result; no `reattach_keyboard` step is needed. Owns no LLM logic and no formatting — its only domain knowledge is how to resolve an Action from a callback query. Receives Action Registry, Action Runner, Response Publisher, and Session via constructor injection.
 _Avoid_: callback handler, keyboard handler
 
 ### Action

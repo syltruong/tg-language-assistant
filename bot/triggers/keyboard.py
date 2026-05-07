@@ -59,13 +59,7 @@ class KeyboardTrigger:
         await self._publisher.publish(
             result=result,
             chat_id=query.message.chat.id,
-            reply_to_message_id=query.message.message_id,
+            reply_to_message_id=replied.message_id,
             session=session,
-        )
-
-        await self._publisher.reattach_keyboard(
-            chat_id=query.message.chat.id,
-            message_id=query.message.message_id,
             reply_markup=KEYBOARD,
-            session=session,
         )

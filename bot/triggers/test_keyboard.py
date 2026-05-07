@@ -25,23 +25,36 @@ def _make_trigger() -> tuple[KeyboardTrigger, FakeActionRunner, FakeResponsePubl
 
 class TestKeyboardTriggerKeyboardLifecycle:
     @pytest.mark.asyncio
-    async def test_reattaches_keyboard_to_original_message_after_action(self):
+    async def test_result_replies_to_anchor_message(self):
+        trigger, _, publisher = _make_trigger()
+        update = make_callback_update(
+            callback_data=KeyboardActionType.ANALYZE,
+            reply_text="Bonjour",
+            message_id=77,
+            anchor_message_id=42,
+        )
+        context = make_context()
+
+        await trigger.handle(update, context)
+
+        _, _, reply_to_id, _ = publisher.published[0]
+        assert reply_to_id == 42
+
+    @pytest.mark.asyncio
+    async def test_result_carries_keyboard_markup(self):
         from bot.keyboard import KEYBOARD
 
         trigger, _, publisher = _make_trigger()
         update = make_callback_update(
             callback_data=KeyboardActionType.ANALYZE,
             reply_text="Bonjour",
-            message_id=77,
         )
         context = make_context()
 
         await trigger.handle(update, context)
 
-        assert len(publisher.reattached) == 1
-        _, message_id, markup = publisher.reattached[0]
-        assert message_id == 77
-        assert markup is KEYBOARD
+        _, _, _, reply_markup = publisher.published[0]
+        assert reply_markup is KEYBOARD
 
 
 class TestKeyboardTriggerRouting:
