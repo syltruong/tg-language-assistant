@@ -2,3 +2,5 @@
 - [ ] html formatting of responses
 - [ ] keyboard flow
 - [ ] managing when the anchor message is in the base language
+- [ ] language pair eval harness (simple, with 20 gold anchor messages)
+- [ ] onboarding process for language pairs (consider implementing as a Claude skill)
