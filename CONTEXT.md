@@ -80,7 +80,7 @@ The module that coordinates the Keyboard Action flow: identifies the Action type
 _Avoid_: callback handler, keyboard handler
 
 ### Action
-A self-contained unit of bot behaviour. Carries: a prompt template, a response format (`plain_text` or `structured_json`), a schema (structured JSON actions only, used by Output Validation), and a formatter method. The formatter receives the validated LLM output and the Language Pair from the Action Runner, and uses an injected Localizer for any UI strings it needs to wrap around LLM content. Instant Actions and Keyboard Actions are both Actions — they differ only in what triggers them.
+A self-contained unit of bot behaviour. Carries: a prompt template, a response format (`plain_text` or `structured_json`), a schema (structured JSON actions only, used by Output Validation), a formatter method, and a `parse_mode` property (`"HTML"` or `None`). The formatter receives the validated LLM output and the Language Pair from the Action Runner, and uses an injected Localizer for any UI strings it needs to wrap around LLM content. `parse_mode` is independent from `response_format`: it declares how Telegram should render the formatter's output, not what shape the LLM output takes. Defaults to `None`; actions whose formatter emits HTML markup override to `"HTML"`. Instant Actions and Keyboard Actions are both Actions — they differ only in what triggers them.
 _Avoid_: handler, command
 
 ### Action Registry
@@ -88,11 +88,11 @@ The module that constructs and exposes all known Action objects at startup. Wire
 _Avoid_: prompt manager, action factory
 
 ### Action Runner
-The module that executes the domain round-trip for any Action: injects the Language Pair into the prompt template, calls the LLM Interface, runs Output Validation, calls the Action's formatter with the validated result and Language Pair, and returns the formatted result. Makes no Telegram API calls — returns a value, does not deliver it.
+The module that executes the domain round-trip for any Action: injects the Language Pair into the prompt template, calls the LLM Interface, runs Output Validation, calls the Action's formatter with the validated result and Language Pair, and returns a `FormattedResult` carrying the text and the Action's `parse_mode`. Makes no Telegram API calls — returns a value, does not deliver it.
 _Avoid_: handler, dispatcher
 
 ### Response Publisher
-The module that delivers a formatted result to the user via Telegram. Reads the current Active Keyboard ID from Session, removes the old keyboard via the Telegram API, posts the new response (streaming or non-streaming depending on the Action's response format), and updates Session with the new Active Keyboard ID. Owns the entire Telegram delivery concern including Active Keyboard lifecycle.
+The module that delivers a `FormattedResult` to the user via Telegram. Reads the current Active Keyboard ID from Session, removes the old keyboard via the Telegram API, posts the new response using the `parse_mode` carried in the `FormattedResult`, and updates Session with the new Active Keyboard ID. Owns the entire Telegram delivery concern including Active Keyboard lifecycle.
 _Avoid_: response handler, sender
 
 ### LLM Interface

@@ -2,6 +2,10 @@
 
 Prefer classes and interfaces with constructor injection over module-level functions and `mock.patch`. Define behaviour behind a protocol or ABC; inject concrete implementations (including fakes) at construction time.
 
+## Workflow
+
+When the user says "let's implement", "let's build", "go into implementation", or similar, suggest using the `/tdd` skill before writing any code.
+
 ## Agent skills
 
 ### Issue tracker

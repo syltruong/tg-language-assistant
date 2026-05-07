@@ -16,6 +16,10 @@ class Action(ABC):
         self._localizer = localizer
         self.prompt_template = prompt_template
 
+    @property
+    def parse_mode(self) -> str | None:
+        return None
+
     @abstractmethod
     def parse(self, raw: str) -> Any:
         """Parse and validate the raw LLM string. Raises ValueError if invalid."""

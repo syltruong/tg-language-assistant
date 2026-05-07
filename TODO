@@ -1,5 +1,6 @@
 - [ ] Reply selector buttons
-- [ ] html formatting of responses
+- [x] html formatting of responses
+- [ ] CorrectAction: move to structured_json schema (original/correction/explanation per annotation) so format() can emit rich HTML instead of plain text
 - [ ] keyboard flow
 - [ ] managing when the anchor message is in the base language
 - [ ] language pair eval harness (simple, with 20 gold anchor messages)

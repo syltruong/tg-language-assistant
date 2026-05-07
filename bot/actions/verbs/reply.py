@@ -13,6 +13,10 @@ class ReplyAction(Action):
     def __init__(self, localizer: Localizer, prompt_template: str) -> None:
         super().__init__(localizer, prompt_template)
 
+    @property
+    def parse_mode(self) -> str | None:
+        return "HTML"
+
     def parse(self, raw: str) -> Any:
         try:
             data = json.loads(raw)

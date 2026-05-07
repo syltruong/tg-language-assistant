@@ -5,6 +5,7 @@ from telegram import Bot, Message
 
 from bot.publisher import ResponsePublisher
 from bot.session import UserSession
+from bot.types import FormattedResult
 
 
 def _make_bot(sent_message_id: int = 42) -> MagicMock:
@@ -32,7 +33,7 @@ class TestResponsePublisherKeyboardLifecycle:
             call_order.append("send") or bot.send_message.return_value
         )
 
-        await publisher.publish("Hi", chat_id=1, reply_to_message_id=2, session=session)
+        await publisher.publish(FormattedResult("Hi", None), chat_id=1, reply_to_message_id=2, session=session)
 
         bot.edit_message_reply_markup.assert_called_once_with(
             chat_id=1, message_id=77, reply_markup=None
@@ -45,7 +46,7 @@ class TestResponsePublisherKeyboardLifecycle:
         session = UserSession({})
         publisher = ResponsePublisher(bot=bot)
 
-        await publisher.publish("Hi", chat_id=1, reply_to_message_id=2, session=session)
+        await publisher.publish(FormattedResult("Hi", None), chat_id=1, reply_to_message_id=2, session=session)
 
         bot.edit_message_reply_markup.assert_not_called()
 
@@ -60,7 +61,7 @@ class TestResponsePublisherReplyMarkup:
         publisher = ResponsePublisher(bot=bot)
 
         await publisher.publish(
-            "Hi",
+            FormattedResult("Hi", None),
             chat_id=1,
             reply_to_message_id=2,
             session=session,
@@ -76,10 +77,44 @@ class TestResponsePublisherReplyMarkup:
         session = UserSession({})
         publisher = ResponsePublisher(bot=bot)
 
-        await publisher.publish("Hi", chat_id=1, reply_to_message_id=2, session=session)
+        await publisher.publish(FormattedResult("Hi", None), chat_id=1, reply_to_message_id=2, session=session)
 
         call_kwargs = bot.send_message.call_args.kwargs
         assert call_kwargs.get("reply_markup") is None
+
+
+class TestResponsePublisherParseMode:
+    @pytest.mark.asyncio
+    async def test_forwards_html_parse_mode_to_send_message(self):
+        bot = _make_bot()
+        session = UserSession({})
+        publisher = ResponsePublisher(bot=bot)
+
+        await publisher.publish(
+            FormattedResult("<b>Bonjour</b>", "HTML"),
+            chat_id=1,
+            reply_to_message_id=2,
+            session=session,
+        )
+
+        call_kwargs = bot.send_message.call_args.kwargs
+        assert call_kwargs["parse_mode"] == "HTML"
+
+    @pytest.mark.asyncio
+    async def test_forwards_none_parse_mode_to_send_message(self):
+        bot = _make_bot()
+        session = UserSession({})
+        publisher = ResponsePublisher(bot=bot)
+
+        await publisher.publish(
+            FormattedResult("Bonjour", None),
+            chat_id=1,
+            reply_to_message_id=2,
+            session=session,
+        )
+
+        call_kwargs = bot.send_message.call_args.kwargs
+        assert call_kwargs["parse_mode"] is None
 
 
 class TestResponsePublisherReattachKeyboard:
@@ -122,7 +157,7 @@ class TestResponsePublisherSendsResult:
         publisher = ResponsePublisher(bot=bot)
 
         await publisher.publish(
-            "Hello!", chat_id=1, reply_to_message_id=2, session=session
+            FormattedResult("Hello!", None), chat_id=1, reply_to_message_id=2, session=session
         )
 
         bot.send_message.assert_called_once()
@@ -137,7 +172,7 @@ class TestResponsePublisherSendsResult:
         publisher = ResponsePublisher(bot=bot)
 
         await publisher.publish(
-            "Hello!", chat_id=1, reply_to_message_id=2, session=session
+            FormattedResult("Hello!", None), chat_id=1, reply_to_message_id=2, session=session
         )
 
         assert session.active_keyboard_id == 42
