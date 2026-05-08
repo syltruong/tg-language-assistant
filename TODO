@@ -3,6 +3,7 @@
 - [x] html formatting of responses
 - [ ] CorrectAction: move to structured_json schema (original/correction/explanation per annotation) so format() can emit rich HTML instead of plain text
 - [ ] keyboard flow
+- [ ] stale keyboard trigger race: new anchor message + simultaneous keyboard press on old slot → old slot steals active back from new slot; fix by snapshotting active_slot_id before LLM call and skipping deactivation/active-update when session has moved on (branch: feat/edit-in-place-slot)
 - [ ] managing when the anchor message is in the base language
 - [ ] language pair eval harness (simple, with 20 gold anchor messages)
 - [ ] onboarding process for language pairs (consider implementing as a Claude skill)
