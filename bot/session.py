@@ -39,7 +39,8 @@ class UserSession:
     _KEY_ACTION_TYPES = "action_types"
     _KEY_REPLIES = "replies"
     _KEY_ACTIVE_MESSAGES = "active_message_ids"
-    _KEY_KEYBOARD_IDS = "keyboard_ids"
+    _KEY_SLOT_IDS = "slot_ids"
+    _KEY_ACTIVE_SLOT_ID = "active_slot_id"
 
     _DEFAULT_BASE_LANGUAGE = "en"
     _DEFAULT_TARGET_LANGUAGE = "fr"
@@ -82,11 +83,17 @@ class UserSession:
     def language_pair(self) -> LanguagePair:
         return LanguagePair(base=self.base_language, target=self.target_language)
 
-    def get_keyboard_id(self, anchor_id: int) -> int | None:
-        return self._data.get(self._KEY_KEYBOARD_IDS, {}).get(anchor_id)
+    def get_slot_id(self, anchor_id: int) -> int | None:
+        return self._data.get(self._KEY_SLOT_IDS, {}).get(anchor_id)
 
-    def set_keyboard_id(self, anchor_id: int, keyboard_id: int) -> None:
-        self._data.setdefault(self._KEY_KEYBOARD_IDS, {})[anchor_id] = keyboard_id
+    def set_slot_id(self, anchor_id: int, slot_id: int) -> None:
+        self._data.setdefault(self._KEY_SLOT_IDS, {})[anchor_id] = slot_id
+
+    def get_active_slot_id(self) -> int | None:
+        return self._data.get(self._KEY_ACTIVE_SLOT_ID)
+
+    def set_active_slot_id(self, slot_id: int) -> None:
+        self._data[self._KEY_ACTIVE_SLOT_ID] = slot_id
 
     # ── per-message state ────────────────────────────────────────
 
