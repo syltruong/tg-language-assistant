@@ -1,3 +1,4 @@
+import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -26,7 +27,7 @@ class TestResponsePublisherKeyboardLifecycle:
         session = UserSession({})
         publisher = ResponsePublisher(bot=bot)
 
-        await publisher.publish(FormattedResult("Hi", None), chat_id=1, reply_to_message_id=2, session=session)
+        await publisher.publish(FormattedResult("Hi", None), chat_id=1, reply_to_message_id=2, session=session, user_id=1)
 
         bot.send_message.assert_called_once()
         bot.edit_message_text.assert_not_called()
@@ -36,10 +37,10 @@ class TestResponsePublisherKeyboardLifecycle:
         bot = _make_bot(sent_message_id=77)
         session = UserSession({})
         publisher = ResponsePublisher(bot=bot)
-        await publisher.publish(FormattedResult("First", None), chat_id=1, reply_to_message_id=2, session=session)
+        await publisher.publish(FormattedResult("First", None), chat_id=1, reply_to_message_id=2, session=session, user_id=1)
         bot.send_message.reset_mock()
 
-        await publisher.publish(FormattedResult("Updated", None), chat_id=1, reply_to_message_id=2, session=session)
+        await publisher.publish(FormattedResult("Updated", None), chat_id=1, reply_to_message_id=2, session=session, user_id=1)
 
         bot.edit_message_text.assert_called_once()
         bot.send_message.assert_not_called()
@@ -49,7 +50,7 @@ class TestResponsePublisherKeyboardLifecycle:
         bot = _make_bot(sent_message_id=77)
         session = UserSession({})
         publisher = ResponsePublisher(bot=bot)
-        await publisher.publish(FormattedResult("First", None), chat_id=5, reply_to_message_id=2, session=session)
+        await publisher.publish(FormattedResult("First", None), chat_id=5, reply_to_message_id=2, session=session, user_id=1)
         bot.edit_message_text.reset_mock()
 
         await publisher.publish(
@@ -58,6 +59,7 @@ class TestResponsePublisherKeyboardLifecycle:
             reply_to_message_id=2,
             session=session,
             reply_markup=None,
+            user_id=1,
         )
 
         call_kwargs = bot.edit_message_text.call_args.kwargs
@@ -73,12 +75,12 @@ class TestResponsePublisherKeyboardLifecycle:
         publisher = ResponsePublisher(bot=bot)
 
         # First publish for anchor 10 — establishes a slot
-        await publisher.publish(FormattedResult("First", None), chat_id=1, reply_to_message_id=10, session=session)
+        await publisher.publish(FormattedResult("First", None), chat_id=1, reply_to_message_id=10, session=session, user_id=1)
         bot.send_message.reset_mock()
         bot.edit_message_text.reset_mock()
 
         # Second publish for a different anchor 20 — must send fresh, not edit
-        await publisher.publish(FormattedResult("Second", None), chat_id=1, reply_to_message_id=20, session=session)
+        await publisher.publish(FormattedResult("Second", None), chat_id=1, reply_to_message_id=20, session=session, user_id=1)
 
         bot.send_message.assert_called_once()
         bot.edit_message_text.assert_not_called()
@@ -99,6 +101,7 @@ class TestResponsePublisherReplyMarkup:
             reply_to_message_id=2,
             session=session,
             reply_markup=KEYBOARD,
+            user_id=1,
         )
 
         call_kwargs = bot.send_message.call_args.kwargs
@@ -110,7 +113,7 @@ class TestResponsePublisherReplyMarkup:
         session = UserSession({})
         publisher = ResponsePublisher(bot=bot)
 
-        await publisher.publish(FormattedResult("Hi", None), chat_id=1, reply_to_message_id=2, session=session)
+        await publisher.publish(FormattedResult("Hi", None), chat_id=1, reply_to_message_id=2, session=session, user_id=1)
 
         call_kwargs = bot.send_message.call_args.kwargs
         assert call_kwargs.get("reply_markup") is None
@@ -128,6 +131,7 @@ class TestResponsePublisherParseMode:
             chat_id=1,
             reply_to_message_id=2,
             session=session,
+            user_id=1,
         )
 
         call_kwargs = bot.send_message.call_args.kwargs
@@ -144,6 +148,7 @@ class TestResponsePublisherParseMode:
             chat_id=1,
             reply_to_message_id=2,
             session=session,
+            user_id=1,
         )
 
         call_kwargs = bot.send_message.call_args.kwargs
@@ -158,7 +163,7 @@ class TestResponsePublisherSendsResult:
         publisher = ResponsePublisher(bot=bot)
 
         await publisher.publish(
-            FormattedResult("Hello!", None), chat_id=1, reply_to_message_id=2, session=session
+            FormattedResult("Hello!", None), chat_id=1, reply_to_message_id=2, session=session, user_id=1
         )
 
         bot.send_message.assert_called_once()
@@ -173,7 +178,7 @@ class TestResponsePublisherSendsResult:
         publisher = ResponsePublisher(bot=bot)
 
         await publisher.publish(
-            FormattedResult("Hello!", None), chat_id=1, reply_to_message_id=2, session=session
+            FormattedResult("Hello!", None), chat_id=1, reply_to_message_id=2, session=session, user_id=1
         )
 
         assert session.get_slot_id(2) == 42
@@ -186,7 +191,7 @@ class TestSlotDeactivation:
         session = UserSession({})
         publisher = ResponsePublisher(bot=bot)
 
-        await publisher.publish(FormattedResult("Hi", None), chat_id=1, reply_to_message_id=5, session=session)
+        await publisher.publish(FormattedResult("Hi", None), chat_id=1, reply_to_message_id=5, session=session, user_id=1)
 
         assert session.get_active_slot_id() == 42
 
@@ -197,11 +202,11 @@ class TestSlotDeactivation:
         publisher = ResponsePublisher(bot=bot)
 
         # Establish slot for anchor 10
-        await publisher.publish(FormattedResult("First", None), chat_id=1, reply_to_message_id=10, session=session)
+        await publisher.publish(FormattedResult("First", None), chat_id=1, reply_to_message_id=10, session=session, user_id=1)
         bot.edit_message_reply_markup.reset_mock()
 
         # New anchor 20 arrives — slot 10's keyboard should be removed
-        await publisher.publish(FormattedResult("Second", None), chat_id=1, reply_to_message_id=20, session=session)
+        await publisher.publish(FormattedResult("Second", None), chat_id=1, reply_to_message_id=20, session=session, user_id=1)
 
         bot.edit_message_reply_markup.assert_called_once_with(
             chat_id=1, message_id=99, reply_markup=None
@@ -214,11 +219,11 @@ class TestSlotDeactivation:
         publisher = ResponsePublisher(bot=bot)
 
         # Instant Action result — establishes slot for anchor 10
-        await publisher.publish(FormattedResult("First", None), chat_id=1, reply_to_message_id=10, session=session)
+        await publisher.publish(FormattedResult("First", None), chat_id=1, reply_to_message_id=10, session=session, user_id=1)
         bot.edit_message_reply_markup.reset_mock()
 
         # Keyboard Action on same anchor 10 — edits in place, no deactivation
-        await publisher.publish(FormattedResult("Updated", None), chat_id=1, reply_to_message_id=10, session=session)
+        await publisher.publish(FormattedResult("Updated", None), chat_id=1, reply_to_message_id=10, session=session, user_id=1)
 
         bot.edit_message_reply_markup.assert_not_called()
 
@@ -235,16 +240,49 @@ class TestSlotDeactivation:
         publisher = ResponsePublisher(bot=bot)
 
         # Turn A: anchor 10 → slot 100
-        await publisher.publish(FormattedResult("A", None), chat_id=1, reply_to_message_id=10, session=session)
+        await publisher.publish(FormattedResult("A", None), chat_id=1, reply_to_message_id=10, session=session, user_id=1)
         # Turn B: anchor 20 → slot 200
-        await publisher.publish(FormattedResult("B", None), chat_id=1, reply_to_message_id=20, session=session)
+        await publisher.publish(FormattedResult("B", None), chat_id=1, reply_to_message_id=20, session=session, user_id=1)
         bot.edit_message_reply_markup.reset_mock()
 
         # Re-entry: anchor 10 slot (100) already exists — edit in place
         # Active slot is 200 (turn B) → must be deactivated; active slot updated to 100
-        await publisher.publish(FormattedResult("A again", None), chat_id=1, reply_to_message_id=10, session=session)
+        await publisher.publish(FormattedResult("A again", None), chat_id=1, reply_to_message_id=10, session=session, user_id=1)
 
         bot.edit_message_reply_markup.assert_called_once_with(
             chat_id=1, message_id=200, reply_markup=None
         )
         assert session.get_active_slot_id() == 100
+
+
+class TestResponsePublisherConcurrency:
+    @pytest.mark.asyncio
+    async def test_concurrent_publishes_for_same_user_are_serialised(self):
+        call_order: list[str] = []
+        started = asyncio.Event()
+
+        msg = MagicMock(spec=Message)
+        msg.message_id = 42
+        bot = MagicMock(spec=Bot)
+        bot.edit_message_reply_markup = AsyncMock()
+        bot.edit_message_text = AsyncMock()
+
+        async def slow_send(**kwargs):
+            call_order.append("start")
+            started.set()
+            await asyncio.sleep(0.05)
+            call_order.append("end")
+            return msg
+
+        bot.send_message = AsyncMock(side_effect=slow_send)
+
+        session = UserSession({})
+        publisher = ResponsePublisher(bot=bot)
+
+        await asyncio.gather(
+            publisher.publish(FormattedResult("A", None), chat_id=1, reply_to_message_id=10, session=session, user_id=1),
+            publisher.publish(FormattedResult("B", None), chat_id=1, reply_to_message_id=20, session=session, user_id=1),
+        )
+
+        # If serialised: start, end, start, end — no interleaving
+        assert call_order == ["start", "end", "start", "end"]

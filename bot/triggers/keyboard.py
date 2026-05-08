@@ -62,4 +62,5 @@ class KeyboardTrigger:
             reply_to_message_id=replied.message_id,
             session=session,
             reply_markup=KEYBOARD,
+            user_id=query.from_user.id,
         )
