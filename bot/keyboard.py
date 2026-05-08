@@ -2,7 +2,7 @@
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
-from bot.types import KeyboardActionType
+from bot.types import KeyboardActionType, ReplySuggestion
 
 BUTTON_TITLES: dict[KeyboardActionType, str] = {
     KeyboardActionType.ANALYZE: "📖 Analyze",
@@ -10,6 +10,18 @@ BUTTON_TITLES: dict[KeyboardActionType, str] = {
     KeyboardActionType.REPHRASE: "🧠 Rephrase",
     KeyboardActionType.REPLY: "💬 Reply",
 }
+
+SELECT_PREFIX = "select:"
+
+
+def build_suggestions_keyboard(suggestions: list[ReplySuggestion]) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton(f"{i + 1} · {s.tone}", callback_data=f"{SELECT_PREFIX}{i}")]
+            for i, s in enumerate(suggestions)
+        ]
+    )
+
 
 KEYBOARD = InlineKeyboardMarkup(
     [
