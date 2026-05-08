@@ -4,12 +4,13 @@ import pytest
 
 from bot.actions.verbs.analyze import AnalyzeAction
 from bot.actions.verbs.base import LanguagePair
+from bot.actions.verbs.reply import ReplyAction
 from bot.actions.verbs.translate import TranslateAction
 from bot.gateway import AnchorMessage, LanguageRole
 from bot.llm_interface import FakeLLMClient
 from bot.localizer import Localizer
 from bot.runner import ActionRunner
-from bot.types import FormattedResult
+from bot.types import FormattedResult, ReplySuggestion
 
 EN_FR = LanguagePair(base="en", target="fr")
 _TRANSLATE_TEMPLATE = "Translate {text} from {from_language} to {to_language}."
@@ -124,3 +125,43 @@ class TestActionRunnerPlainText:
         assert isinstance(result, FormattedResult)
         assert result.text == "Bonjour"
         assert result.parse_mode is None
+
+
+_REPLY_TEMPLATE = "Generate {n} replies to {text} in {target_language}."
+_VALID_REPLY_JSON = json.dumps([
+    {"reply": "Bien merci!", "tone": "warm"},
+    {"reply": "Oui, ça va!", "tone": "playful"},
+])
+
+
+def _make_reply_action() -> ReplyAction:
+    return ReplyAction(localizer=Localizer(), prompt_template=_REPLY_TEMPLATE)
+
+
+class TestActionRunnerReplyAction:
+    @pytest.mark.asyncio
+    async def test_reply_action_populates_suggestions_in_result(self):
+        runner = _make_runner(_VALID_REPLY_JSON)
+        action = _make_reply_action()
+        anchor = AnchorMessage(
+            text="Ça va?", detected_language="fr", language_role=LanguageRole.TARGET
+        )
+
+        result = await runner.run(action, anchor, EN_FR)
+
+        assert result.suggestions == [
+            ReplySuggestion(reply="Bien merci!", tone="warm"),
+            ReplySuggestion(reply="Oui, ça va!", tone="playful"),
+        ]
+
+    @pytest.mark.asyncio
+    async def test_non_reply_action_has_no_suggestions(self):
+        runner = _make_runner("Bonjour")
+        action = _make_translate_action()
+        anchor = AnchorMessage(
+            text="Hello", detected_language="en", language_role=LanguageRole.BASE
+        )
+
+        result = await runner.run(action, anchor, EN_FR)
+
+        assert result.suggestions is None

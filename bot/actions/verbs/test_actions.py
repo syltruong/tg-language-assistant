@@ -138,12 +138,13 @@ class TestRephraseAction:
 class TestReplyAction:
     def test_format_renders_bullet_list(self):
         from bot.actions.verbs.reply import ReplyAction
+        from bot.types import ReplySuggestion
 
         action = ReplyAction(localizer=_LOCALIZER, prompt_template="")
         result = action.format(
             [
-                {"reply": "Bien sûr !", "tone": "warm"},
-                {"reply": "Peut-être.", "tone": "reserved"},
+                ReplySuggestion(reply="Bien sûr !", tone="warm"),
+                ReplySuggestion(reply="Peut-être.", tone="reserved"),
             ],
             _LP,
         )
@@ -151,14 +152,18 @@ class TestReplyAction:
         assert "warm" in result
 
     def test_format_renders_tone_in_italics(self):
+        from bot.types import ReplySuggestion
+
         action = ReplyAction(localizer=_LOCALIZER, prompt_template="")
-        result = action.format([{"reply": "Non.", "tone": "direct"}], _LP)
+        result = action.format([ReplySuggestion(reply="Non.", tone="direct")], _LP)
         assert "<i>(direct)</i>" in result
 
-    def test_parse_returns_list_for_valid_json(self):
+    def test_parse_returns_list_of_reply_suggestions_for_valid_json(self):
+        from bot.types import ReplySuggestion
+
         action = ReplyAction(localizer=_LOCALIZER, prompt_template="")
         result = action.parse('[{"reply": "Oui", "tone": "warm"}]')
-        assert result == [{"reply": "Oui", "tone": "warm"}]
+        assert result == [ReplySuggestion(reply="Oui", tone="warm")]
 
     def test_parse_raises_for_malformed_json(self):
         import pytest
@@ -173,6 +178,27 @@ class TestReplyAction:
         action = ReplyAction(localizer=_LOCALIZER, prompt_template="")
         with pytest.raises(ValueError):
             action.parse('{"reply": "Oui"}')
+
+    def test_parse_raises_when_list_is_empty(self):
+        import pytest
+
+        action = ReplyAction(localizer=_LOCALIZER, prompt_template="")
+        with pytest.raises(ValueError):
+            action.parse("[]")
+
+    def test_parse_raises_when_reply_field_is_blank(self):
+        import pytest
+
+        action = ReplyAction(localizer=_LOCALIZER, prompt_template="")
+        with pytest.raises(ValueError):
+            action.parse('[{"reply": "", "tone": "warm"}]')
+
+    def test_parse_raises_when_tone_field_is_blank(self):
+        import pytest
+
+        action = ReplyAction(localizer=_LOCALIZER, prompt_template="")
+        with pytest.raises(ValueError):
+            action.parse('[{"reply": "Bien merci!", "tone": ""}]')
 
 
 class TestActionRegistry:

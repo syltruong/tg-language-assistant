@@ -5,14 +5,19 @@ from bot.config import N_SUGGESTED_REPLIES
 from bot.config.lang import LANGUAGE_NAMES
 from bot.gateway import AnchorMessage, LanguageRole
 from bot.llm_interface import LLMClient
-from bot.types import FormattedResult
+from bot.types import FormattedResult, ReplySuggestion
 
 _MAX_PARSE_RETRIES = 3
 
 
 class FakeActionRunner:
-    def __init__(self, result: str = "fake result") -> None:
+    def __init__(
+        self,
+        result: str = "fake result",
+        suggestions: "list[ReplySuggestion] | None" = None,
+    ) -> None:
         self._result = result
+        self._suggestions = suggestions
         self.last_action: Action | None = None
         self.last_anchor: AnchorMessage | None = None
 
@@ -24,7 +29,7 @@ class FakeActionRunner:
     ) -> FormattedResult:
         self.last_action = action
         self.last_anchor = anchor
-        return FormattedResult(text=self._result, parse_mode=None)
+        return FormattedResult(text=self._result, parse_mode=None, suggestions=self._suggestions)
 
 
 class ActionRunner:
@@ -61,8 +66,15 @@ class ActionRunner:
         for attempt in range(_MAX_PARSE_RETRIES):
             raw = await self._llm.complete(system_prompt, user_prompt)
             try:
-                text = action.format(action.parse(raw), language_pair)
-                return FormattedResult(text=text, parse_mode=action.parse_mode)
+                validated = action.parse(raw)
+                text = action.format(validated, language_pair)
+                suggestions = (
+                    validated
+                    if isinstance(validated, list)
+                    and all(isinstance(s, ReplySuggestion) for s in validated)
+                    else None
+                )
+                return FormattedResult(text=text, parse_mode=action.parse_mode, suggestions=suggestions)
             except ValueError:
                 if attempt == _MAX_PARSE_RETRIES - 1:
                     raise

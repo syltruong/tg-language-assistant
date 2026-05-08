@@ -41,3 +41,4 @@ class ReplySuggestion:
 class FormattedResult:
     text: str
     parse_mode: str | None
+    suggestions: "list[ReplySuggestion] | None" = None

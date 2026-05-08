@@ -1,8 +1,8 @@
 import json
-from typing import Any
 
 from bot.actions.verbs.base import Action, LanguagePair
 from bot.localizer import Localizer
+from bot.types import ReplySuggestion
 
 
 def _escape(s: str) -> str:
@@ -17,22 +17,33 @@ class ReplyAction(Action):
     def parse_mode(self) -> str | None:
         return "HTML"
 
-    def parse(self, raw: str) -> Any:
+    def parse(self, raw: str) -> list[ReplySuggestion]:
         try:
             data = json.loads(raw)
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON: {e}") from e
         if not isinstance(data, list):
             raise ValueError(f"Expected a JSON array, got {type(data).__name__}")
-        return data
-
-    def format(self, validated_result: Any, language_pair: LanguagePair) -> str:
-        parts = []
-        for item in validated_result:
+        if not data:
+            raise ValueError("Expected a non-empty JSON array")
+        suggestions = []
+        for item in data:
             if not isinstance(item, dict):
-                continue
-            reply = _escape(str(item.get("reply", "")).strip())
-            tone = _escape(str(item.get("tone", "")).strip())
+                raise ValueError(f"Expected each item to be a dict, got {type(item).__name__}")
+            reply = str(item.get("reply", "")).strip()
+            tone = str(item.get("tone", "")).strip()
+            if not reply:
+                raise ValueError("Reply field is blank")
+            if not tone:
+                raise ValueError("Tone field is blank")
+            suggestions.append(ReplySuggestion(reply=reply, tone=tone))
+        return suggestions
+
+    def format(self, validated_result: list[ReplySuggestion], language_pair: LanguagePair) -> str:
+        parts = []
+        for s in validated_result:
+            reply = _escape(s.reply)
+            tone = _escape(s.tone)
             if reply:
                 line = f"• {reply}"
                 if tone:
