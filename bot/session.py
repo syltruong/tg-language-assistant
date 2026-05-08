@@ -39,12 +39,13 @@ class UserSession:
     _KEY_ACTION_TYPES = "action_types"
     _KEY_REPLIES = "replies"
     _KEY_ACTIVE_MESSAGES = "active_message_ids"
-    _KEY_ACTIVE_KEYBOARD_ID = "active_keyboard_id"
+    _KEY_KEYBOARD_IDS = "keyboard_ids"
 
     _DEFAULT_BASE_LANGUAGE = "en"
     _DEFAULT_TARGET_LANGUAGE = "fr"
 
     def __init__(self, user_data: dict) -> None:
+        # Direct reference — mutations to self._data write through to context.user_data immediately; no flush needed.
         self._data = user_data
 
     @classmethod
@@ -81,13 +82,11 @@ class UserSession:
     def language_pair(self) -> LanguagePair:
         return LanguagePair(base=self.base_language, target=self.target_language)
 
-    @property
-    def active_keyboard_id(self) -> int | None:
-        return self._data.get(self._KEY_ACTIVE_KEYBOARD_ID)
+    def get_keyboard_id(self, anchor_id: int) -> int | None:
+        return self._data.get(self._KEY_KEYBOARD_IDS, {}).get(anchor_id)
 
-    @active_keyboard_id.setter
-    def active_keyboard_id(self, value: int | None) -> None:
-        self._data[self._KEY_ACTIVE_KEYBOARD_ID] = value
+    def set_keyboard_id(self, anchor_id: int, keyboard_id: int) -> None:
+        self._data.setdefault(self._KEY_KEYBOARD_IDS, {})[anchor_id] = keyboard_id
 
     # ── per-message state ────────────────────────────────────────
 

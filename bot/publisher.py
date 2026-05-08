@@ -32,19 +32,22 @@ class ResponsePublisher:
         session: UserSession,
         reply_markup: InlineKeyboardMarkup | None = None,
     ) -> None:
-        if session.active_keyboard_id is not None:
-            await self._bot.edit_message_reply_markup(
+        keyboard_id = session.get_keyboard_id(reply_to_message_id)
+        if keyboard_id is not None:
+            await self._bot.edit_message_text(
                 chat_id=chat_id,
-                message_id=session.active_keyboard_id,
-                reply_markup=None,
+                message_id=keyboard_id,
+                text=result.text,
+                parse_mode=result.parse_mode,
+                reply_markup=reply_markup,
             )
-
-        msg = await self._bot.send_message(
-            chat_id=chat_id,
-            text=result.text,
-            parse_mode=result.parse_mode,
-            reply_to_message_id=reply_to_message_id,
-            reply_markup=reply_markup,
-        )
-        session.active_keyboard_id = msg.message_id
+        else:
+            msg = await self._bot.send_message(
+                chat_id=chat_id,
+                text=result.text,
+                parse_mode=result.parse_mode,
+                reply_to_message_id=reply_to_message_id,
+                reply_markup=reply_markup,
+            )
+            session.set_keyboard_id(reply_to_message_id, msg.message_id)
 

@@ -15,40 +15,73 @@ def _make_bot(sent_message_id: int = 42) -> MagicMock:
     bot = MagicMock(spec=Bot)
     bot.send_message = AsyncMock(return_value=msg)
     bot.edit_message_reply_markup = AsyncMock()
+    bot.edit_message_text = AsyncMock()
     return bot
 
 
 class TestResponsePublisherKeyboardLifecycle:
     @pytest.mark.asyncio
-    async def test_removes_old_keyboard_before_sending(self):
-        bot = _make_bot(sent_message_id=99)
-        session = UserSession({"active_keyboard_id": 77})
-        publisher = ResponsePublisher(bot=bot)
-
-        call_order = []
-        bot.edit_message_reply_markup.side_effect = lambda **kw: call_order.append(
-            "remove"
-        )
-        bot.send_message.side_effect = lambda **kw: (
-            call_order.append("send") or bot.send_message.return_value
-        )
-
-        await publisher.publish(FormattedResult("Hi", None), chat_id=1, reply_to_message_id=2, session=session)
-
-        bot.edit_message_reply_markup.assert_called_once_with(
-            chat_id=1, message_id=77, reply_markup=None
-        )
-        assert call_order == ["remove", "send"]
-
-    @pytest.mark.asyncio
-    async def test_skips_keyboard_removal_when_no_active_keyboard(self):
-        bot = _make_bot()
+    async def test_first_publish_sends_new_message(self):
+        bot = _make_bot(sent_message_id=42)
         session = UserSession({})
         publisher = ResponsePublisher(bot=bot)
 
         await publisher.publish(FormattedResult("Hi", None), chat_id=1, reply_to_message_id=2, session=session)
 
-        bot.edit_message_reply_markup.assert_not_called()
+        bot.send_message.assert_called_once()
+        bot.edit_message_text.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_second_publish_edits_in_place(self):
+        bot = _make_bot(sent_message_id=77)
+        session = UserSession({})
+        publisher = ResponsePublisher(bot=bot)
+        await publisher.publish(FormattedResult("First", None), chat_id=1, reply_to_message_id=2, session=session)
+        bot.send_message.reset_mock()
+
+        await publisher.publish(FormattedResult("Updated", None), chat_id=1, reply_to_message_id=2, session=session)
+
+        bot.edit_message_text.assert_called_once()
+        bot.send_message.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_edit_in_place_uses_slot_message_id(self):
+        bot = _make_bot(sent_message_id=77)
+        session = UserSession({})
+        publisher = ResponsePublisher(bot=bot)
+        await publisher.publish(FormattedResult("First", None), chat_id=5, reply_to_message_id=2, session=session)
+        bot.edit_message_text.reset_mock()
+
+        await publisher.publish(
+            FormattedResult("New text", None),
+            chat_id=5,
+            reply_to_message_id=2,
+            session=session,
+            reply_markup=None,
+        )
+
+        call_kwargs = bot.edit_message_text.call_args.kwargs
+        assert call_kwargs["chat_id"] == 5
+        assert call_kwargs["message_id"] == 77
+        assert call_kwargs["text"] == "New text"
+
+
+    @pytest.mark.asyncio
+    async def test_second_publish_for_different_anchor_sends_new_message(self):
+        bot = _make_bot(sent_message_id=99)
+        session = UserSession({})
+        publisher = ResponsePublisher(bot=bot)
+
+        # First publish for anchor 10 — establishes a keyboard slot
+        await publisher.publish(FormattedResult("First", None), chat_id=1, reply_to_message_id=10, session=session)
+        bot.send_message.reset_mock()
+        bot.edit_message_text.reset_mock()
+
+        # Second publish for a different anchor 20 — must send fresh, not edit
+        await publisher.publish(FormattedResult("Second", None), chat_id=1, reply_to_message_id=20, session=session)
+
+        bot.send_message.assert_called_once()
+        bot.edit_message_text.assert_not_called()
 
 
 class TestResponsePublisherReplyMarkup:
@@ -134,7 +167,7 @@ class TestResponsePublisherSendsResult:
         assert call_kwargs.kwargs["text"] == "Hello!"
 
     @pytest.mark.asyncio
-    async def test_sets_active_keyboard_id_after_sending(self):
+    async def test_stores_keyboard_id_for_anchor_after_sending(self):
         bot = _make_bot(sent_message_id=42)
         session = UserSession({})
         publisher = ResponsePublisher(bot=bot)
@@ -143,4 +176,4 @@ class TestResponsePublisherSendsResult:
             FormattedResult("Hello!", None), chat_id=1, reply_to_message_id=2, session=session
         )
 
-        assert session.active_keyboard_id == 42
+        assert session.get_keyboard_id(2) == 42
