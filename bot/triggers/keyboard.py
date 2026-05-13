@@ -62,7 +62,7 @@ class KeyboardTrigger:
         result = await self._runner.run(action, anchor, language_pair)
 
         if action_type == KeyboardActionType.REPLY and result.suggestions:
-            session.store_replies(msg_id, result.suggestions)
+            session.store_suggestions(msg_id, result.suggestions)
             reply_markup = build_suggestions_keyboard(result.suggestions)
         else:
             reply_markup = KEYBOARD
@@ -78,7 +78,7 @@ class KeyboardTrigger:
     async def _handle_selection(self, query, session: UserSession) -> None:
         index = int(query.data[len(SELECT_PREFIX):])
         msg_id = query.message.message_id
-        replies = session.get_replies(msg_id)
+        replies = session.get_suggestions(msg_id)
 
         if not replies or index >= len(replies):
             return
@@ -86,7 +86,7 @@ class KeyboardTrigger:
         replied = getattr(query.message, "reply_to_message", None)
         anchor_id = replied.message_id if replied else msg_id
 
-        result = FormattedResult(text=replies[index].reply, parse_mode=None)
+        result = FormattedResult(text=replies[index].text, parse_mode=None)
 
         await self._publisher.publish(
             result=result,

@@ -8,7 +8,7 @@ from bot.publisher import FakeResponsePublisher
 from bot.runner import FakeActionRunner
 from bot.session import UserSession
 from bot.triggers.keyboard import KeyboardTrigger
-from bot.types import KeyboardActionType, ReplySuggestion
+from bot.types import KeyboardActionType, Suggestion
 from tests.factories import make_callback_update, make_context
 
 
@@ -90,8 +90,8 @@ class TestKeyboardTriggerRouting:
 
 
 _SUGGESTIONS = [
-    ReplySuggestion(reply="Bien merci!", tone="warm"),
-    ReplySuggestion(reply="Oui, ça va!", tone="playful"),
+    Suggestion(text="Bien merci!", note="warm"),
+    Suggestion(text="Oui, ça va!", note="playful"),
 ]
 
 
@@ -111,7 +111,7 @@ class TestKeyboardTriggerReplyFlow:
         await trigger.handle(update, context)
 
         session = UserSession.from_context(context)
-        assert session.get_replies(77) == _SUGGESTIONS
+        assert session.get_suggestions(77) == _SUGGESTIONS
 
     @pytest.mark.asyncio
     async def test_reply_callback_attaches_suggestions_keyboard(self):
@@ -147,7 +147,7 @@ class TestKeyboardTriggerSelectionFlow:
             anchor_message_id=42,
         )
         context = make_context(user_data={
-            "replies": {77: _SUGGESTIONS},
+            "suggestions": {77: _SUGGESTIONS},
         })
 
         await trigger.handle(update, context)
