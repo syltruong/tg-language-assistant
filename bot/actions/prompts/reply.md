@@ -2,6 +2,6 @@ Generate {n} short, natural {target_language} reply options to the message enclo
 
 Keep replies conversational and natural. Match the level of formality to the message — if the original is formal, skew formal; if casual, skew casual.
 
-Return ONLY a JSON array with exactly {n} objects, each having "reply" (the {target_language} text) and "tone" (a one-word {base_language} tone label). No markdown fences, no extra text.
+Return ONLY a JSON array with exactly {n} objects, each having "text" (the {target_language} reply) and "note" (a one-word {base_language} tone label). No markdown fences, no extra text.
 
 <text>{text}</text>

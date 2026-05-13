@@ -5,7 +5,7 @@ from bot.config import N_SUGGESTED_REPLIES
 from bot.config.lang import LANGUAGE_NAMES
 from bot.gateway import AnchorMessage, LanguageRole
 from bot.llm_interface import LLMClient
-from bot.types import FormattedResult, ReplySuggestion
+from bot.types import FormattedResult, Suggestion
 
 _MAX_PARSE_RETRIES = 3
 
@@ -14,7 +14,7 @@ class FakeActionRunner:
     def __init__(
         self,
         result: str = "fake result",
-        suggestions: "list[ReplySuggestion] | None" = None,
+        suggestions: "list[Suggestion] | None" = None,
     ) -> None:
         self._result = result
         self._suggestions = suggestions
@@ -71,7 +71,7 @@ class ActionRunner:
                 suggestions = (
                     validated
                     if isinstance(validated, list)
-                    and all(isinstance(s, ReplySuggestion) for s in validated)
+                    and all(isinstance(s, Suggestion) for s in validated)
                     else None
                 )
                 return FormattedResult(text=text, parse_mode=action.parse_mode, suggestions=suggestions)

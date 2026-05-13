@@ -32,13 +32,13 @@ class KeyboardActionType(StrEnum):
 
 
 @dataclass(frozen=True, slots=True)
-class ReplySuggestion:
-    reply: str
-    tone: str
+class Suggestion:
+    text: str
+    note: str = ""
 
 
 @dataclass(frozen=True, slots=True)
 class FormattedResult:
     text: str
     parse_mode: str | None
-    suggestions: "list[ReplySuggestion] | None" = None
+    suggestions: "list[Suggestion] | None" = None

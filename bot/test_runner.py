@@ -4,13 +4,14 @@ import pytest
 
 from bot.actions.verbs.analyze import AnalyzeAction
 from bot.actions.verbs.base import LanguagePair
+from bot.actions.verbs.rephrase import RephraseAction
 from bot.actions.verbs.reply import ReplyAction
 from bot.actions.verbs.translate import TranslateAction
 from bot.gateway import AnchorMessage, LanguageRole
 from bot.llm_interface import FakeLLMClient
 from bot.localizer import Localizer
 from bot.runner import ActionRunner
-from bot.types import FormattedResult, ReplySuggestion
+from bot.types import FormattedResult, Suggestion
 
 EN_FR = LanguagePair(base="en", target="fr")
 _TRANSLATE_TEMPLATE = "Translate {text} from {from_language} to {to_language}."
@@ -129,13 +130,23 @@ class TestActionRunnerPlainText:
 
 _REPLY_TEMPLATE = "Generate {n} replies to {text} in {target_language}."
 _VALID_REPLY_JSON = json.dumps([
-    {"reply": "Bien merci!", "tone": "warm"},
-    {"reply": "Oui, ça va!", "tone": "playful"},
+    {"text": "Bien merci!", "note": "warm"},
+    {"text": "Oui, ça va!", "note": "playful"},
+])
+
+_REPHRASE_TEMPLATE = "Rephrase {text} in {target_language} in 3 ways."
+_VALID_REPHRASE_JSON = json.dumps([
+    {"text": "C'est super!", "note": "casual"},
+    {"text": "C'est excellent!", "note": "formal"},
 ])
 
 
 def _make_reply_action() -> ReplyAction:
     return ReplyAction(localizer=Localizer(), prompt_template=_REPLY_TEMPLATE)
+
+
+def _make_rephrase_action() -> RephraseAction:
+    return RephraseAction(localizer=Localizer(), prompt_template=_REPHRASE_TEMPLATE)
 
 
 class TestActionRunnerReplyAction:
@@ -150,8 +161,8 @@ class TestActionRunnerReplyAction:
         result = await runner.run(action, anchor, EN_FR)
 
         assert result.suggestions == [
-            ReplySuggestion(reply="Bien merci!", tone="warm"),
-            ReplySuggestion(reply="Oui, ça va!", tone="playful"),
+            Suggestion(text="Bien merci!", note="warm"),
+            Suggestion(text="Oui, ça va!", note="playful"),
         ]
 
     @pytest.mark.asyncio
@@ -165,3 +176,20 @@ class TestActionRunnerReplyAction:
         result = await runner.run(action, anchor, EN_FR)
 
         assert result.suggestions is None
+
+
+class TestActionRunnerRephraseAction:
+    @pytest.mark.asyncio
+    async def test_rephrase_action_populates_suggestions_in_result(self):
+        runner = _make_runner(_VALID_REPHRASE_JSON)
+        action = _make_rephrase_action()
+        anchor = AnchorMessage(
+            text="C'est bon", detected_language="fr", language_role=LanguageRole.TARGET
+        )
+
+        result = await runner.run(action, anchor, EN_FR)
+
+        assert result.suggestions == [
+            Suggestion(text="C'est super!", note="casual"),
+            Suggestion(text="C'est excellent!", note="formal"),
+        ]

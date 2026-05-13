@@ -14,7 +14,7 @@ from telegram.ext import ContextTypes
 
 from bot.actions.verbs.base import LanguagePair
 from bot.config.lang import LANGUAGE_NAMES
-from bot.types import ActionType, ReplySuggestion
+from bot.types import ActionType, Suggestion
 
 _MAX_ACTIVE_MESSAGES = 5
 
@@ -27,7 +27,7 @@ class UserSession:
         _KEY_MESSAGES : { msg_id: text },
         _KEY_DETECTED_LANGUAGE : { msg_id: language },
         _KEY_ACTION_TYPES : { msg_id: list[ActionType] },
-        _KEY_REPLIES : { msg_id: list[replies] },
+        _KEY_SUGGESTIONS : { msg_id: list[suggestions] },
         _KEY_ACTIVE_MESSAGES : [msg_id, ...],
     }
     """
@@ -37,7 +37,7 @@ class UserSession:
     _KEY_MESSAGES = "messages"
     _KEY_DETECTED_LANGUAGE = "detected_language"
     _KEY_ACTION_TYPES = "action_types"
-    _KEY_REPLIES = "replies"
+    _KEY_SUGGESTIONS = "suggestions"
     _KEY_ACTIVE_MESSAGES = "active_message_ids"
     _KEY_SLOT_IDS = "slot_ids"
     _KEY_ACTIVE_SLOT_ID = "active_slot_id"
@@ -120,11 +120,11 @@ class UserSession:
     def get_action_types(self, msg_id: int) -> list[ActionType]:
         return self._data.get(self._KEY_ACTION_TYPES, {}).get(msg_id, [])
 
-    def store_replies(self, msg_id: int, replies: list[ReplySuggestion]) -> None:
-        self._data.setdefault(self._KEY_REPLIES, {})[msg_id] = replies
+    def store_suggestions(self, msg_id: int, suggestions: list[Suggestion]) -> None:
+        self._data.setdefault(self._KEY_SUGGESTIONS, {})[msg_id] = suggestions
 
-    def get_replies(self, msg_id: int) -> list[ReplySuggestion]:
-        return self._data.get(self._KEY_REPLIES, {}).get(msg_id, [])
+    def get_suggestions(self, msg_id: int) -> list[Suggestion]:
+        return self._data.get(self._KEY_SUGGESTIONS, {}).get(msg_id, [])
 
     # ── active-message tracking ──────────────────────────────────
 

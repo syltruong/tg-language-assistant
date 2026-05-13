@@ -6,7 +6,7 @@ Each rephrasing must:
 - Be natural and idiomatic in {target_language}
 
 Return ONLY a JSON array with exactly 3 objects, each having:
-- "rephrasing": the alternative {target_language} text
+- "text": the alternative {target_language} text
 - "note": a brief {base_language} label describing how this version differs (e.g. "more formal", "simpler", "more direct")
 
 No markdown fences, no extra text.
