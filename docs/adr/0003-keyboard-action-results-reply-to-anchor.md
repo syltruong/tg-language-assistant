@@ -1,23 +1,24 @@
-# ADR-0003: All bot responses in a Conversation Turn reply to the Anchor Message
+# ADR-0003: Keyboard Action results edit the Instant Action result message in place
 
 ## Status
-Accepted
+Accepted (revised — supersedes the original "reply to anchor" decision)
 
 ## Context
-When a user taps a keyboard button, the Keyboard Trigger needs to know the Anchor Message — the user's original message that the action should operate on. Two approaches were considered:
+When a user taps a keyboard button, the Keyboard Trigger needs to know the Anchor Message — the user's original message that the action should operate on. Two approaches were considered for how to deliver the result:
 
-**Stateless (Telegram reply chain)**: every bot message replies directly to the Anchor Message. The anchor is always recoverable as `query.message.reply_to_message`, with no session state needed.
+**New message per action**: every Keyboard Action result posts a new message replying to the Anchor Message, with the Active Keyboard transferred to each new message. The anchor is always recoverable as `query.message.reply_to_message`.
 
-**Stateful (session-stored anchor)**: the bot replies to its own previous message (forming a chain), and the anchor message ID is stored in session and looked up on each callback.
+**Edit in place**: the Instant Action result message is the single "slot" for the turn. Keyboard Action results edit that message's text and keyboard in place. The keyboard never needs to be transferred.
 
-A secondary concern was keyboard position: with a chained reply structure and a fixed keyboard on the first bot message, the keyboard drifts to the top of the conversation as new results pile up below it. The user has to scroll up to tap a button.
+The original decision chose "new message per action." It was later revised because posting a new sibling message per action clutters the chat with redundant history that has low value in the primary use case (mid-conversation, need help fast), and the "edit in place" model maps cleanly onto the Reply suggestion selection flow (tapping a numbered suggestion edits the suggestion list).
 
 ## Decision
-All bot responses within a Conversation Turn — the Instant Action result and every Keyboard Action result — reply directly to the Anchor Message. The Active Keyboard is attached to each new result and removed from the previous one, so it always travels to the most recent bot message.
+The Instant Action result is the single bot message per Conversation Turn. All Keyboard Action results — including Reply suggestion selection — edit that message's text and reply markup in place via `edit_message_text` / `edit_message_reply_markup`. The Active Keyboard stays on the same message throughout the turn; no keyboard transfer is needed.
 
-`ResponsePublisher.reattach_keyboard` is removed: there is no longer a step that moves the keyboard back to an earlier message.
+The Anchor Message is still always recoverable as `query.message.reply_to_message`, because the slot message is posted as a reply to the Anchor Message and that relationship is preserved through edits.
 
 ## Consequences
-- The anchor is always recoverable without session state: `query.message.reply_to_message` reliably points to the user's original message regardless of how many keyboard actions have been performed.
-- The keyboard stays at the bottom of the conversation, visible alongside the latest result.
-- All bot responses within a turn appear as siblings under the anchor in the Telegram thread, which may look busier than a linear chain for users who perform many actions on one message. This is acceptable — the learning context values recallability of past results over visual tidiness.
+- One bot message per turn instead of N. The chat stays clean.
+- Users cannot scroll back to see previous action results within a turn (Analyze result is gone once they tap Correct). Accepted — recallability of within-turn history has low value in the primary use case.
+- The keyboard never moves; no `edit_message_reply_markup` call is needed to remove an old keyboard and attach a new one.
+- Reply suggestion selection becomes a natural edit: the suggestion list is replaced by the selected reply text, and the standard keyboard reappears.

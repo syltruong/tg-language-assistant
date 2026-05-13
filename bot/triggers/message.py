@@ -55,4 +55,5 @@ class MessageTrigger:
             reply_to_message_id=update.message.message_id,
             session=session,
             reply_markup=KEYBOARD,
+            user_id=update.effective_user.id,
         )
