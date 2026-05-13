@@ -4,12 +4,14 @@ import pytest
 
 from bot.actions.verbs.analyze import AnalyzeAction
 from bot.actions.verbs.base import LanguagePair
+from bot.actions.verbs.rephrase import RephraseAction
+from bot.actions.verbs.reply import ReplyAction
 from bot.actions.verbs.translate import TranslateAction
 from bot.gateway import AnchorMessage, LanguageRole
 from bot.llm_interface import FakeLLMClient
 from bot.localizer import Localizer
 from bot.runner import ActionRunner
-from bot.types import FormattedResult
+from bot.types import FormattedResult, Suggestion
 
 EN_FR = LanguagePair(base="en", target="fr")
 _TRANSLATE_TEMPLATE = "Translate {text} from {from_language} to {to_language}."
@@ -124,3 +126,70 @@ class TestActionRunnerPlainText:
         assert isinstance(result, FormattedResult)
         assert result.text == "Bonjour"
         assert result.parse_mode is None
+
+
+_REPLY_TEMPLATE = "Generate {n} replies to {text} in {target_language}."
+_VALID_REPLY_JSON = json.dumps([
+    {"text": "Bien merci!", "note": "warm"},
+    {"text": "Oui, ça va!", "note": "playful"},
+])
+
+_REPHRASE_TEMPLATE = "Rephrase {text} in {target_language} in 3 ways."
+_VALID_REPHRASE_JSON = json.dumps([
+    {"text": "C'est super!", "note": "casual"},
+    {"text": "C'est excellent!", "note": "formal"},
+])
+
+
+def _make_reply_action() -> ReplyAction:
+    return ReplyAction(localizer=Localizer(), prompt_template=_REPLY_TEMPLATE)
+
+
+def _make_rephrase_action() -> RephraseAction:
+    return RephraseAction(localizer=Localizer(), prompt_template=_REPHRASE_TEMPLATE)
+
+
+class TestActionRunnerReplyAction:
+    @pytest.mark.asyncio
+    async def test_reply_action_populates_suggestions_in_result(self):
+        runner = _make_runner(_VALID_REPLY_JSON)
+        action = _make_reply_action()
+        anchor = AnchorMessage(
+            text="Ça va?", detected_language="fr", language_role=LanguageRole.TARGET
+        )
+
+        result = await runner.run(action, anchor, EN_FR)
+
+        assert result.suggestions == [
+            Suggestion(text="Bien merci!", note="warm"),
+            Suggestion(text="Oui, ça va!", note="playful"),
+        ]
+
+    @pytest.mark.asyncio
+    async def test_non_reply_action_has_no_suggestions(self):
+        runner = _make_runner("Bonjour")
+        action = _make_translate_action()
+        anchor = AnchorMessage(
+            text="Hello", detected_language="en", language_role=LanguageRole.BASE
+        )
+
+        result = await runner.run(action, anchor, EN_FR)
+
+        assert result.suggestions is None
+
+
+class TestActionRunnerRephraseAction:
+    @pytest.mark.asyncio
+    async def test_rephrase_action_populates_suggestions_in_result(self):
+        runner = _make_runner(_VALID_REPHRASE_JSON)
+        action = _make_rephrase_action()
+        anchor = AnchorMessage(
+            text="C'est bon", detected_language="fr", language_role=LanguageRole.TARGET
+        )
+
+        result = await runner.run(action, anchor, EN_FR)
+
+        assert result.suggestions == [
+            Suggestion(text="C'est super!", note="casual"),
+            Suggestion(text="C'est excellent!", note="formal"),
+        ]
