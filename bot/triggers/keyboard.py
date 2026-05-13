@@ -61,7 +61,7 @@ class KeyboardTrigger:
 
         result = await self._runner.run(action, anchor, language_pair)
 
-        if action_type == KeyboardActionType.REPLY and result.suggestions:
+        if result.suggestions:
             session.store_suggestions(msg_id, result.suggestions)
             reply_markup = build_suggestions_keyboard(result.suggestions)
         else:
