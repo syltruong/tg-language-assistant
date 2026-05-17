@@ -8,7 +8,7 @@ from bot.errors import UserFacingError
 from bot.gateway import MessageGateway
 from bot.keyboard import KEYBOARD
 from bot.localizer import Localizer
-from bot.publisher import ResponsePublisher
+from bot.publisher import ResponsePublisherProtocol
 from bot.runner import ActionRunner
 from bot.session import UserSession
 from bot.types import ActionType
@@ -20,7 +20,7 @@ class MessageTrigger:
         gateway: MessageGateway,
         registry: ActionRegistry,
         runner: ActionRunner,
-        publisher: ResponsePublisher,
+        publisher: ResponsePublisherProtocol,
         localizer: Localizer | None = None,
     ) -> None:
         self._gateway = gateway
