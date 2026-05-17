@@ -9,7 +9,7 @@ from bot.keyboard import KEYBOARD, SELECT_PREFIX, build_suggestions_keyboard
 from bot.publisher import ResponsePublisher
 from bot.runner import ActionRunner
 from bot.session import UserSession
-from bot.types import FormattedResult, KeyboardActionType
+from bot.types import FormattedResult
 
 
 class KeyboardTrigger:
