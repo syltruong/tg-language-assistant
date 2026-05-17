@@ -56,4 +56,4 @@ class TestMessageTriggerRouting:
         await trigger.handle(update, context)
 
         assert isinstance(runner.last_action, TranslateAction)
-        assert len(publisher.published) == 1
+        assert len(publisher.new_slots_published) == 1

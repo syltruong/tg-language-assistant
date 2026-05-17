@@ -49,7 +49,7 @@ class MessageTrigger:
 
         result = await self._runner.run(action, anchor, language_pair)
 
-        await self._publisher.publish(
+        await self._publisher.publish_new_slot(
             result=result,
             chat_id=update.effective_chat.id,
             reply_to_message_id=update.message.message_id,
