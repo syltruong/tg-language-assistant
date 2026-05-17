@@ -84,14 +84,18 @@ class TestCorrectAction:
             action.parse("not json")
 
     def test_parse_raises_when_corrected_missing(self):
-        import json, pytest
+        import json
+
+        import pytest
 
         action = CorrectAction(localizer=_LOCALIZER, prompt_template="")
         with pytest.raises(ValueError):
             action.parse(json.dumps({"annotations": []}))
 
     def test_parse_raises_when_annotations_missing(self):
-        import json, pytest
+        import json
+
+        import pytest
 
         action = CorrectAction(localizer=_LOCALIZER, prompt_template="")
         with pytest.raises(ValueError):
@@ -99,15 +103,19 @@ class TestCorrectAction:
 
     def test_annotation_keys_all_present_in_prompt_template(self):
         import os
+
         from bot.actions.verbs.correct import _ANNOTATION_KEYS
 
         prompt_path = os.path.join(os.path.dirname(__file__), "..", "prompts", "correct.md")
-        prompt = open(prompt_path, encoding="utf-8").read()
+        with open(prompt_path, encoding="utf-8") as f:
+            prompt = f.read()
         for key in _ANNOTATION_KEYS:
             assert key in prompt, f"Annotation key '{key}' missing from correct.md"
 
     def test_parse_raises_when_annotation_missing_field(self):
-        import json, pytest
+        import json
+
+        import pytest
 
         action = CorrectAction(localizer=_LOCALIZER, prompt_template="")
         with pytest.raises(ValueError):
