@@ -39,7 +39,6 @@ class UserSession:
     _KEY_ACTION_TYPES = "action_types"
     _KEY_SUGGESTIONS = "suggestions"
     _KEY_ACTIVE_MESSAGES = "active_message_ids"
-    _KEY_SLOT_IDS = "slot_ids"
     _KEY_ACTIVE_SLOT_ID = "active_slot_id"
 
     _DEFAULT_BASE_LANGUAGE = "en"
@@ -82,12 +81,6 @@ class UserSession:
     @property
     def language_pair(self) -> LanguagePair:
         return LanguagePair(base=self.base_language, target=self.target_language)
-
-    def get_slot_id(self, anchor_id: int) -> int | None:
-        return self._data.get(self._KEY_SLOT_IDS, {}).get(anchor_id)
-
-    def set_slot_id(self, anchor_id: int, slot_id: int) -> None:
-        self._data.setdefault(self._KEY_SLOT_IDS, {})[anchor_id] = slot_id
 
     def get_active_slot_id(self) -> int | None:
         return self._data.get(self._KEY_ACTIVE_SLOT_ID)

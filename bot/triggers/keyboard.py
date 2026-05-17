@@ -6,7 +6,7 @@ from telegram.ext import ContextTypes
 from bot.actions.registry import ActionRegistry
 from bot.gateway import AnchorMessage, LanguageRole
 from bot.keyboard import KEYBOARD, SELECT_PREFIX, build_suggestions_keyboard
-from bot.publisher import ResponsePublisher
+from bot.publisher import ResponsePublisherProtocol
 from bot.runner import ActionRunner
 from bot.session import UserSession
 from bot.types import FormattedResult
@@ -17,7 +17,7 @@ class KeyboardTrigger:
         self,
         registry: ActionRegistry,
         runner: ActionRunner,
-        publisher: ResponsePublisher,
+        publisher: ResponsePublisherProtocol,
     ) -> None:
         self._registry = registry
         self._runner = runner

@@ -1,11 +1,35 @@
 """ResponsePublisher — delivers a formatted result to the user via Telegram."""
 
 import asyncio
+from typing import Protocol, runtime_checkable
 
 from telegram import Bot, InlineKeyboardMarkup
 
 from bot.session import UserSession
 from bot.types import FormattedResult
+
+
+@runtime_checkable
+class ResponsePublisherProtocol(Protocol):
+    async def publish_new_slot(
+        self,
+        result: FormattedResult,
+        chat_id: int,
+        reply_to_message_id: int,
+        session: UserSession,
+        reply_markup: InlineKeyboardMarkup | None = None,
+        user_id: int = 0,
+    ) -> None: ...
+
+    async def edit_slot(
+        self,
+        result: FormattedResult,
+        chat_id: int,
+        slot_id: int,
+        session: UserSession,
+        reply_markup: InlineKeyboardMarkup | None = None,
+        user_id: int = 0,
+    ) -> None: ...
 
 
 class FakeResponsePublisher:
