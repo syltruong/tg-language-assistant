@@ -67,10 +67,10 @@ class KeyboardTrigger:
         else:
             reply_markup = KEYBOARD
 
-        await self._publisher.publish(
+        await self._publisher.edit_slot(
             result=result,
             chat_id=query.message.chat.id,
-            reply_to_message_id=replied.message_id,
+            slot_id=msg_id,
             session=session,
             reply_markup=reply_markup,
         )
@@ -83,15 +83,12 @@ class KeyboardTrigger:
         if not replies or index >= len(replies):
             return
 
-        replied = getattr(query.message, "reply_to_message", None)
-        anchor_id = replied.message_id if replied else msg_id
-
         result = FormattedResult(text=replies[index].text, parse_mode=None)
 
-        await self._publisher.publish(
+        await self._publisher.edit_slot(
             result=result,
             chat_id=query.message.chat.id,
-            reply_to_message_id=anchor_id,
+            slot_id=msg_id,
             session=session,
             reply_markup=KEYBOARD,
             user_id=query.from_user.id,
