@@ -5,6 +5,10 @@ from typing import Any
 from bot.localizer import Localizer
 
 
+def _escape(s: str) -> str:
+    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
 @dataclass(frozen=True)
 class LanguagePair:
     base: str  # ISO code, e.g. "en"

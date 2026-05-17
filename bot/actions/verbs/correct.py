@@ -1,13 +1,9 @@
 import json
 from typing import Any
 
-from bot.actions.verbs.base import Action, LanguagePair
+from bot.actions.verbs.base import Action, LanguagePair, _escape
 from bot.config.messages import MsgNoCorrectionsNeeded
 from bot.localizer import Localizer
-
-
-def _escape(s: str) -> str:
-    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 _ANNOTATION_KEYS = {"original", "correction", "explanation"}
 
