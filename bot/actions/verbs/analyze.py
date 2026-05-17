@@ -1,14 +1,10 @@
 import json
 from typing import Any
 
-from bot.actions.verbs.base import Action, LanguagePair
+from bot.actions.verbs.base import Action, LanguagePair, _escape
 from bot.localizer import Localizer
 
 _REQUIRED_KEYS = {"vocabulary", "grammar"}
-
-
-def _escape(s: str) -> str:
-    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
 def _format_item(item: dict, primary_key: str | None = None) -> str:

@@ -75,6 +75,10 @@ class MsgNoReplyText(MsgKey):
     pass
 
 
+class MsgNoCorrectionsNeeded(MsgKey):
+    pass
+
+
 # ── Catalogs ─────────────────────────────────────────────────────────
 
 
@@ -106,6 +110,7 @@ CATALOGS: dict[str, dict[type, str]] = {
             "Sorry, the original message could not be accessed. "
             "Please resend the message in this chat."
         ),
+        MsgNoCorrectionsNeeded: "No corrections needed.",
     },
     # "fr": {
     #     TextTooLongError: "Le message est trop long. ...",

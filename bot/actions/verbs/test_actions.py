@@ -64,13 +64,94 @@ class TestAnalyzeAction:
 
 
 class TestCorrectAction:
-    def test_format_returns_result_unchanged(self):
+    def test_parse_mode_is_html(self):
         action = CorrectAction(localizer=_LOCALIZER, prompt_template="")
-        assert action.format("Bonjour monde!", _LP) == "Bonjour monde!"
+        assert action.parse_mode == "HTML"
 
-    def test_parse_returns_raw_string(self):
+    def test_parse_returns_dict_for_valid_json(self):
+        import json
+
         action = CorrectAction(localizer=_LOCALIZER, prompt_template="")
-        assert action.parse("Bonjour monde!") == "Bonjour monde!"
+        payload = {"corrected": "Je suis allée.", "annotations": [{"original": "allé", "correction": "allée", "explanation": "Gender agreement."}]}
+        result = action.parse(json.dumps(payload))
+        assert result == payload
+
+    def test_parse_raises_for_malformed_json(self):
+        import pytest
+
+        action = CorrectAction(localizer=_LOCALIZER, prompt_template="")
+        with pytest.raises(ValueError):
+            action.parse("not json")
+
+    def test_parse_raises_when_corrected_missing(self):
+        import json
+
+        import pytest
+
+        action = CorrectAction(localizer=_LOCALIZER, prompt_template="")
+        with pytest.raises(ValueError):
+            action.parse(json.dumps({"annotations": []}))
+
+    def test_parse_raises_when_annotations_missing(self):
+        import json
+
+        import pytest
+
+        action = CorrectAction(localizer=_LOCALIZER, prompt_template="")
+        with pytest.raises(ValueError):
+            action.parse(json.dumps({"corrected": "Bien."}))
+
+    def test_annotation_keys_all_present_in_prompt_template(self):
+        import os
+
+        from bot.actions.verbs.correct import _ANNOTATION_KEYS
+
+        prompt_path = os.path.join(os.path.dirname(__file__), "..", "prompts", "correct.md")
+        with open(prompt_path, encoding="utf-8") as f:
+            prompt = f.read()
+        for key in _ANNOTATION_KEYS:
+            assert key in prompt, f"Annotation key '{key}' missing from correct.md"
+
+    def test_parse_raises_when_annotation_missing_field(self):
+        import json
+
+        import pytest
+
+        action = CorrectAction(localizer=_LOCALIZER, prompt_template="")
+        with pytest.raises(ValueError):
+            action.parse(json.dumps({"corrected": "Bien.", "annotations": [{"original": "x", "correction": "y"}]}))
+
+    def test_format_with_annotations_renders_corrected_and_diffs(self):
+        action = CorrectAction(localizer=_LOCALIZER, prompt_template="")
+        data = {
+            "corrected": "Je suis allée.",
+            "annotations": [{"original": "allé", "correction": "allée", "explanation": "Gender agreement."}],
+        }
+        result = action.format(data, _LP)
+        assert "Je suis allée." in result
+        assert "<s>allé</s>" in result
+        assert "<b>allée</b>" in result
+        assert "<i>Gender agreement.</i>" in result
+
+    def test_format_with_empty_annotations_renders_no_corrections_message(self):
+        action = CorrectAction(localizer=_LOCALIZER, prompt_template="")
+        data = {"corrected": "Je suis allée.", "annotations": []}
+        result = action.format(data, _LP)
+        assert "No corrections needed." in result
+        assert "Je suis allée." in result
+        assert "<b>No corrections needed.</b>" in result
+
+    def test_format_html_escapes_user_content(self):
+        action = CorrectAction(localizer=_LOCALIZER, prompt_template="")
+        data = {
+            "corrected": "<b>safe</b>",
+            "annotations": [{"original": "<x>", "correction": "&amp;", "explanation": "test>"}],
+        }
+        result = action.format(data, _LP)
+        assert "<b>safe</b>" not in result or result.count("<b>") == 1  # only our own bold tag
+        assert "&lt;x&gt;" in result
+        assert "&amp;amp;" in result
+        assert "test&gt;" in result
 
 
 class TestAnalyzeActionParse:

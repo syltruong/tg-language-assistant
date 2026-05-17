@@ -26,7 +26,7 @@ An Instant Action that returns a full sentence translation of the incoming messa
 An Instant Action that lifts key vocabulary words from an incoming message and returns their individual translations — without producing a full sentence translation. Intended for advanced learners who want to work out meaning themselves.
 
 ### Correct Mode
-A Keyboard Action where the user submits a sentence in the target language and the bot returns the corrected sentence with inline annotations explaining each fix. Scoped to grammar, spelling, and usage corrections only. Proficiency rating ("beginner/intermediate/advanced") is out of scope — a single sentence is insufficient signal for reliable rating.
+A Keyboard Action where the user submits a sentence in the target language and the bot returns the corrected sentence with inline annotations explaining each fix. Scoped to grammar, spelling, and usage corrections only. Punctuation and capitalisation are not annotated — they are accepted as normal IM register. Proficiency rating ("beginner/intermediate/advanced") and study suggestions are out of scope — a single sentence is insufficient signal for reliable rating or targeted advice.
 
 ### Conversation Simulation
 A use pattern where the user drives both sides of a practice conversation, typing messages as if from their language partner and using the bot as a tool to understand each turn and compose replies. The bot remains a passive tool — it does not play a persona or generate partner messages autonomously.
