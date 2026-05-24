@@ -5,6 +5,7 @@ from loguru import logger
 from telegram.ext import (
     ApplicationBuilder,
     CallbackQueryHandler,
+    CommandHandler,
     MessageHandler,
     filters,
 )
@@ -13,12 +14,14 @@ from bot.actions.registry import ActionRegistry
 from bot.auth import AllowlistAuthorizer
 from bot.config import ALLOWED_USERS, MODEL_NAME, OPENAI_API_KEY, TOKEN
 from bot.gateway import LinguaLanguageDetector, MessageGateway
+from bot.keyboard import LANG_TARGET_PREFIX
 from bot.llm_interface import OpenAILLMClient
 from bot.localizer import Localizer
 from bot.publisher import ResponsePublisher
 from bot.runner import ActionRunner
 from bot.triggers.keyboard import KeyboardTrigger
 from bot.triggers.message import MessageTrigger
+from bot.triggers.settings import SettingsTrigger
 
 
 def _load_system_prompt() -> str:
@@ -70,7 +73,16 @@ def main() -> None:
         runner=runner,
         publisher=publisher,
     )
+    settings_trigger = SettingsTrigger(localizer=localizer)
 
+    app.add_handler(CommandHandler("start", settings_trigger.handle))
+    app.add_handler(CommandHandler("settings", settings_trigger.handle))
+    app.add_handler(
+        CallbackQueryHandler(
+            settings_trigger.handle_language_callback,
+            pattern=f"^{LANG_TARGET_PREFIX}",
+        )
+    )
     app.add_handler(
         MessageHandler(
             filters.TEXT & ~filters.COMMAND & ~filters.UpdateType.EDITED_MESSAGE,
