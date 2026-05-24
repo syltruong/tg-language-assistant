@@ -41,6 +41,16 @@ WEBHOOK_URL=https://abc123.ngrok-free.app uv run python -m bot.main
 
 > **Note:** only one instance of the bot should be running at a time. If the bot is deployed on fly.io with a webhook, starting it locally in polling mode will fail with a 409 from Telegram.
 
+## Deploying
+
+Pushes to `master` trigger an automatic deploy via GitHub Actions after lint and tests pass.
+
+To deploy manually:
+
+```bash
+make fly-deploy
+```
+
 ## Testing
 
 Tests live next to the source files they cover (e.g. `bot/routing/test_local.py` tests `bot/routing/local.py`).
