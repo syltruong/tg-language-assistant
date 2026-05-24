@@ -80,7 +80,7 @@ def main() -> None:
     app.add_handler(CallbackQueryHandler(keyboard_trigger.handle))
     webhook_url = os.getenv("WEBHOOK_URL")
     if webhook_url:
-        port = int(os.getenv("PORT", "8080"))
+        port = int(os.getenv("PORT", "8443"))
         logger.info("Starting in webhook mode: url={} port={}", webhook_url, port)
         app.run_webhook(
             listen="0.0.0.0",
