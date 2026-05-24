@@ -11,8 +11,35 @@ A Telegram bot that helps language learners communicate with native speakers in 
 ```bash
 cp .env.example .env   # set TELEGRAM_TOKEN and OPENAI_API_KEY
 uv sync                # installs Python 3.12 (if needed) and all dependencies
-uv run python -m bot.main
 ```
+
+## Running locally
+
+**Polling (default)** — simplest, no extra setup:
+
+```bash
+make start
+```
+
+Requires [ngrok](https://ngrok.com/download) to be installed.
+
+**Webhook via ngrok — one command:**
+
+```bash
+make start-webhook   # starts ngrok, wires up WEBHOOK_URL, starts the bot
+```
+
+**Webhook via ngrok — two terminals:**
+
+```bash
+# Terminal 1
+ngrok http 8443
+
+# Terminal 2 — paste the HTTPS URL printed by ngrok
+WEBHOOK_URL=https://abc123.ngrok-free.app uv run python -m bot.main
+```
+
+> **Note:** only one instance of the bot should be running at a time. If the bot is deployed on fly.io with a webhook, starting it locally in polling mode will fail with a 409 from Telegram.
 
 ## Testing
 
