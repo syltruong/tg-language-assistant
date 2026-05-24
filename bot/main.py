@@ -80,13 +80,17 @@ def main() -> None:
     app.add_handler(CallbackQueryHandler(keyboard_trigger.handle))
     webhook_url = os.getenv("WEBHOOK_URL")
     if webhook_url:
+        port = int(os.getenv("PORT", "8080"))
+        logger.info("Starting in webhook mode: url={} port={}", webhook_url, port)
         app.run_webhook(
             listen="0.0.0.0",
-            port=8443,
+            port=port,
+            url_path="/webhook",
             webhook_url=webhook_url,
             drop_pending_updates=True,
         )
     else:
+        logger.info("Starting in polling mode")
         app.run_polling(drop_pending_updates=True)
 
 
