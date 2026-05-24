@@ -79,6 +79,14 @@ class MsgNoCorrectionsNeeded(MsgKey):
     pass
 
 
+class MsgChooseLanguage(MsgKey):
+    pass
+
+
+class MsgLanguageSelected(MsgKey):
+    pass
+
+
 # ── Catalogs ─────────────────────────────────────────────────────────
 
 
@@ -111,6 +119,8 @@ CATALOGS: dict[str, dict[type, str]] = {
             "Please resend the message in this chat."
         ),
         MsgNoCorrectionsNeeded: "No corrections needed.",
+        MsgChooseLanguage: "Which language would you like to learn?",
+        MsgLanguageSelected: "You're learning {language}. Send me a message to get started.",
     },
     # "fr": {
     #     TextTooLongError: "Le message est trop long. ...",

@@ -11,7 +11,10 @@ A Telegram bot that helps language learners communicate with native speakers in 
 ## Ubiquitous Language
 
 ### Language Pair
-A user-configured pair of languages: a **base language** (the language the user is comfortable in) and a **target language** (the language they are learning). Currently defaults to English (base) → French (target). A user has one active language pair at a time; switching requires an explicit `/settings` command. The set of supported languages is a curated list — not open-ended — to ensure consistent LLM quality across languages.
+A user-configured pair of languages: a **base language** (the language the user is comfortable in) and a **target language** (the language they are learning). Base language is always English (`en`) — it is not selectable. Target language is chosen by the user via the Language Selection Flow. A user has one active language pair at a time. The set of supported target languages is a curated list — not open-ended — to ensure consistent LLM quality across languages. Language pair is held in-memory for the session; it does not survive a bot restart.
+
+### Language Selection Flow
+The inline-keyboard interaction that lets the user pick their target language. Triggered by `/start` (always, on every invocation, regardless of existing state) and `/settings` (to change an existing selection). Presents one button per entry in `SUPPORTED_TARGET_LANGUAGES` — always shown, even when only one language is available. On selection, the Session is updated with the new target language and the bot sends a short confirmation message prompting the user to send their first message. Until this flow completes, the bot does not process incoming messages.
 
 ### Instant Action
 The action that fires automatically when the user sends a message, without requiring a button tap. Configurable per user. Default is **Translate**. Advanced learners may prefer **Vocabulary Hint** instead.

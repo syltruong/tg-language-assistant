@@ -9,3 +9,8 @@ SUPPORTED_LANGUAGES = {**SUPPORTED_UI_LANGUAGES, **SUPPORTED_TARGET_LANGUAGES}
 LANGUAGE_NAMES: dict[str, str] = {
     code: lang.name.title() for lang, code in SUPPORTED_LANGUAGES.items()
 }
+
+LANGUAGE_FLAGS: dict[str, str] = {
+    "en": "🇬🇧",
+    "fr": "🇫🇷",
+}

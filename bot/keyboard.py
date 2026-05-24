@@ -12,6 +12,20 @@ BUTTON_TITLES: dict[KeyboardActionType, str] = {
 }
 
 SELECT_PREFIX = "select:"
+LANG_TARGET_PREFIX = "lang_target:"
+
+
+def build_language_keyboard(languages: dict) -> InlineKeyboardMarkup:
+    from bot.config.lang import LANGUAGE_FLAGS
+    return InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton(
+                f"{LANGUAGE_FLAGS.get(code, '')} {lang.name.title()}".strip(),
+                callback_data=f"{LANG_TARGET_PREFIX}{code}",
+            )]
+            for lang, code in languages.items()
+        ]
+    )
 
 
 def build_suggestions_keyboard(suggestions: list[Suggestion]) -> InlineKeyboardMarkup:
