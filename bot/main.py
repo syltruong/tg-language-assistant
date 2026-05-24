@@ -78,7 +78,16 @@ def main() -> None:
         )
     )
     app.add_handler(CallbackQueryHandler(keyboard_trigger.handle))
-    app.run_polling(drop_pending_updates=True)
+    webhook_url = os.getenv("WEBHOOK_URL")
+    if webhook_url:
+        app.run_webhook(
+            listen="0.0.0.0",
+            port=8443,
+            webhook_url=webhook_url,
+            drop_pending_updates=True,
+        )
+    else:
+        app.run_polling(drop_pending_updates=True)
 
 
 if __name__ == "__main__":
