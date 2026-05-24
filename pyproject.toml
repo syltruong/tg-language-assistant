@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "A Telegram bot that helps language learners with translation, vocabulary, grammar, and corrections."
 requires-python = ">=3.12"
 dependencies = [
-    "python-telegram-bot>=20.0",
+    "python-telegram-bot[webhooks]>=20.0",
     "python-dotenv>=0.21.0",
     "openai>=1.66.0",
     "lingua-language-detector>=2.1.0",
