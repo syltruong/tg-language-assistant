@@ -16,11 +16,11 @@ LANG_TARGET_PREFIX = "lang_target:"
 
 
 def build_language_keyboard(languages: dict) -> InlineKeyboardMarkup:
-    from bot.config.lang import LANGUAGE_FLAGS
+    from bot.config.lang import LANGUAGE_DISPLAY_NAMES, LANGUAGE_FLAGS
     return InlineKeyboardMarkup(
         [
             [InlineKeyboardButton(
-                f"{LANGUAGE_FLAGS.get(code, '')} {lang.name.title()}".strip(),
+                f"{LANGUAGE_FLAGS.get(code, '')} {LANGUAGE_DISPLAY_NAMES.get(code, lang.name.title())}".strip(),
                 callback_data=f"{LANG_TARGET_PREFIX}{code}",
             )]
             for lang, code in languages.items()
