@@ -12,7 +12,16 @@ from telegram.ext import (
 
 from bot.actions.registry import ActionRegistry
 from bot.auth import AllowlistAuthorizer
-from bot.config import ALLOWED_USERS, MODEL_NAME, OPENAI_API_KEY, TOKEN
+from bot.config import (
+    ALLOWED_USERS,
+    MODEL_NAME,
+    OPENAI_API_KEY,
+    QWEN_API_KEY,
+    QWEN_BASE_URL,
+    QWEN_MODEL_NAME,
+    TOKEN,
+)
+from bot.config.lang import CHINESE_ISO
 from bot.gateway import LinguaLanguageDetector, MessageGateway
 from bot.keyboard import LANG_TARGET_PREFIX
 from bot.llm_interface import OpenAILLMClient
@@ -58,7 +67,19 @@ def main() -> None:
     gateway = MessageGateway(authorizer=authorizer, language_detector=language_detector)
     registry = ActionRegistry(localizer=localizer)
     llm = OpenAILLMClient(api_key=OPENAI_API_KEY, model=MODEL_NAME)
-    runner = ActionRunner(llm=llm, system_prompt_template=_load_system_prompt())
+    llm_overrides = {}
+    if QWEN_API_KEY:
+        llm_overrides[CHINESE_ISO] = OpenAILLMClient(
+            api_key=QWEN_API_KEY,
+            model=QWEN_MODEL_NAME,
+            base_url=QWEN_BASE_URL,
+            use_chat_completions_api=True,
+        )
+    runner = ActionRunner(
+        llm=llm,
+        system_prompt_template=_load_system_prompt(),
+        llm_overrides=llm_overrides,
+    )
     publisher = ResponsePublisher(bot=app.bot)
 
     message_trigger = MessageTrigger(

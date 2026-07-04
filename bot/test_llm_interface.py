@@ -17,3 +17,12 @@ class TestOpenAILLMClientProtocol:
     def test_satisfies_llm_client_protocol(self):
         client = OpenAILLMClient(api_key="test-key", model="gpt-4o-mini")
         assert isinstance(client, LLMClient)
+
+    def test_satisfies_llm_client_protocol_with_qwen_style_config(self):
+        client = OpenAILLMClient(
+            api_key="test-key",
+            model="qwen-plus",
+            base_url="https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+            use_chat_completions_api=True,
+        )
+        assert isinstance(client, LLMClient)

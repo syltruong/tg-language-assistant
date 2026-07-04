@@ -33,9 +33,15 @@ class FakeActionRunner:
 
 
 class ActionRunner:
-    def __init__(self, llm: LLMClient, system_prompt_template: str) -> None:
+    def __init__(
+        self,
+        llm: LLMClient,
+        system_prompt_template: str,
+        llm_overrides: "dict[str, LLMClient] | None" = None,
+    ) -> None:
         self._llm = llm
         self._system_prompt_template = system_prompt_template
+        self._llm_overrides = llm_overrides or {}
 
     async def run(
         self,
@@ -43,6 +49,7 @@ class ActionRunner:
         anchor: AnchorMessage,
         language_pair: LanguagePair,
     ) -> FormattedResult:
+        llm = self._llm_overrides.get(language_pair.target, self._llm)
         base_name = LANGUAGE_NAMES[language_pair.base]
         target_name = LANGUAGE_NAMES[language_pair.target]
         from_name = LANGUAGE_NAMES[anchor.detected_language]
@@ -64,7 +71,7 @@ class ActionRunner:
         )
 
         for attempt in range(_MAX_PARSE_RETRIES):
-            raw = await self._llm.complete(system_prompt, user_prompt)
+            raw = await llm.complete(system_prompt, user_prompt)
             try:
                 validated = action.parse(raw)
                 text = action.format(validated, language_pair)

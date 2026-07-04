@@ -14,6 +14,7 @@ from bot.runner import ActionRunner
 from bot.types import FormattedResult, Suggestion
 
 EN_FR = LanguagePair(base="en", target="fr")
+EN_ZH = LanguagePair(base="en", target="zh")
 _TRANSLATE_TEMPLATE = "Translate {text} from {from_language} to {to_language}."
 _SYSTEM_TEMPLATE = "You help {base_language} speakers learn {target_language}."
 
@@ -176,6 +177,40 @@ class TestActionRunnerReplyAction:
         result = await runner.run(action, anchor, EN_FR)
 
         assert result.suggestions is None
+
+
+class TestActionRunnerLLMOverrides:
+    @pytest.mark.asyncio
+    async def test_uses_override_client_for_matching_target_language(self):
+        runner = ActionRunner(
+            llm=FakeLLMClient(response="Bonjour"),
+            system_prompt_template=_SYSTEM_TEMPLATE,
+            llm_overrides={"zh": FakeLLMClient(response="你好")},
+        )
+        action = _make_translate_action()
+        anchor = AnchorMessage(
+            text="Hello", detected_language="en", language_role=LanguageRole.BASE
+        )
+
+        result = await runner.run(action, anchor, EN_ZH)
+
+        assert result.text == "你好"
+
+    @pytest.mark.asyncio
+    async def test_falls_back_to_default_client_when_no_override_matches(self):
+        runner = ActionRunner(
+            llm=FakeLLMClient(response="Bonjour"),
+            system_prompt_template=_SYSTEM_TEMPLATE,
+            llm_overrides={"zh": FakeLLMClient(response="你好")},
+        )
+        action = _make_translate_action()
+        anchor = AnchorMessage(
+            text="Hello", detected_language="en", language_role=LanguageRole.BASE
+        )
+
+        result = await runner.run(action, anchor, EN_FR)
+
+        assert result.text == "Bonjour"
 
 
 class TestActionRunnerRephraseAction:
