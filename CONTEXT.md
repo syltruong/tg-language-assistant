@@ -64,7 +64,7 @@ _Avoid_: reply suggestion, rephrasing option, variant
 The single inline keyboard currently accepting input. It lives on the slot message for the current Conversation Turn and stays there throughout the turn — it is never transferred to a new message. There is no Back button; re-entry to a previous state is done by re-sending the anchor message.
 
 ### Session
-Per-user in-memory state managed by Telegram's `context.user_data`. Tracks language pair, message history, detected actions, and active message IDs. Currently not persisted across bot restarts.
+Per-user in-memory state managed by Telegram's `context.user_data`. Tracks language pair, message history, detected actions, active message IDs, and a per-message `run_id` correlating a Slot Message back to the Trace that produced it (see Trace). Currently not persisted across bot restarts.
 
 ### Vocabulary List
 A per-user persistent collection of vocabulary entries built two ways: **passively** (words/phrases automatically extracted from Vocabulary Hint and Analyze actions) and **actively** (user taps the Save button in the inline keyboard, which saves the anchor message and its translation as an entry). Passive and active entries are distinguished in the list. Accessible via `/history`. Active entries are surfaced separately as "Favourites."
@@ -121,6 +121,18 @@ _Avoid_: message catalog, t(), translations
 ### Domain Errors
 Typed error classes that represent named failure modes in the domain (e.g., unauthorized user, missing message text, message too long, unsupported language). Defined in a shared module with no dependencies on other bot modules — both the module that raises an error and the Localizer that maps it to a UI string import from the same place. No error type is defined in the module that raises it.
 _Avoid_: exceptions, error codes
+
+### Feedback / Rating
+The 👍/👎 the user taps on any Slot Message, recorded against that message's Trace via the Feedback Client. Shown as an extra row on every keyboard (both the standard Keyboard Action row and the suggestions keyboard). If Session is lost before the tap (no `run_id` stored for that message), the tap is acknowledged but no feedback is recorded — same no-op posture as a lost Suggestion selection.
+_Avoid_: thumbs up/down, vote, review
+
+### Feedback Client
+The module that records a Rating against a Trace's `run_id`. An explicit protocol (`record_feedback(run_id, score, comment=None)`), following the same Protocol + constructor-injection pattern as the LLM Interface. The concrete `LangSmithFeedbackClient` calls LangSmith's feedback API; a misconfigured or unreachable backend logs a warning and never breaks the Telegram response flow.
+_Avoid_: rating service, thumbs handler
+
+### Annotation Queue
+A LangSmith-side queue of Traces the admin reviews by hand. Populated by a LangSmith Automation Rule (configured once in the LangSmith UI, not application code) that watches for Traces carrying `user_rating` Feedback. Deliberately not driven from application code, so the admin can retune what's worth reviewing (thumbs-down only, everything, a sample) without a deploy.
+_Avoid_: review queue, moderation queue
 
 ### Safety Guardrails
 Deferred until public launch. Until then, `ALLOWED_USERS` is the sole access control mechanism. When rate limiting is introduced, it must be designed tier-aware from the start (to support future subscription tiers). Subscription management is a separate workstream and does not belong to the language learning feature roadmap.

@@ -41,6 +41,22 @@ WEBHOOK_URL=https://abc123.ngrok-free.app uv run python -m bot.main
 
 > **Note:** only one instance of the bot should be running at a time. If the bot is deployed on fly.io with a webhook, starting it locally in polling mode will fail with a 409 from Telegram.
 
+## Observability (LangSmith)
+
+LLM calls are traced through LangSmith via a LangGraph seam (see `docs/adr/0005-langgraph-langsmith-observability-foundation.md`). Tracing is entirely optional — the bot runs normally without it.
+
+To enable it, set in `.env`:
+
+```bash
+LANGSMITH_TRACING=true
+LANGSMITH_API_KEY=your-langsmith-api-key-here
+LANGSMITH_PROJECT=tg-language-assistant
+```
+
+Users can rate any bot response with the 👍/👎 buttons; the rating is recorded as LangSmith feedback (`user_rating`) against that response's trace. Telegram user IDs are hashed before being sent to LangSmith by default (`HASH_TELEGRAM_USER_ID=true`).
+
+To have rated traces reach an admin-reviewed Annotation Queue, configure a LangSmith Automation Rule once in the LangSmith UI (Project → Automations): filter on `feedback_key == "user_rating"`, action "Add to Annotation Queue". This is intentionally not application code — it lets the admin retune what's worth reviewing (thumbs-down only, everything, a sample) without a deploy.
+
 ## Deploying
 
 Pushes to `master` trigger an automatic deploy via GitHub Actions after lint and tests pass.

@@ -1,4 +1,4 @@
-from bot.keyboard import build_suggestions_keyboard
+from bot.keyboard import KEYBOARD, RATE_DOWN, RATE_UP, build_suggestions_keyboard
 from bot.types import Suggestion
 
 _SUGGESTIONS = [
@@ -7,10 +7,21 @@ _SUGGESTIONS = [
 ]
 
 
-class TestBuildSuggestionsKeyboard:
-    def test_one_button_row_per_suggestion(self):
+class TestRatingRow:
+    def test_standard_keyboard_has_a_rating_row(self):
+        last_row = KEYBOARD.inline_keyboard[-1]
+        assert [btn.callback_data for btn in last_row] == [RATE_UP, RATE_DOWN]
+
+    def test_suggestions_keyboard_has_a_rating_row(self):
         kb = build_suggestions_keyboard(_SUGGESTIONS)
-        assert len(kb.inline_keyboard) == 2
+        last_row = kb.inline_keyboard[-1]
+        assert [btn.callback_data for btn in last_row] == [RATE_UP, RATE_DOWN]
+
+
+class TestBuildSuggestionsKeyboard:
+    def test_one_button_row_per_suggestion_plus_rating_row(self):
+        kb = build_suggestions_keyboard(_SUGGESTIONS)
+        assert len(kb.inline_keyboard) == 3
 
     def test_button_label_includes_number_and_note(self):
         kb = build_suggestions_keyboard(_SUGGESTIONS)

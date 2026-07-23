@@ -13,6 +13,16 @@ BUTTON_TITLES: dict[KeyboardActionType, str] = {
 
 SELECT_PREFIX = "select:"
 LANG_TARGET_PREFIX = "lang_target:"
+RATE_PREFIX = "rate:"
+RATE_UP = f"{RATE_PREFIX}up"
+RATE_DOWN = f"{RATE_PREFIX}down"
+
+
+def _rating_row() -> list[InlineKeyboardButton]:
+    return [
+        InlineKeyboardButton("👍", callback_data=RATE_UP),
+        InlineKeyboardButton("👎", callback_data=RATE_DOWN),
+    ]
 
 
 def build_language_keyboard(languages: dict) -> InlineKeyboardMarkup:
@@ -34,6 +44,7 @@ def build_suggestions_keyboard(suggestions: list[Suggestion]) -> InlineKeyboardM
             [InlineKeyboardButton(f"{i + 1} · {s.note}", callback_data=f"{SELECT_PREFIX}{i}")]
             for i, s in enumerate(suggestions)
         ]
+        + [_rating_row()]
     )
 
 
@@ -59,5 +70,6 @@ KEYBOARD = InlineKeyboardMarkup(
                 callback_data=KeyboardActionType.REPLY,
             ),
         ],
+        _rating_row(),
     ]
 )

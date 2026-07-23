@@ -1,0 +1,33 @@
+"""FeedbackTrigger — records a user's 👍/👎 tap against the rated message's trace."""
+
+from telegram import Update
+from telegram.ext import ContextTypes
+
+from bot.feedback import FeedbackClient
+from bot.keyboard import RATE_DOWN, RATE_UP
+from bot.session import UserSession
+
+_SCORES = {RATE_UP: 1.0, RATE_DOWN: 0.0}
+
+
+class FeedbackTrigger:
+    def __init__(self, feedback_client: FeedbackClient) -> None:
+        self._feedback_client = feedback_client
+
+    async def handle(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        query = update.callback_query
+        session = UserSession.from_context(context)
+        msg_id = query.message.message_id
+        run_id = session.get_run_id(msg_id)
+
+        if run_id is None:
+            await query.answer("Feedback unavailable for this message.")
+            return
+
+        score = _SCORES.get(query.data)
+        if score is None:
+            await query.answer()
+            return
+
+        await self._feedback_client.record_feedback(run_id, score)
+        await query.answer("Thanks for your feedback!")

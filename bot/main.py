@@ -13,12 +13,14 @@ from telegram.ext import (
 from bot.actions.registry import ActionRegistry
 from bot.auth import AllowlistAuthorizer
 from bot.config import ALLOWED_USERS, MODEL_NAME, OPENAI_API_KEY, TOKEN
+from bot.feedback import LangSmithFeedbackClient
 from bot.gateway import LinguaLanguageDetector, MessageGateway
-from bot.keyboard import LANG_TARGET_PREFIX
+from bot.keyboard import LANG_TARGET_PREFIX, RATE_PREFIX
 from bot.llm_interface import LangGraphLLMClient, OpenAILLMClient
 from bot.localizer import Localizer
 from bot.publisher import ResponsePublisher
 from bot.runner import ActionRunner
+from bot.triggers.feedback import FeedbackTrigger
 from bot.triggers.keyboard import KeyboardTrigger
 from bot.triggers.message import MessageTrigger
 from bot.triggers.settings import SettingsTrigger
@@ -74,6 +76,7 @@ def main() -> None:
         publisher=publisher,
     )
     settings_trigger = SettingsTrigger(localizer=localizer)
+    feedback_trigger = FeedbackTrigger(feedback_client=LangSmithFeedbackClient())
 
     app.add_handler(CommandHandler("start", settings_trigger.handle))
     app.add_handler(CommandHandler("settings", settings_trigger.handle))
@@ -88,6 +91,11 @@ def main() -> None:
             filters.TEXT & ~filters.COMMAND & ~filters.UpdateType.EDITED_MESSAGE,
             message_trigger.handle,
         )
+    )
+    # Must be registered before the catch-all keyboard handler below, otherwise
+    # rate:* callback data reaches KeyboardTrigger and raises a KeyError.
+    app.add_handler(
+        CallbackQueryHandler(feedback_trigger.handle, pattern=f"^{RATE_PREFIX}")
     )
     app.add_handler(CallbackQueryHandler(keyboard_trigger.handle))
     webhook_url = os.getenv("WEBHOOK_URL")
