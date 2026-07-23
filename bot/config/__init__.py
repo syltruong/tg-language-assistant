@@ -26,6 +26,14 @@ MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
 
 N_SUGGESTED_REPLIES = int(os.getenv("N_SUGGESTED_REPLIES", "4"))
 
+# Hash Telegram user IDs before sending them to LangSmith (a third-party service).
+HASH_TELEGRAM_USER_ID = os.getenv("HASH_TELEGRAM_USER_ID", "true").lower() in (
+    "1",
+    "true",
+    "yes",
+    "on",
+)
+
 # Comma-separated Telegram user IDs. Empty means all users are allowed.
 # To find your user ID, message @userinfobot on Telegram: https://t.me/userinfobot
 _raw_allowed = os.getenv("ALLOWED_USERS", "")
