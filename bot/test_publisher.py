@@ -34,6 +34,18 @@ class TestPublishNewSlot:
         bot.edit_message_text.assert_not_called()
 
     @pytest.mark.asyncio
+    async def test_returns_the_sent_messages_id(self):
+        bot = _make_bot(sent_message_id=42)
+        session = UserSession({})
+        publisher = ResponsePublisher(bot=bot)
+
+        msg_id = await publisher.publish_new_slot(
+            FormattedResult("Hi", None), chat_id=1, reply_to_message_id=2, session=session, user_id=1
+        )
+
+        assert msg_id == 42
+
+    @pytest.mark.asyncio
     async def test_sets_new_slot_as_active(self):
         bot = _make_bot(sent_message_id=42)
         session = UserSession({})

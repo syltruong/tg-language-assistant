@@ -29,6 +29,7 @@ class UserSession:
         _KEY_ACTION_TYPES : { msg_id: list[ActionType] },
         _KEY_SUGGESTIONS : { msg_id: list[suggestions] },
         _KEY_ACTIVE_MESSAGES : [msg_id, ...],
+        _KEY_RUN_IDS : { msg_id: run_id },
     }
     """
 
@@ -40,6 +41,7 @@ class UserSession:
     _KEY_SUGGESTIONS = "suggestions"
     _KEY_ACTIVE_MESSAGES = "active_message_ids"
     _KEY_ACTIVE_SLOT_ID = "active_slot_id"
+    _KEY_RUN_IDS = "run_ids"
 
     _DEFAULT_BASE_LANGUAGE = "en"
     _DEFAULT_TARGET_LANGUAGE = "fr"
@@ -112,6 +114,12 @@ class UserSession:
 
     def get_action_types(self, msg_id: int) -> list[ActionType]:
         return self._data.get(self._KEY_ACTION_TYPES, {}).get(msg_id, [])
+
+    def store_run_id(self, msg_id: int, run_id: str) -> None:
+        self._data.setdefault(self._KEY_RUN_IDS, {})[msg_id] = run_id
+
+    def get_run_id(self, msg_id: int) -> str | None:
+        return self._data.get(self._KEY_RUN_IDS, {}).get(msg_id)
 
     def store_suggestions(self, msg_id: int, suggestions: list[Suggestion]) -> None:
         self._data.setdefault(self._KEY_SUGGESTIONS, {})[msg_id] = suggestions

@@ -19,7 +19,7 @@ class ResponsePublisherProtocol(Protocol):
         session: UserSession,
         reply_markup: InlineKeyboardMarkup | None = None,
         user_id: int = 0,
-    ) -> None: ...
+    ) -> int: ...
 
     async def edit_slot(
         self,
@@ -33,9 +33,10 @@ class ResponsePublisherProtocol(Protocol):
 
 
 class FakeResponsePublisher:
-    def __init__(self) -> None:
+    def __init__(self, next_message_id: int = 1000) -> None:
         self.new_slots_published: list[tuple[FormattedResult, int, int, InlineKeyboardMarkup | None]] = []
         self.edits: list[tuple[FormattedResult, int, int, InlineKeyboardMarkup | None]] = []
+        self._next_message_id = next_message_id
 
     async def publish_new_slot(
         self,
@@ -45,8 +46,11 @@ class FakeResponsePublisher:
         session: UserSession,
         reply_markup: InlineKeyboardMarkup | None = None,
         user_id: int = 0,
-    ) -> None:
+    ) -> int:
         self.new_slots_published.append((result, chat_id, reply_to_message_id, reply_markup))
+        msg_id = self._next_message_id
+        self._next_message_id += 1
+        return msg_id
 
     async def edit_slot(
         self,
@@ -78,7 +82,7 @@ class ResponsePublisher:
         session: UserSession,
         reply_markup: InlineKeyboardMarkup | None = None,
         user_id: int = 0,
-    ) -> None:
+    ) -> int:
         async with self._get_lock(user_id):
             active = session.get_active_slot_id()
             if active is not None:
@@ -91,6 +95,7 @@ class ResponsePublisher:
                 reply_markup=reply_markup,
             )
             session.set_active_slot_id(msg.message_id)
+            return msg.message_id
 
     async def edit_slot(
         self,

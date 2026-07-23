@@ -51,7 +51,7 @@ class MessageTrigger:
             action, anchor, language_pair, user_id=update.effective_user.id
         )
 
-        await self._publisher.publish_new_slot(
+        msg_id = await self._publisher.publish_new_slot(
             result=result,
             chat_id=update.effective_chat.id,
             reply_to_message_id=update.message.message_id,
@@ -59,3 +59,5 @@ class MessageTrigger:
             reply_markup=KEYBOARD,
             user_id=update.effective_user.id,
         )
+        if result.run_id:
+            session.store_run_id(msg_id, result.run_id)
