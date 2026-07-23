@@ -1,10 +1,11 @@
 """ActionRunner — executes the domain round-trip for any Action."""
 
 from bot.actions.verbs.base import Action, LanguagePair
-from bot.config import N_SUGGESTED_REPLIES
+from bot.config import HASH_TELEGRAM_USER_ID, N_SUGGESTED_REPLIES
 from bot.config.lang import LANGUAGE_NAMES
 from bot.gateway import AnchorMessage, LanguageRole
 from bot.llm_interface import LLMClient
+from bot.tracing import build_trace_metadata
 from bot.types import FormattedResult, Suggestion
 
 _MAX_PARSE_RETRIES = 3
@@ -22,15 +23,18 @@ class FakeActionRunner:
         self._run_id = run_id
         self.last_action: Action | None = None
         self.last_anchor: AnchorMessage | None = None
+        self.last_user_id: int = 0
 
     async def run(
         self,
         action: Action,
         anchor: AnchorMessage,
         language_pair: LanguagePair,
+        user_id: int = 0,
     ) -> FormattedResult:
         self.last_action = action
         self.last_anchor = anchor
+        self.last_user_id = user_id
         return FormattedResult(
             text=self._result,
             parse_mode=None,
@@ -49,6 +53,7 @@ class ActionRunner:
         action: Action,
         anchor: AnchorMessage,
         language_pair: LanguagePair,
+        user_id: int = 0,
     ) -> FormattedResult:
         base_name = LANGUAGE_NAMES[language_pair.base]
         target_name = LANGUAGE_NAMES[language_pair.target]
@@ -70,8 +75,17 @@ class ActionRunner:
             n=N_SUGGESTED_REPLIES,
         )
 
+        metadata = build_trace_metadata(
+            action_type=action.action_type,
+            base_language=language_pair.base,
+            target_language=language_pair.target,
+            detected_language=anchor.detected_language,
+            user_id=user_id,
+            hash_user_id_enabled=HASH_TELEGRAM_USER_ID,
+        )
+
         for attempt in range(_MAX_PARSE_RETRIES):
-            completion = await self._llm.complete(system_prompt, user_prompt)
+            completion = await self._llm.complete(system_prompt, user_prompt, metadata=metadata)
             try:
                 validated = action.parse(completion.text)
                 text = action.format(validated, language_pair)

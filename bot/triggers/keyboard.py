@@ -59,7 +59,9 @@ class KeyboardTrigger:
             language_role=role,
         )
 
-        result = await self._runner.run(action, anchor, language_pair)
+        result = await self._runner.run(
+            action, anchor, language_pair, user_id=query.from_user.id
+        )
 
         if result.suggestions:
             session.store_suggestions(msg_id, result.suggestions)

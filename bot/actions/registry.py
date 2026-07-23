@@ -41,6 +41,8 @@ class ActionRegistry:
                 prompt_template=_load("reply"),
             ),
         }
+        for key, action in self._actions.items():
+            action.action_type = key
 
     def get(self, action_type: str) -> Action:
         return self._actions[action_type]

@@ -16,6 +16,8 @@ class LanguagePair:
 
 
 class Action(ABC):
+    action_type: str = ""
+
     def __init__(self, localizer: Localizer, prompt_template: str) -> None:
         self._localizer = localizer
         self.prompt_template = prompt_template

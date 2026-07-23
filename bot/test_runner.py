@@ -11,6 +11,7 @@ from bot.gateway import AnchorMessage, LanguageRole
 from bot.llm_interface import FakeLLMClient, LLMCompletion
 from bot.localizer import Localizer
 from bot.runner import ActionRunner
+from bot.tracing import hash_user_id
 from bot.types import FormattedResult, Suggestion
 
 EN_FR = LanguagePair(base="en", target="fr")
@@ -143,6 +144,23 @@ class TestActionRunnerPlainText:
         result = await runner.run(action, anchor, EN_FR)
 
         assert result.run_id == "run-abc"
+
+    @pytest.mark.asyncio
+    async def test_forwards_action_type_and_user_id_as_trace_metadata(self):
+        llm = FakeLLMClient(response="Bonjour")
+        runner = ActionRunner(llm=llm, system_prompt_template=_SYSTEM_TEMPLATE)
+        action = _make_translate_action()
+        action.action_type = "translate"
+        anchor = AnchorMessage(
+            text="Hello", detected_language="en", language_role=LanguageRole.BASE
+        )
+
+        await runner.run(action, anchor, EN_FR, user_id=999)
+
+        assert llm.last_metadata["action_type"] == "translate"
+        assert llm.last_metadata["base_language"] == "en"
+        assert llm.last_metadata["target_language"] == "fr"
+        assert llm.last_metadata["telegram_user_id"] == hash_user_id(999)
 
 
 _REPLY_TEMPLATE = "Generate {n} replies to {text} in {target_language}."
