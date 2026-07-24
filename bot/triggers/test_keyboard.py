@@ -44,6 +44,23 @@ class TestKeyboardTriggerKeyboardLifecycle:
         assert slot_id == 77
 
     @pytest.mark.asyncio
+    async def test_stores_run_id_in_session_for_the_edited_slot(self):
+        runner = FakeActionRunner(result="formatted", run_id="run-xyz")
+        trigger, _, _ = _make_trigger(runner=runner)
+        update = make_callback_update(
+            callback_data=KeyboardActionType.ANALYZE,
+            reply_text="Bonjour",
+            message_id=77,
+            anchor_message_id=42,
+        )
+        context = make_context()
+
+        await trigger.handle(update, context)
+
+        session = UserSession.from_context(context)
+        assert session.get_run_id(77) == "run-xyz"
+
+    @pytest.mark.asyncio
     async def test_result_carries_keyboard_markup(self):
         from bot.keyboard import KEYBOARD
 

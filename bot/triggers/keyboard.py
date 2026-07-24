@@ -69,6 +69,9 @@ class KeyboardTrigger:
         else:
             reply_markup = KEYBOARD
 
+        if result.run_id:
+            session.store_run_id(msg_id, result.run_id)
+
         await self._publisher.edit_slot(
             result=result,
             chat_id=query.message.chat.id,
