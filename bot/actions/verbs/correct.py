@@ -3,15 +3,11 @@ from typing import Any
 
 from bot.actions.verbs.base import Action, LanguagePair, _escape
 from bot.config.messages import MsgNoCorrectionsNeeded
-from bot.localizer import Localizer
 
 _ANNOTATION_KEYS = {"original", "correction", "explanation"}
 
 
 class CorrectAction(Action):
-    def __init__(self, localizer: Localizer, prompt_template: str) -> None:
-        super().__init__(localizer, prompt_template)
-
     @property
     def parse_mode(self) -> str | None:
         return "HTML"

@@ -1,7 +1,6 @@
 import json
 
 from bot.actions.verbs.base import Action, LanguagePair
-from bot.localizer import Localizer
 from bot.types import Suggestion
 
 
@@ -10,9 +9,6 @@ def _escape(s: str) -> str:
 
 
 class RephraseAction(Action):
-    def __init__(self, localizer: Localizer, prompt_template: str) -> None:
-        super().__init__(localizer, prompt_template)
-
     @property
     def parse_mode(self) -> str | None:
         return "HTML"

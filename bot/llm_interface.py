@@ -55,31 +55,24 @@ class OpenAILLMClient:
         return LLMCompletion(text=response.output_text, run_id=None)
 
 
-class _CompletionState(TypedDict):
+class AgentState(TypedDict):
     system_prompt: str
     user_prompt: str
     output: str
 
 
 def _build_completion_graph(inner: LLMClient):
-    async def call_llm(state: _CompletionState) -> _CompletionState:
+    """Build a single-node, checkpointer-less graph that calls `inner` and stores its text as `output`."""
+
+    async def call_llm(state: AgentState) -> AgentState:
         completion = await inner.complete(state["system_prompt"], state["user_prompt"])
         return {**state, "output": completion.text}
 
-    graph = StateGraph(_CompletionState)
+    graph = StateGraph(AgentState)
     graph.add_node("call_llm", call_llm)
     graph.set_entry_point("call_llm")
     graph.set_finish_point("call_llm")
     return graph.compile()
-
-
-def _build_tags(metadata: dict[str, Any]) -> list[str]:
-    tags = []
-    if "action_type" in metadata:
-        tags.append(f"action:{metadata['action_type']}")
-    if "base_language" in metadata and "target_language" in metadata:
-        tags.append(f"pair:{metadata['base_language']}-{metadata['target_language']}")
-    return tags
 
 
 class LangGraphLLMClient:
@@ -103,7 +96,6 @@ class LangGraphLLMClient:
             config={
                 "run_id": run_id,
                 "run_name": "llm_complete",
-                "tags": _build_tags(metadata) if metadata else [],
                 "metadata": metadata or {},
             },
         )

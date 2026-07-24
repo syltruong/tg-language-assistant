@@ -13,11 +13,11 @@ _LOCALIZER = Localizer()
 
 class TestTranslateAction:
     def test_format_returns_result_unchanged(self):
-        action = TranslateAction(localizer=_LOCALIZER, prompt_template="")
+        action = TranslateAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.TRANSLATE)
         assert action.format("Bonjour", _LP) == "Bonjour"
 
     def test_parse_returns_raw_string(self):
-        action = TranslateAction(localizer=_LOCALIZER, prompt_template="")
+        action = TranslateAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.TRANSLATE)
         assert action.parse("Bonjour") == "Bonjour"
 
 
@@ -25,7 +25,7 @@ class TestAnalyzeAction:
     def test_format_renders_vocabulary_section(self):
         from bot.actions.verbs.analyze import AnalyzeAction
 
-        action = AnalyzeAction(localizer=_LOCALIZER, prompt_template="")
+        action = AnalyzeAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.ANALYZE)
         result = action.format(
             {
                 "vocabulary": [
@@ -45,7 +45,7 @@ class TestAnalyzeAction:
     def test_format_renders_grammar_section(self):
         from bot.actions.verbs.analyze import AnalyzeAction
 
-        action = AnalyzeAction(localizer=_LOCALIZER, prompt_template="")
+        action = AnalyzeAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.ANALYZE)
         result = action.format(
             {
                 "vocabulary": [],
@@ -65,13 +65,13 @@ class TestAnalyzeAction:
 
 class TestCorrectAction:
     def test_parse_mode_is_html(self):
-        action = CorrectAction(localizer=_LOCALIZER, prompt_template="")
+        action = CorrectAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.CORRECT)
         assert action.parse_mode == "HTML"
 
     def test_parse_returns_dict_for_valid_json(self):
         import json
 
-        action = CorrectAction(localizer=_LOCALIZER, prompt_template="")
+        action = CorrectAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.CORRECT)
         payload = {"corrected": "Je suis allée.", "annotations": [{"original": "allé", "correction": "allée", "explanation": "Gender agreement."}]}
         result = action.parse(json.dumps(payload))
         assert result == payload
@@ -79,7 +79,7 @@ class TestCorrectAction:
     def test_parse_raises_for_malformed_json(self):
         import pytest
 
-        action = CorrectAction(localizer=_LOCALIZER, prompt_template="")
+        action = CorrectAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.CORRECT)
         with pytest.raises(ValueError):
             action.parse("not json")
 
@@ -88,7 +88,7 @@ class TestCorrectAction:
 
         import pytest
 
-        action = CorrectAction(localizer=_LOCALIZER, prompt_template="")
+        action = CorrectAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.CORRECT)
         with pytest.raises(ValueError):
             action.parse(json.dumps({"annotations": []}))
 
@@ -97,7 +97,7 @@ class TestCorrectAction:
 
         import pytest
 
-        action = CorrectAction(localizer=_LOCALIZER, prompt_template="")
+        action = CorrectAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.CORRECT)
         with pytest.raises(ValueError):
             action.parse(json.dumps({"corrected": "Bien."}))
 
@@ -117,12 +117,12 @@ class TestCorrectAction:
 
         import pytest
 
-        action = CorrectAction(localizer=_LOCALIZER, prompt_template="")
+        action = CorrectAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.CORRECT)
         with pytest.raises(ValueError):
             action.parse(json.dumps({"corrected": "Bien.", "annotations": [{"original": "x", "correction": "y"}]}))
 
     def test_format_with_annotations_renders_corrected_and_diffs(self):
-        action = CorrectAction(localizer=_LOCALIZER, prompt_template="")
+        action = CorrectAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.CORRECT)
         data = {
             "corrected": "Je suis allée.",
             "annotations": [{"original": "allé", "correction": "allée", "explanation": "Gender agreement."}],
@@ -134,7 +134,7 @@ class TestCorrectAction:
         assert "<i>Gender agreement.</i>" in result
 
     def test_format_with_empty_annotations_renders_no_corrections_message(self):
-        action = CorrectAction(localizer=_LOCALIZER, prompt_template="")
+        action = CorrectAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.CORRECT)
         data = {"corrected": "Je suis allée.", "annotations": []}
         result = action.format(data, _LP)
         assert "No corrections needed." in result
@@ -142,7 +142,7 @@ class TestCorrectAction:
         assert "<b>No corrections needed.</b>" in result
 
     def test_format_html_escapes_user_content(self):
-        action = CorrectAction(localizer=_LOCALIZER, prompt_template="")
+        action = CorrectAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.CORRECT)
         data = {
             "corrected": "<b>safe</b>",
             "annotations": [{"original": "<x>", "correction": "&amp;", "explanation": "test>"}],
@@ -156,21 +156,21 @@ class TestCorrectAction:
 
 class TestAnalyzeActionParse:
     def test_parse_returns_dict_for_valid_json(self):
-        action = AnalyzeAction(localizer=_LOCALIZER, prompt_template="")
+        action = AnalyzeAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.ANALYZE)
         result = action.parse('{"vocabulary": [], "grammar": []}')
         assert result == {"vocabulary": [], "grammar": []}
 
     def test_parse_raises_for_malformed_json(self):
         import pytest
 
-        action = AnalyzeAction(localizer=_LOCALIZER, prompt_template="")
+        action = AnalyzeAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.ANALYZE)
         with pytest.raises(ValueError):
             action.parse("not json")
 
     def test_parse_raises_when_required_key_missing(self):
         import pytest
 
-        action = AnalyzeAction(localizer=_LOCALIZER, prompt_template="")
+        action = AnalyzeAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.ANALYZE)
         with pytest.raises(ValueError):
             action.parse('{"vocabulary": []}')
 
@@ -195,7 +195,7 @@ class TestRephraseAction:
         from bot.actions.verbs.rephrase import RephraseAction
         from bot.types import Suggestion
 
-        action = RephraseAction(localizer=_LOCALIZER, prompt_template="")
+        action = RephraseAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.REPHRASE)
         result = action.format(
             [
                 Suggestion(text="C'est super", note="casual"),
@@ -210,49 +210,49 @@ class TestRephraseAction:
     def test_format_renders_note_in_italics(self):
         from bot.types import Suggestion
 
-        action = RephraseAction(localizer=_LOCALIZER, prompt_template="")
+        action = RephraseAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.REPHRASE)
         result = action.format([Suggestion(text="Salut", note="informal")], _LP)
         assert "<i>(informal)</i>" in result
 
     def test_parse_returns_list_of_suggestions_for_valid_json(self):
         from bot.types import Suggestion
 
-        action = RephraseAction(localizer=_LOCALIZER, prompt_template="")
+        action = RephraseAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.REPHRASE)
         result = action.parse('[{"text": "Salut", "note": "casual"}]')
         assert result == [Suggestion(text="Salut", note="casual")]
 
     def test_parse_raises_for_malformed_json(self):
         import pytest
 
-        action = RephraseAction(localizer=_LOCALIZER, prompt_template="")
+        action = RephraseAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.REPHRASE)
         with pytest.raises(ValueError):
             action.parse("not json")
 
     def test_parse_raises_when_not_a_list(self):
         import pytest
 
-        action = RephraseAction(localizer=_LOCALIZER, prompt_template="")
+        action = RephraseAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.REPHRASE)
         with pytest.raises(ValueError):
             action.parse('{"text": "Salut"}')
 
     def test_parse_raises_when_list_is_empty(self):
         import pytest
 
-        action = RephraseAction(localizer=_LOCALIZER, prompt_template="")
+        action = RephraseAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.REPHRASE)
         with pytest.raises(ValueError):
             action.parse("[]")
 
     def test_parse_raises_when_text_field_is_blank(self):
         import pytest
 
-        action = RephraseAction(localizer=_LOCALIZER, prompt_template="")
+        action = RephraseAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.REPHRASE)
         with pytest.raises(ValueError):
             action.parse('[{"text": "", "note": "casual"}]')
 
     def test_parse_accepts_blank_note(self):
         from bot.types import Suggestion
 
-        action = RephraseAction(localizer=_LOCALIZER, prompt_template="")
+        action = RephraseAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.REPHRASE)
         result = action.parse('[{"text": "C\'est super", "note": ""}]')
         assert result == [Suggestion(text="C'est super", note="")]
 
@@ -262,7 +262,7 @@ class TestReplyAction:
         from bot.actions.verbs.reply import ReplyAction
         from bot.types import Suggestion
 
-        action = ReplyAction(localizer=_LOCALIZER, prompt_template="")
+        action = ReplyAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.REPLY)
         result = action.format(
             [
                 Suggestion(text="Bien sûr !", note="warm"),
@@ -276,49 +276,49 @@ class TestReplyAction:
     def test_format_renders_note_in_italics(self):
         from bot.types import Suggestion
 
-        action = ReplyAction(localizer=_LOCALIZER, prompt_template="")
+        action = ReplyAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.REPLY)
         result = action.format([Suggestion(text="Non.", note="direct")], _LP)
         assert "<i>(direct)</i>" in result
 
     def test_parse_returns_list_of_suggestions_for_valid_json(self):
         from bot.types import Suggestion
 
-        action = ReplyAction(localizer=_LOCALIZER, prompt_template="")
+        action = ReplyAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.REPLY)
         result = action.parse('[{"text": "Oui", "note": "warm"}]')
         assert result == [Suggestion(text="Oui", note="warm")]
 
     def test_parse_raises_for_malformed_json(self):
         import pytest
 
-        action = ReplyAction(localizer=_LOCALIZER, prompt_template="")
+        action = ReplyAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.REPLY)
         with pytest.raises(ValueError):
             action.parse("not json")
 
     def test_parse_raises_when_not_a_list(self):
         import pytest
 
-        action = ReplyAction(localizer=_LOCALIZER, prompt_template="")
+        action = ReplyAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.REPLY)
         with pytest.raises(ValueError):
             action.parse('{"reply": "Oui"}')
 
     def test_parse_raises_when_list_is_empty(self):
         import pytest
 
-        action = ReplyAction(localizer=_LOCALIZER, prompt_template="")
+        action = ReplyAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.REPLY)
         with pytest.raises(ValueError):
             action.parse("[]")
 
     def test_parse_raises_when_text_field_is_blank(self):
         import pytest
 
-        action = ReplyAction(localizer=_LOCALIZER, prompt_template="")
+        action = ReplyAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.REPLY)
         with pytest.raises(ValueError):
             action.parse('[{"text": "", "note": "warm"}]')
 
     def test_parse_raises_when_note_field_is_blank(self):
         import pytest
 
-        action = ReplyAction(localizer=_LOCALIZER, prompt_template="")
+        action = ReplyAction(localizer=_LOCALIZER, prompt_template="", action_type=ActionType.REPLY)
         with pytest.raises(ValueError):
             action.parse('[{"text": "Bien merci!", "note": ""}]')
 

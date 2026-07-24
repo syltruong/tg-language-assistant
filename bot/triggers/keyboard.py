@@ -60,7 +60,7 @@ class KeyboardTrigger:
         )
 
         result = await self._runner.run(
-            action, anchor, language_pair, user_id=query.from_user.id
+            action, anchor, language_pair, user_id=update.effective_user.id
         )
 
         if result.suggestions:
