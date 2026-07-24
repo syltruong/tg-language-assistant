@@ -9,6 +9,8 @@ dependencies = [
     "openai>=1.66.0",
     "lingua-language-detector>=2.1.0",
     "loguru>=0.7.3",
+    "langgraph>=1.2.9",
+    "langsmith>=0.10.10",
 ]
 
 [dependency-groups]
