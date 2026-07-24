@@ -4,19 +4,19 @@ from bot.feedback import FakeFeedbackClient, FeedbackClient, LangSmithFeedbackCl
 
 
 class TestFakeFeedbackClient:
-    async def test_records_run_id_score_and_comment(self):
+    async def test_records_run_id_is_good_and_comment(self):
         client = FakeFeedbackClient()
 
-        await client.record_feedback("run-abc", 1.0, comment="great")
+        await client.record_feedback("run-abc", True, comment="great")
 
-        assert client.recorded == [("run-abc", 1.0, "great")]
+        assert client.recorded == [("run-abc", True, "great")]
 
     async def test_comment_defaults_to_none(self):
         client = FakeFeedbackClient()
 
-        await client.record_feedback("run-abc", 0.0)
+        await client.record_feedback("run-abc", False)
 
-        assert client.recorded == [("run-abc", 0.0, None)]
+        assert client.recorded == [("run-abc", False, None)]
 
     async def test_satisfies_feedback_client_protocol(self):
         client = FakeFeedbackClient()
@@ -24,14 +24,14 @@ class TestFakeFeedbackClient:
 
 
 class TestLangSmithFeedbackClient:
-    async def test_calls_create_feedback_with_run_id_key_and_score(self):
+    async def test_calls_create_feedback_with_run_id_is_good_key_and_score(self):
         stub = MagicMock()
         client = LangSmithFeedbackClient(client=stub)
 
-        await client.record_feedback("run-abc", 1.0, comment="nice")
+        await client.record_feedback("run-abc", True, comment="nice")
 
         stub.create_feedback.assert_called_once_with(
-            run_id="run-abc", key="user_rating", score=1.0, comment="nice"
+            run_id="run-abc", key="is_good", score=True, comment="nice"
         )
 
     async def test_swallows_errors_from_an_unreachable_backend(self):
@@ -39,7 +39,7 @@ class TestLangSmithFeedbackClient:
         stub.create_feedback.side_effect = ConnectionError("unreachable")
         client = LangSmithFeedbackClient(client=stub)
 
-        await client.record_feedback("run-abc", 1.0)  # must not raise
+        await client.record_feedback("run-abc", True)  # must not raise
 
     async def test_satisfies_feedback_client_protocol(self):
         client = LangSmithFeedbackClient(client=MagicMock())

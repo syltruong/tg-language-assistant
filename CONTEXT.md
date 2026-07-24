@@ -123,15 +123,15 @@ Typed error classes that represent named failure modes in the domain (e.g., unau
 _Avoid_: exceptions, error codes
 
 ### Feedback / Rating
-The 👍/👎 the user taps on any Slot Message, recorded against that message's Trace via the Feedback Client. Shown as an extra row on every keyboard (both the standard Keyboard Action row and the suggestions keyboard). If Session is lost before the tap (no `run_id` stored for that message), the tap is acknowledged but no feedback is recorded — same no-op posture as a lost Suggestion selection.
-_Avoid_: thumbs up/down, vote, review
+The 👍/👎 the user taps on any Slot Message, recorded as a binary `is_good` value against that message's Trace via the Feedback Client. Shown as an extra row on every keyboard (both the standard Keyboard Action row and the suggestions keyboard). The row is removed from the message (via `edit_message_reply_markup`) once tapped — a rating can only be given once per message. If Session is lost before the tap (no `run_id` stored for that message), the tap is acknowledged but no feedback is recorded and the row is left in place — same no-op posture as a lost Suggestion selection.
+_Avoid_: thumbs up/down, vote, review, continuous score
 
 ### Feedback Client
-The module that records a Rating against a Trace's `run_id`. An explicit protocol (`record_feedback(run_id, score, comment=None)`), following the same Protocol + constructor-injection pattern as the LLM Interface. The concrete `LangSmithFeedbackClient` calls LangSmith's feedback API; a misconfigured or unreachable backend logs a warning and never breaks the Telegram response flow.
+The module that records a Rating against a Trace's `run_id`. An explicit protocol (`record_feedback(run_id, is_good, comment=None)`), following the same Protocol + constructor-injection pattern as the LLM Interface. Feedback is intentionally binary (`is_good: bool`), not a continuous score. The concrete `LangSmithFeedbackClient` calls LangSmith's feedback API with key `is_good`; a misconfigured or unreachable backend logs a warning and never breaks the Telegram response flow.
 _Avoid_: rating service, thumbs handler
 
 ### Annotation Queue
-A LangSmith-side queue of Traces the admin reviews by hand. Populated by a LangSmith Automation Rule (configured once in the LangSmith UI, not application code) that watches for Traces carrying `user_rating` Feedback. Deliberately not driven from application code, so the admin can retune what's worth reviewing (thumbs-down only, everything, a sample) without a deploy.
+A LangSmith-side queue of Traces the admin reviews by hand. Populated by a LangSmith Automation Rule (configured once in the LangSmith UI, not application code) that watches for Traces carrying `is_good` Feedback. Deliberately not driven from application code, so the admin can retune what's worth reviewing (only `is_good=false`, everything, a sample) without a deploy.
 _Avoid_: review queue, moderation queue
 
 ### Safety Guardrails

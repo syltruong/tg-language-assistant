@@ -10,18 +10,18 @@ logger = logging.getLogger(__name__)
 @runtime_checkable
 class FeedbackClient(Protocol):
     async def record_feedback(
-        self, run_id: str, score: float, comment: str | None = None
+        self, run_id: str, is_good: bool, comment: str | None = None
     ) -> None: ...
 
 
 class FakeFeedbackClient:
     def __init__(self) -> None:
-        self.recorded: list[tuple[str, float, str | None]] = []
+        self.recorded: list[tuple[str, bool, str | None]] = []
 
     async def record_feedback(
-        self, run_id: str, score: float, comment: str | None = None
+        self, run_id: str, is_good: bool, comment: str | None = None
     ) -> None:
-        self.recorded.append((run_id, score, comment))
+        self.recorded.append((run_id, is_good, comment))
 
 
 class LangSmithFeedbackClient:
@@ -31,14 +31,14 @@ class LangSmithFeedbackClient:
         self._client = client or Client()
 
     async def record_feedback(
-        self, run_id: str, score: float, comment: str | None = None
+        self, run_id: str, is_good: bool, comment: str | None = None
     ) -> None:
         try:
             await asyncio.to_thread(
                 self._client.create_feedback,
                 run_id=run_id,
-                key="user_rating",
-                score=score,
+                key="is_good",
+                score=is_good,
                 comment=comment,
             )
         except Exception:

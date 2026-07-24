@@ -1,4 +1,10 @@
-from bot.keyboard import KEYBOARD, RATE_DOWN, RATE_UP, build_suggestions_keyboard
+from bot.keyboard import (
+    KEYBOARD,
+    RATE_DOWN,
+    RATE_UP,
+    build_suggestions_keyboard,
+    strip_rating_row,
+)
 from bot.types import Suggestion
 
 _SUGGESTIONS = [
@@ -16,6 +22,17 @@ class TestRatingRow:
         kb = build_suggestions_keyboard(_SUGGESTIONS)
         last_row = kb.inline_keyboard[-1]
         assert [btn.callback_data for btn in last_row] == [RATE_UP, RATE_DOWN]
+
+
+class TestStripRatingRow:
+    def test_removes_the_last_row(self):
+        stripped = strip_rating_row(KEYBOARD)
+        assert stripped.inline_keyboard == KEYBOARD.inline_keyboard[:-1]
+
+    def test_removes_the_rating_row_from_a_suggestions_keyboard(self):
+        kb = build_suggestions_keyboard(_SUGGESTIONS)
+        stripped = strip_rating_row(kb)
+        assert stripped.inline_keyboard == kb.inline_keyboard[:-1]
 
 
 class TestBuildSuggestionsKeyboard:

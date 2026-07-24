@@ -53,9 +53,9 @@ LANGSMITH_API_KEY=your-langsmith-api-key-here
 LANGSMITH_PROJECT=tg-language-assistant
 ```
 
-Users can rate any bot response with the 👍/👎 buttons; the rating is recorded as LangSmith feedback (`user_rating`) against that response's trace. Telegram user IDs are hashed before being sent to LangSmith by default (`HASH_TELEGRAM_USER_ID=true`).
+Users can rate any bot response once with the 👍/👎 buttons (the row disappears from that message after tapping); the rating is recorded as binary LangSmith feedback (`is_good`, `true`/`false`) against that response's trace. Telegram user IDs are hashed before being sent to LangSmith by default (`HASH_TELEGRAM_USER_ID=true`).
 
-To have rated traces reach an admin-reviewed Annotation Queue, configure a LangSmith Automation Rule once in the LangSmith UI (Project → Automations): filter on `feedback_key == "user_rating"`, action "Add to Annotation Queue". This is intentionally not application code — it lets the admin retune what's worth reviewing (thumbs-down only, everything, a sample) without a deploy.
+To have rated traces reach an admin-reviewed Annotation Queue, configure a LangSmith Automation Rule once in the LangSmith UI (Project → Automations): filter on `feedback_key == "is_good"`, action "Add to Annotation Queue". This is intentionally not application code — it lets the admin retune what's worth reviewing (only `is_good=false`, everything, a sample) without a deploy.
 
 ## Deploying
 

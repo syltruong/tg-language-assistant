@@ -25,6 +25,11 @@ def _rating_row() -> list[InlineKeyboardButton]:
     ]
 
 
+def strip_rating_row(markup: InlineKeyboardMarkup) -> InlineKeyboardMarkup:
+    """Return a copy of markup with its last row (always the rating row) removed."""
+    return InlineKeyboardMarkup(list(markup.inline_keyboard[:-1]))
+
+
 def build_language_keyboard(languages: dict) -> InlineKeyboardMarkup:
     from bot.config.lang import LANGUAGE_DISPLAY_NAMES, LANGUAGE_FLAGS
     return InlineKeyboardMarkup(

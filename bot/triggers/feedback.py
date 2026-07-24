@@ -4,10 +4,10 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from bot.feedback import FeedbackClient
-from bot.keyboard import RATE_DOWN, RATE_UP
+from bot.keyboard import RATE_DOWN, RATE_UP, strip_rating_row
 from bot.session import UserSession
 
-_SCORES = {RATE_UP: 1.0, RATE_DOWN: 0.0}
+_IS_GOOD = {RATE_UP: True, RATE_DOWN: False}
 
 
 class FeedbackTrigger:
@@ -24,10 +24,13 @@ class FeedbackTrigger:
             await query.answer("Feedback unavailable for this message.")
             return
 
-        score = _SCORES.get(query.data)
-        if score is None:
+        is_good = _IS_GOOD.get(query.data)
+        if is_good is None:
             await query.answer()
             return
 
-        await self._feedback_client.record_feedback(run_id, score)
+        await self._feedback_client.record_feedback(run_id, is_good)
+        await query.edit_message_reply_markup(
+            reply_markup=strip_rating_row(query.message.reply_markup)
+        )
         await query.answer("Thanks for your feedback!")
