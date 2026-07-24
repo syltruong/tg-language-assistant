@@ -38,7 +38,7 @@ class LangSmithFeedbackClient:
                 self._client.create_feedback,
                 run_id=run_id,
                 key="is_good",
-                value=is_good,
+                score=is_good,
                 comment=comment,
             )
         except Exception:
