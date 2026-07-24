@@ -2,6 +2,7 @@
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
+from bot.config.messages import MsgRateThisResponse, t
 from bot.types import KeyboardActionType, Suggestion
 
 BUTTON_TITLES: dict[KeyboardActionType, str] = {
@@ -22,7 +23,7 @@ RATE_LABEL = f"{RATE_PREFIX}label"
 def _rating_rows() -> list[list[InlineKeyboardButton]]:
     """A label row followed by the thumbs row, visually separating rating from actions."""
     return [
-        [InlineKeyboardButton("Rate this response:", callback_data=RATE_LABEL)],
+        [InlineKeyboardButton(t(MsgRateThisResponse), callback_data=RATE_LABEL)],
         [
             InlineKeyboardButton("👍", callback_data=RATE_UP),
             InlineKeyboardButton("👎", callback_data=RATE_DOWN),

@@ -1,3 +1,4 @@
+from bot.config.messages import MsgRateThisResponse, t
 from bot.keyboard import (
     KEYBOARD,
     RATE_DOWN,
@@ -32,6 +33,10 @@ class TestRatingRow:
         kb = build_suggestions_keyboard(_SUGGESTIONS)
         label_row = kb.inline_keyboard[-2]
         assert [btn.callback_data for btn in label_row] == [RATE_LABEL]
+
+    def test_label_row_text_comes_from_the_message_catalog(self):
+        label_row = KEYBOARD.inline_keyboard[-2]
+        assert label_row[0].text == t(MsgRateThisResponse)
 
 
 class TestStripRatingRows:
