@@ -67,6 +67,9 @@ class FakeResponsePublisher:
 class ResponsePublisher:
     def __init__(self, bot: Bot) -> None:
         self._bot = bot
+        # Never evicted — grows one entry per distinct user_id for the life of
+        # the process. Fine at current scale; needs TTL/LRU eviction once the
+        # user base is large enough for this to matter. See TODO.
         self._locks: dict[int, asyncio.Lock] = {}
 
     def _get_lock(self, user_id: int) -> asyncio.Lock:

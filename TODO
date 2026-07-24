@@ -10,3 +10,4 @@
 - [ ] onboarding process for language pairs (consider implementing as a Claude skill)
 - [ ] Add telemetry
 - [ ] Action.format() should return FormattedResult directly (text + parse_mode together) — removes parse_mode as a separate property and simplifies the runner
+- [ ] ResponsePublisher._locks grows one entry per distinct user_id, never evicted — add TTL/LRU eviction once the user base is large enough for this to matter
