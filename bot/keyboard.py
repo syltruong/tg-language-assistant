@@ -16,18 +16,23 @@ LANG_TARGET_PREFIX = "lang_target:"
 RATE_PREFIX = "rate:"
 RATE_UP = f"{RATE_PREFIX}up"
 RATE_DOWN = f"{RATE_PREFIX}down"
+RATE_LABEL = f"{RATE_PREFIX}label"
 
 
-def _rating_row() -> list[InlineKeyboardButton]:
+def _rating_rows() -> list[list[InlineKeyboardButton]]:
+    """A label row followed by the thumbs row, visually separating rating from actions."""
     return [
-        InlineKeyboardButton("👍", callback_data=RATE_UP),
-        InlineKeyboardButton("👎", callback_data=RATE_DOWN),
+        [InlineKeyboardButton("Rate this response:", callback_data=RATE_LABEL)],
+        [
+            InlineKeyboardButton("👍", callback_data=RATE_UP),
+            InlineKeyboardButton("👎", callback_data=RATE_DOWN),
+        ],
     ]
 
 
-def strip_rating_row(markup: InlineKeyboardMarkup) -> InlineKeyboardMarkup:
-    """Return a copy of markup with its last row (always the rating row) removed."""
-    return InlineKeyboardMarkup(list(markup.inline_keyboard[:-1]))
+def strip_rating_rows(markup: InlineKeyboardMarkup) -> InlineKeyboardMarkup:
+    """Return a copy of markup with its last two rows (the rating label + thumbs rows) removed."""
+    return InlineKeyboardMarkup(list(markup.inline_keyboard[:-2]))
 
 
 def build_language_keyboard(languages: dict) -> InlineKeyboardMarkup:
@@ -49,7 +54,7 @@ def build_suggestions_keyboard(suggestions: list[Suggestion]) -> InlineKeyboardM
             [InlineKeyboardButton(f"{i + 1} · {s.note}", callback_data=f"{SELECT_PREFIX}{i}")]
             for i, s in enumerate(suggestions)
         ]
-        + [_rating_row()]
+        + _rating_rows()
     )
 
 
@@ -75,6 +80,6 @@ KEYBOARD = InlineKeyboardMarkup(
                 callback_data=KeyboardActionType.REPLY,
             ),
         ],
-        _rating_row(),
+        *_rating_rows(),
     ]
 )

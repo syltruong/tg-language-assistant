@@ -4,7 +4,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from bot.feedback import FeedbackClient
-from bot.keyboard import RATE_DOWN, RATE_UP, strip_rating_row
+from bot.keyboard import RATE_DOWN, RATE_UP, strip_rating_rows
 from bot.session import UserSession
 
 _IS_GOOD = {RATE_UP: True, RATE_DOWN: False}
@@ -31,6 +31,6 @@ class FeedbackTrigger:
 
         await self._feedback_client.record_feedback(run_id, is_good)
         await query.edit_message_reply_markup(
-            reply_markup=strip_rating_row(query.message.reply_markup)
+            reply_markup=strip_rating_rows(query.message.reply_markup)
         )
         await query.answer("Thanks for your feedback!")

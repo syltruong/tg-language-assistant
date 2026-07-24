@@ -123,7 +123,7 @@ Typed error classes that represent named failure modes in the domain (e.g., unau
 _Avoid_: exceptions, error codes
 
 ### Feedback / Rating
-The 👍/👎 the user taps on any Slot Message, recorded as a binary `is_good` value against that message's Trace via the Feedback Client. Shown as an extra row on every keyboard (both the standard Keyboard Action row and the suggestions keyboard). The row is removed from the message (via `edit_message_reply_markup`) once tapped — a rating can only be given once per message. If Session is lost before the tap (no `run_id` stored for that message), the tap is acknowledged but no feedback is recorded and the row is left in place — same no-op posture as a lost Suggestion selection.
+The 👍/👎 the user taps on any Slot Message, recorded as a binary `is_good` value against that message's Trace via the Feedback Client. Shown as a labeled row ("Rate this response:") followed by the thumbs row, appended to every keyboard (both the standard Keyboard Action row and the suggestions keyboard) — the label visually separates rating from the action buttons above it. Both rows are removed from the message (via `edit_message_reply_markup`) once tapped — a rating can only be given once per message. The label row itself is tappable but a no-op (it still needs a callback answer to clear Telegram's loading spinner). If Session is lost before the tap (no `run_id` stored for that message), the tap is acknowledged but no feedback is recorded and the rows are left in place — same no-op posture as a lost Suggestion selection.
 _Avoid_: thumbs up/down, vote, review, continuous score
 
 ### Feedback Client
