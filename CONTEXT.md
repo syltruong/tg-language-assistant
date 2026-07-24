@@ -64,7 +64,7 @@ _Avoid_: reply suggestion, rephrasing option, variant
 The single inline keyboard currently accepting input. It lives on the slot message for the current Conversation Turn and stays there throughout the turn — it is never transferred to a new message. There is no Back button; re-entry to a previous state is done by re-sending the anchor message.
 
 ### Session
-Per-user in-memory state managed by Telegram's `context.user_data`. Tracks language pair, message history, detected actions, and active message IDs. Currently not persisted across bot restarts.
+Per-user in-memory state managed by Telegram's `context.user_data`. Tracks language pair, message history, detected actions, active message IDs, and a per-message `run_id` correlating a Slot Message back to the Trace that produced it (see Trace). Currently not persisted across bot restarts.
 
 ### Vocabulary List
 A per-user persistent collection of vocabulary entries built two ways: **passively** (words/phrases automatically extracted from Vocabulary Hint and Analyze actions) and **actively** (user taps the Save button in the inline keyboard, which saves the anchor message and its translation as an entry). Passive and active entries are distinguished in the list. Accessible via `/history`. Active entries are surfaced separately as "Favourites."
@@ -115,12 +115,24 @@ _Avoid_: span, LLM call log
 Validation applied to LLM responses before delivering them to the user. Scoped to **structural validation only**: retry if the response is malformed JSON or missing required fields. Quality scoring (using a second LLM call to judge the first) is out of scope — translation quality issues are addressed through prompt improvement, not a judge layer. Only applies to `structured_json` Actions — `plain_text` Actions bypass validation.
 
 ### Localizer
-The module that translates UI strings (non-LLM text) into the user's base language. Takes a message key and a base language; returns the localized string. Used by the Message Gateway (error messages), the Keyboard Trigger (button labels), and any module that sends non-LLM text to the user. Does not know about LLM output — only about static UI strings.
-_Avoid_: message catalog, t(), translations
+The module that translates UI strings (non-LLM text) into the user's base language. Takes a message key and a base language; returns the localized string. Backed by the catalog in `bot/config/messages.py` (`MsgKey` subclasses and exception classes as keys) — this is the single source of truth for every user-facing string the application itself writes (button labels, instructions, prompts, error messages). No module should hardcode UI text inline; add a new `MsgKey` and catalog entry instead, even for English-only strings. Used via the injected `Localizer.t()` where a per-request locale is available (Message Gateway error messages, trigger-sent text), or the catalog's own module-level `t()` where it isn't yet (e.g. `bot/keyboard.py`'s module-level keyboard constants, built once at import time — these currently always resolve to `DEFAULT_LOCALE`, a known gap shared with the pre-existing `BUTTON_TITLES` action-button labels, not yet per-user localized). Does not know about LLM output — only about static UI strings.
+_Avoid_: message catalog, t(), translations, hardcoded button text
 
 ### Domain Errors
 Typed error classes that represent named failure modes in the domain (e.g., unauthorized user, missing message text, message too long, unsupported language). Defined in a shared module with no dependencies on other bot modules — both the module that raises an error and the Localizer that maps it to a UI string import from the same place. No error type is defined in the module that raises it.
 _Avoid_: exceptions, error codes
+
+### Feedback / Rating
+The 👍/👎 the user taps on any Slot Message, recorded as a binary `is_good` value against that message's Trace via the Feedback Client. Shown as a labeled row ("Rate this response:") followed by the thumbs row, appended to every keyboard (both the standard Keyboard Action row and the suggestions keyboard) — the label visually separates rating from the action buttons above it. Both rows are removed from the message (via `edit_message_reply_markup`) once tapped — a rating can only be given once per message. The label row itself is tappable but a no-op (it still needs a callback answer to clear Telegram's loading spinner). If Session is lost before the tap (no `run_id` stored for that message), the tap is acknowledged but no feedback is recorded and the rows are left in place — same no-op posture as a lost Suggestion selection.
+_Avoid_: thumbs up/down, vote, review, continuous score
+
+### Feedback Client
+The module that records a Rating against a Trace's `run_id`. An explicit protocol (`record_feedback(run_id, is_good, comment=None)`), following the same Protocol + constructor-injection pattern as the LLM Interface. Feedback is intentionally binary (`is_good: bool`), not a continuous score. The concrete `LangSmithFeedbackClient` calls LangSmith's feedback API with key `is_good`; a misconfigured or unreachable backend logs a warning and never breaks the Telegram response flow.
+_Avoid_: rating service, thumbs handler
+
+### Annotation Queue
+A LangSmith-side queue of Traces the admin reviews by hand. Populated by a LangSmith Automation Rule (configured once in the LangSmith UI, not application code) that watches for Traces carrying `is_good` Feedback. Deliberately not driven from application code, so the admin can retune what's worth reviewing (only `is_good=false`, everything, a sample) without a deploy.
+_Avoid_: review queue, moderation queue
 
 ### Safety Guardrails
 Deferred until public launch. Until then, `ALLOWED_USERS` is the sole access control mechanism. When rate limiting is introduced, it must be designed tier-aware from the start (to support future subscription tiers). Subscription management is a separate workstream and does not belong to the language learning feature roadmap.

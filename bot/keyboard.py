@@ -2,6 +2,7 @@
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
+from bot.config.messages import MsgRateThisResponse, t
 from bot.types import KeyboardActionType, Suggestion
 
 BUTTON_TITLES: dict[KeyboardActionType, str] = {
@@ -13,6 +14,26 @@ BUTTON_TITLES: dict[KeyboardActionType, str] = {
 
 SELECT_PREFIX = "select:"
 LANG_TARGET_PREFIX = "lang_target:"
+RATE_PREFIX = "rate:"
+RATE_UP = f"{RATE_PREFIX}up"
+RATE_DOWN = f"{RATE_PREFIX}down"
+RATE_LABEL = f"{RATE_PREFIX}label"
+
+
+def _rating_rows() -> list[list[InlineKeyboardButton]]:
+    """A label row followed by the thumbs row, visually separating rating from actions."""
+    return [
+        [InlineKeyboardButton(t(MsgRateThisResponse), callback_data=RATE_LABEL)],
+        [
+            InlineKeyboardButton("👍", callback_data=RATE_UP),
+            InlineKeyboardButton("👎", callback_data=RATE_DOWN),
+        ],
+    ]
+
+
+def strip_rating_rows(markup: InlineKeyboardMarkup) -> InlineKeyboardMarkup:
+    """Return a copy of markup with its last two rows (the rating label + thumbs rows) removed."""
+    return InlineKeyboardMarkup(list(markup.inline_keyboard[:-2]))
 
 
 def build_language_keyboard(languages: dict) -> InlineKeyboardMarkup:
@@ -34,6 +55,7 @@ def build_suggestions_keyboard(suggestions: list[Suggestion]) -> InlineKeyboardM
             [InlineKeyboardButton(f"{i + 1} · {s.note}", callback_data=f"{SELECT_PREFIX}{i}")]
             for i, s in enumerate(suggestions)
         ]
+        + _rating_rows()
     )
 
 
@@ -59,5 +81,6 @@ KEYBOARD = InlineKeyboardMarkup(
                 callback_data=KeyboardActionType.REPLY,
             ),
         ],
+        *_rating_rows(),
     ]
 )

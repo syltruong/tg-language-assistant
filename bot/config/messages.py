@@ -87,6 +87,10 @@ class MsgLanguageSelected(MsgKey):
     pass
 
 
+class MsgRateThisResponse(MsgKey):
+    pass
+
+
 # ── Catalogs ─────────────────────────────────────────────────────────
 
 
@@ -121,6 +125,7 @@ CATALOGS: dict[str, dict[type, str]] = {
         MsgNoCorrectionsNeeded: "No corrections needed.",
         MsgChooseLanguage: "Which language would you like to learn?",
         MsgLanguageSelected: "You're learning {language}. Send me a message to get started.",
+        MsgRateThisResponse: "Rate this response:",
     },
     # "fr": {
     #     TextTooLongError: "Le message est trop long. ...",

@@ -147,7 +147,7 @@ class TestKeyboardTriggerReplyFlow:
 
         _, _, _, reply_markup = publisher.edits[0]
         assert reply_markup is not KEYBOARD
-        assert len(reply_markup.inline_keyboard) == 2
+        assert len(reply_markup.inline_keyboard) == 4
         assert reply_markup.inline_keyboard[0][0].callback_data == "select:0"
 
 
@@ -186,7 +186,7 @@ class TestKeyboardTriggerRephraseFlow:
 
         _, _, _, reply_markup = publisher.edits[0]
         assert reply_markup is not KEYBOARD
-        assert len(reply_markup.inline_keyboard) == 2
+        assert len(reply_markup.inline_keyboard) == 4
         assert reply_markup.inline_keyboard[0][0].callback_data == "select:0"
 
 
