@@ -15,7 +15,7 @@ from bot.auth import AllowlistAuthorizer
 from bot.config import ALLOWED_USERS, MODEL_NAME, OPENAI_API_KEY, TOKEN
 from bot.gateway import LinguaLanguageDetector, MessageGateway
 from bot.keyboard import LANG_TARGET_PREFIX
-from bot.llm_interface import OpenAILLMClient
+from bot.llm_interface import LangGraphLLMClient, OpenAILLMClient
 from bot.localizer import Localizer
 from bot.publisher import ResponsePublisher
 from bot.runner import ActionRunner
@@ -57,7 +57,7 @@ def main() -> None:
     language_detector = LinguaLanguageDetector()
     gateway = MessageGateway(authorizer=authorizer, language_detector=language_detector)
     registry = ActionRegistry(localizer=localizer)
-    llm = OpenAILLMClient(api_key=OPENAI_API_KEY, model=MODEL_NAME)
+    llm = LangGraphLLMClient(inner=OpenAILLMClient(api_key=OPENAI_API_KEY, model=MODEL_NAME))
     runner = ActionRunner(llm=llm, system_prompt_template=_load_system_prompt())
     publisher = ResponsePublisher(bot=app.bot)
 

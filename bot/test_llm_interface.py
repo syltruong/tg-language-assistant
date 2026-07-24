@@ -1,4 +1,9 @@
-from bot.llm_interface import FakeLLMClient, LLMClient, OpenAILLMClient
+from bot.llm_interface import (
+    FakeLLMClient,
+    LangGraphLLMClient,
+    LLMClient,
+    OpenAILLMClient,
+)
 
 
 class TestFakeLLMClient:
@@ -27,3 +32,19 @@ class TestOpenAILLMClientProtocol:
     def test_satisfies_llm_client_protocol(self):
         client = OpenAILLMClient(api_key="test-key", model="gpt-4o-mini")
         assert isinstance(client, LLMClient)
+
+
+class TestLangGraphLLMClient:
+    async def test_passes_through_the_inner_clients_text(self):
+        client = LangGraphLLMClient(inner=FakeLLMClient(response="bonjour"))
+        result = await client.complete("sys", "user")
+        assert result.text == "bonjour"
+
+    async def test_satisfies_llm_client_protocol(self):
+        client = LangGraphLLMClient(inner=FakeLLMClient())
+        assert isinstance(client, LLMClient)
+
+    async def test_generates_a_run_id_without_any_langsmith_credentials(self):
+        client = LangGraphLLMClient(inner=FakeLLMClient(response="bonjour"))
+        result = await client.complete("sys", "user")
+        assert result.run_id is not None

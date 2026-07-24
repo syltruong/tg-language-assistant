@@ -23,22 +23,27 @@ class ActionRegistry:
             ActionType.TRANSLATE: TranslateAction(
                 localizer=localizer,
                 prompt_template=_load("translate"),
+                action_type=ActionType.TRANSLATE,
             ),
             ActionType.ANALYZE: AnalyzeAction(
                 localizer=localizer,
                 prompt_template=_load("analyze"),
+                action_type=ActionType.ANALYZE,
             ),
             ActionType.CORRECT: CorrectAction(
                 localizer=localizer,
                 prompt_template=_load("correct"),
+                action_type=ActionType.CORRECT,
             ),
             ActionType.REPHRASE: RephraseAction(
                 localizer=localizer,
                 prompt_template=_load("rephrase"),
+                action_type=ActionType.REPHRASE,
             ),
             ActionType.REPLY: ReplyAction(
                 localizer=localizer,
                 prompt_template=_load("reply"),
+                action_type=ActionType.REPLY,
             ),
         }
 

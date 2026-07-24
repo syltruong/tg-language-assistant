@@ -1,7 +1,9 @@
 import logging
+import uuid
 from dataclasses import dataclass
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Protocol, TypedDict, runtime_checkable
 
+from langgraph.graph import StateGraph
 from openai import AsyncOpenAI
 
 logger = logging.getLogger(__name__)
@@ -51,3 +53,50 @@ class OpenAILLMClient:
             input=messages,
         )
         return LLMCompletion(text=response.output_text, run_id=None)
+
+
+class AgentState(TypedDict):
+    system_prompt: str
+    user_prompt: str
+    output: str
+
+
+def _build_completion_graph(inner: LLMClient):
+    """Build a single-node, checkpointer-less graph that calls `inner` and stores its text as `output`."""
+
+    async def call_llm(state: AgentState) -> AgentState:
+        completion = await inner.complete(state["system_prompt"], state["user_prompt"])
+        return {**state, "output": completion.text}
+
+    graph = StateGraph(AgentState)
+    graph.add_node("call_llm", call_llm)
+    graph.set_entry_point("call_llm")
+    graph.set_finish_point("call_llm")
+    return graph.compile()
+
+
+class LangGraphLLMClient:
+    """Traces LLM calls through a single-node, checkpointer-less LangGraph graph.
+
+    No multi-turn state is kept — this is purely the tracing seam for
+    LangSmith. Wraps any LLMClient so the underlying model call stays
+    swappable and testable via FakeLLMClient.
+    """
+
+    def __init__(self, inner: LLMClient) -> None:
+        self._inner = inner
+        self._graph = _build_completion_graph(inner)
+
+    async def complete(
+        self, system_prompt: str, user_prompt: str, *, metadata: dict[str, Any] | None = None
+    ) -> LLMCompletion:
+        run_id = uuid.uuid4()
+        result = await self._graph.ainvoke(
+            {"system_prompt": system_prompt, "user_prompt": user_prompt, "output": ""},
+            config={
+                "run_id": run_id,
+                "run_name": "llm_complete",
+                "metadata": metadata or {},
+            },
+        )
+        return LLMCompletion(text=result["output"], run_id=str(run_id))

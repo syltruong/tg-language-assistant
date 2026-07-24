@@ -10,8 +10,8 @@ from bot.actions.verbs.translate import TranslateAction
 from bot.gateway import AnchorMessage, LanguageRole
 from bot.llm_interface import FakeLLMClient, LLMCompletion
 from bot.localizer import Localizer
-from bot.runner import ActionRunner
-from bot.types import FormattedResult, Suggestion
+from bot.runner import ActionRunner, _hash_user_id
+from bot.types import ActionType, FormattedResult, Suggestion
 
 EN_FR = LanguagePair(base="en", target="fr")
 _TRANSLATE_TEMPLATE = "Translate {text} from {from_language} to {to_language}."
@@ -51,6 +51,7 @@ def _make_translate_action() -> TranslateAction:
     return TranslateAction(
         localizer=Localizer(),
         prompt_template=_TRANSLATE_TEMPLATE,
+        action_type=ActionType.TRANSLATE,
     )
 
 
@@ -61,6 +62,7 @@ def _make_analyze_action() -> AnalyzeAction:
     return AnalyzeAction(
         localizer=Localizer(),
         prompt_template=_ANALYZE_TEMPLATE,
+        action_type=ActionType.ANALYZE,
     )
 
 
@@ -83,7 +85,7 @@ class TestActionRunnerStructuredJson:
             text="Bonjour", detected_language="fr", language_role=LanguageRole.TARGET
         )
 
-        result = await runner.run(action, anchor, EN_FR)
+        result = await runner.run(action, anchor, EN_FR, user_id=0)
 
         assert "bonjour" in result.text
 
@@ -96,7 +98,7 @@ class TestActionRunnerStructuredJson:
         )
 
         with pytest.raises(ValueError):
-            await runner.run(action, anchor, EN_FR)
+            await runner.run(action, anchor, EN_FR, user_id=0)
 
     @pytest.mark.asyncio
     async def test_structured_json_action_returns_formatted_result(self):
@@ -106,7 +108,7 @@ class TestActionRunnerStructuredJson:
             text="Bonjour", detected_language="fr", language_role=LanguageRole.TARGET
         )
 
-        result = await runner.run(action, anchor, EN_FR)
+        result = await runner.run(action, anchor, EN_FR, user_id=0)
 
         assert isinstance(result, FormattedResult)
         assert "bonjour" in result.text
@@ -123,7 +125,7 @@ class TestActionRunnerPlainText:
             text="Hello", detected_language="en", language_role=LanguageRole.BASE
         )
 
-        result = await runner.run(action, anchor, EN_FR)
+        result = await runner.run(action, anchor, EN_FR, user_id=0)
 
         assert isinstance(result, FormattedResult)
         assert result.text == "Bonjour"
@@ -140,9 +142,25 @@ class TestActionRunnerPlainText:
             text="Hello", detected_language="en", language_role=LanguageRole.BASE
         )
 
-        result = await runner.run(action, anchor, EN_FR)
+        result = await runner.run(action, anchor, EN_FR, user_id=0)
 
         assert result.run_id == "run-abc"
+
+    @pytest.mark.asyncio
+    async def test_forwards_action_type_and_user_id_as_trace_metadata(self):
+        llm = FakeLLMClient(response="Bonjour")
+        runner = ActionRunner(llm=llm, system_prompt_template=_SYSTEM_TEMPLATE)
+        action = _make_translate_action()
+        anchor = AnchorMessage(
+            text="Hello", detected_language="en", language_role=LanguageRole.BASE
+        )
+
+        await runner.run(action, anchor, EN_FR, user_id=999)
+
+        assert llm.last_metadata["action_type"] == ActionType.TRANSLATE
+        assert llm.last_metadata["base_language"] == "en"
+        assert llm.last_metadata["target_language"] == "fr"
+        assert llm.last_metadata["telegram_user_id"] == _hash_user_id(999)
 
 
 _REPLY_TEMPLATE = "Generate {n} replies to {text} in {target_language}."
@@ -159,11 +177,15 @@ _VALID_REPHRASE_JSON = json.dumps([
 
 
 def _make_reply_action() -> ReplyAction:
-    return ReplyAction(localizer=Localizer(), prompt_template=_REPLY_TEMPLATE)
+    return ReplyAction(
+        localizer=Localizer(), prompt_template=_REPLY_TEMPLATE, action_type=ActionType.REPLY
+    )
 
 
 def _make_rephrase_action() -> RephraseAction:
-    return RephraseAction(localizer=Localizer(), prompt_template=_REPHRASE_TEMPLATE)
+    return RephraseAction(
+        localizer=Localizer(), prompt_template=_REPHRASE_TEMPLATE, action_type=ActionType.REPHRASE
+    )
 
 
 class TestActionRunnerReplyAction:
@@ -175,7 +197,7 @@ class TestActionRunnerReplyAction:
             text="Ça va?", detected_language="fr", language_role=LanguageRole.TARGET
         )
 
-        result = await runner.run(action, anchor, EN_FR)
+        result = await runner.run(action, anchor, EN_FR, user_id=0)
 
         assert result.suggestions == [
             Suggestion(text="Bien merci!", note="warm"),
@@ -190,7 +212,7 @@ class TestActionRunnerReplyAction:
             text="Hello", detected_language="en", language_role=LanguageRole.BASE
         )
 
-        result = await runner.run(action, anchor, EN_FR)
+        result = await runner.run(action, anchor, EN_FR, user_id=0)
 
         assert result.suggestions is None
 
@@ -204,7 +226,7 @@ class TestActionRunnerRephraseAction:
             text="C'est bon", detected_language="fr", language_role=LanguageRole.TARGET
         )
 
-        result = await runner.run(action, anchor, EN_FR)
+        result = await runner.run(action, anchor, EN_FR, user_id=0)
 
         assert result.suggestions == [
             Suggestion(text="C'est super!", note="casual"),

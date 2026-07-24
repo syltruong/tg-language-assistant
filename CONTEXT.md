@@ -96,7 +96,7 @@ The module that constructs and exposes all known Action objects at startup. Wire
 _Avoid_: prompt manager, action factory
 
 ### Action Runner
-The module that executes the domain round-trip for any Action: injects the Language Pair into the prompt template, calls the LLM Interface, runs Output Validation, calls the Action's formatter with the validated result and Language Pair, and returns a `FormattedResult` carrying the text and the Action's `parse_mode`. Makes no Telegram API calls — returns a value, does not deliver it.
+The module that executes the domain round-trip for any Action: injects the Language Pair into the prompt template, calls the LLM Interface, runs Output Validation, calls the Action's formatter with the validated result and Language Pair, and returns a `FormattedResult` carrying the text, the Action's `parse_mode`, and a `run_id` correlation handle for tracing. Also attaches tracing metadata to each LLM call — the Action's type, the Language Pair, the detected language, and the Telegram user's identity (hashed by default) — for later filtering in LangSmith. Makes no Telegram API calls — returns a value, does not deliver it.
 _Avoid_: handler, dispatcher
 
 ### Response Publisher
@@ -104,8 +104,12 @@ The module that delivers a `FormattedResult` to the user via Telegram. Exposes t
 _Avoid_: response handler, sender
 
 ### LLM Interface
-An explicit protocol defining two methods: `complete(system_prompt, user_prompt) → str` and `stream(system_prompt, user_prompt) → AsyncIterator[str]`. The OpenAI adapter is one concrete implementation. A `FakeLLMClient` — a deterministic stub for testing and local development — is a second concrete implementation, defined alongside the protocol (not in `tests/`). The Action Runner receives an `LLMClient` via constructor injection; it never imports a concrete implementation directly.
+An explicit protocol defining `complete(system_prompt, user_prompt, metadata=None) → LLMCompletion`, where `LLMCompletion` carries the response text and an optional `run_id` (the LangSmith trace's correlation handle — see Trace). The production adapter is `LangGraphLLMClient`, which wraps a plain `OpenAILLMClient` inside a single-node, checkpointer-less LangGraph graph purely to get a LangSmith trace per call — no multi-turn state is kept. `OpenAILLMClient` remains a valid, untraced, protocol-conformant implementation on its own. A `FakeLLMClient` — a deterministic stub for testing and local development — is a further concrete implementation, defined alongside the protocol (not in `tests/`). The Action Runner receives an `LLMClient` via constructor injection; it never imports a concrete implementation directly.
 _Avoid_: LLM client, OpenAI wrapper, llm.py
+
+### Trace
+A LangSmith record of one LLM call, identified by a `run_id` returned in the LLM Interface's `LLMCompletion`. Produced automatically by `LangGraphLLMClient`; carries tags and metadata (Action type, Language Pair, detected language, hashed Telegram user id) for filtering in the LangSmith dashboard. Tracing is optional — the bot runs normally without LangSmith configured, and a misconfigured or unreachable LangSmith must never break the Telegram response flow.
+_Avoid_: span, LLM call log
 
 ### Output Validation
 Validation applied to LLM responses before delivering them to the user. Scoped to **structural validation only**: retry if the response is malformed JSON or missing required fields. Quality scoring (using a second LLM call to judge the first) is out of scope — translation quality issues are addressed through prompt improvement, not a judge layer. Only applies to `structured_json` Actions — `plain_text` Actions bypass validation.

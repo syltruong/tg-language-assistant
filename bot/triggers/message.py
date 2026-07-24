@@ -47,7 +47,9 @@ class MessageTrigger:
         action_type = ActionType.TRANSLATE
         action = self._registry.get(action_type)
 
-        result = await self._runner.run(action, anchor, language_pair)
+        result = await self._runner.run(
+            action, anchor, language_pair, user_id=update.effective_user.id
+        )
 
         await self._publisher.publish_new_slot(
             result=result,
