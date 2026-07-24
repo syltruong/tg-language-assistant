@@ -42,3 +42,4 @@ class FormattedResult:
     text: str
     parse_mode: str | None
     suggestions: "list[Suggestion] | None" = None
+    run_id: str | None = None

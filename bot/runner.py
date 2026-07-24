@@ -15,9 +15,11 @@ class FakeActionRunner:
         self,
         result: str = "fake result",
         suggestions: "list[Suggestion] | None" = None,
+        run_id: str | None = None,
     ) -> None:
         self._result = result
         self._suggestions = suggestions
+        self._run_id = run_id
         self.last_action: Action | None = None
         self.last_anchor: AnchorMessage | None = None
 
@@ -29,7 +31,12 @@ class FakeActionRunner:
     ) -> FormattedResult:
         self.last_action = action
         self.last_anchor = anchor
-        return FormattedResult(text=self._result, parse_mode=None, suggestions=self._suggestions)
+        return FormattedResult(
+            text=self._result,
+            parse_mode=None,
+            suggestions=self._suggestions,
+            run_id=self._run_id,
+        )
 
 
 class ActionRunner:
@@ -64,9 +71,9 @@ class ActionRunner:
         )
 
         for attempt in range(_MAX_PARSE_RETRIES):
-            raw = await self._llm.complete(system_prompt, user_prompt)
+            completion = await self._llm.complete(system_prompt, user_prompt)
             try:
-                validated = action.parse(raw)
+                validated = action.parse(completion.text)
                 text = action.format(validated, language_pair)
                 suggestions = (
                     validated
@@ -74,7 +81,12 @@ class ActionRunner:
                     and all(isinstance(s, Suggestion) for s in validated)
                     else None
                 )
-                return FormattedResult(text=text, parse_mode=action.parse_mode, suggestions=suggestions)
+                return FormattedResult(
+                    text=text,
+                    parse_mode=action.parse_mode,
+                    suggestions=suggestions,
+                    run_id=completion.run_id,
+                )
             except ValueError:
                 if attempt == _MAX_PARSE_RETRIES - 1:
                     raise

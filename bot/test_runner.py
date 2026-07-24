@@ -8,7 +8,7 @@ from bot.actions.verbs.rephrase import RephraseAction
 from bot.actions.verbs.reply import ReplyAction
 from bot.actions.verbs.translate import TranslateAction
 from bot.gateway import AnchorMessage, LanguageRole
-from bot.llm_interface import FakeLLMClient
+from bot.llm_interface import FakeLLMClient, LLMCompletion
 from bot.localizer import Localizer
 from bot.runner import ActionRunner
 from bot.types import FormattedResult, Suggestion
@@ -32,10 +32,12 @@ class _SequenceFakeLLMClient:
         self._responses = responses
         self._index = 0
 
-    async def complete(self, system_prompt: str, user_prompt: str) -> str:
+    async def complete(
+        self, system_prompt: str, user_prompt: str, *, metadata: dict | None = None
+    ) -> LLMCompletion:
         response = self._responses[min(self._index, len(self._responses) - 1)]
         self._index += 1
-        return response
+        return LLMCompletion(text=response)
 
 
 def _make_sequence_runner(responses: list[str]) -> ActionRunner:
@@ -126,6 +128,21 @@ class TestActionRunnerPlainText:
         assert isinstance(result, FormattedResult)
         assert result.text == "Bonjour"
         assert result.parse_mode is None
+
+    @pytest.mark.asyncio
+    async def test_result_carries_run_id_from_llm_completion(self):
+        runner = ActionRunner(
+            llm=FakeLLMClient(response="Bonjour", run_id="run-abc"),
+            system_prompt_template=_SYSTEM_TEMPLATE,
+        )
+        action = _make_translate_action()
+        anchor = AnchorMessage(
+            text="Hello", detected_language="en", language_role=LanguageRole.BASE
+        )
+
+        result = await runner.run(action, anchor, EN_FR)
+
+        assert result.run_id == "run-abc"
 
 
 _REPLY_TEMPLATE = "Generate {n} replies to {text} in {target_language}."
