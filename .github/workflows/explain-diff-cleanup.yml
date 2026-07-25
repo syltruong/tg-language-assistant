@@ -1,0 +1,29 @@
+name: Explain Diff Cleanup
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 0
+
+      - name: Remove PR's explanation folder
+        run: |
+          folder="pr-${{ github.event.pull_request.number }}"
+          if [ -d "$folder" ]; then
+            git rm -r "$folder"
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git commit -m "Remove explain-diff output for closed PR #${{ github.event.pull_request.number }}"
+            git push
+          fi
