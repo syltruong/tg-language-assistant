@@ -44,16 +44,6 @@ jobs:
             --max-turns 40
             --allowedTools "Bash,Read,Write,Edit,Glob,Grep"
 
-      - name: Prepare .nojekyll for gh-pages root
-        run: mkdir -p pages-root && touch pages-root/.nojekyll
-
-      - name: Ensure .nojekyll at gh-pages root
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          branch: gh-pages
-          folder: pages-root
-          clean: false
-
       - name: Deploy explanation to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
