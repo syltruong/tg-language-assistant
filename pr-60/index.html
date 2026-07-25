@@ -3,861 +3,927 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Pipeline That Explains This Page — PR #60 explained</title>
+<title>Explaining PR #60 — Two lines of TODO, and the pipeline they exist to test</title>
 <style>
-  :root {
-    --bg: #fbfaf8;
-    --panel: #ffffff;
-    --ink: #1d1d1f;
-    --ink-soft: #55555c;
-    --ink-faint: #86868b;
-    --rule: #e3e0da;
-    --accent: #1f6feb;
-    --accent-soft: #eaf1fd;
-    --green: #1a7f37;
-    --green-soft: #e8f5ec;
-    --red: #b3261e;
-    --red-soft: #fdecea;
-    --amber: #8a5a00;
-    --amber-soft: #fdf3e0;
-    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-    --serif: Iowan Old Style, Palatino, "Palatino Linotype", Georgia, serif;
-    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  :root{
+    --bg:#fbfaf7;
+    --ink:#1e2430;
+    --ink-soft:#4a5568;
+    --rule:#e2ddd2;
+    --accent:#2f6f5e;
+    --accent-soft:#e6f0ec;
+    --warn:#8a5a00;
+    --warn-soft:#fdf3e0;
+    --add:#e8f5ea;
+    --add-ink:#1f6b34;
+    --del:#fdecec;
+    --del-ink:#a32b2b;
+    --code-bg:#1f2430;
+    --code-ink:#e8e6e0;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
   }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #16171a;
-      --panel: #1e2024;
-      --ink: #eceef1;
-      --ink-soft: #b3b8c0;
-      --ink-faint: #878d97;
-      --rule: #32353b;
-      --accent: #6ea8fe;
-      --accent-soft: #1c2a42;
-      --green: #6fd48a;
-      --green-soft: #17301f;
-      --red: #ff8b80;
-      --red-soft: #341a18;
-      --amber: #e5b567;
-      --amber-soft: #33280f;
-    }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:Georgia,"Iowan Old Style","Palatino Linotype",serif;
+    font-size:18px;line-height:1.65;
+    -webkit-text-size-adjust:100%;
   }
-  * { box-sizing: border-box; }
-  html { -webkit-text-size-adjust: 100%; }
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--ink);
-    font-family: var(--serif);
-    font-size: 18px;
-    line-height: 1.65;
+  .wrap{max-width:860px;margin:0 auto;padding:0 22px 120px}
+  header.masthead{
+    border-bottom:1px solid var(--rule);
+    padding:56px 0 28px;margin-bottom:34px;
   }
-  .wrap { max-width: 820px; margin: 0 auto; padding: 0 20px 120px; }
-  header.hero {
-    padding: 64px 0 32px;
-    border-bottom: 1px solid var(--rule);
-    margin-bottom: 40px;
+  .kicker{
+    font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);margin:0 0 14px;
   }
-  .kicker {
-    font-family: var(--sans);
-    font-size: 13px;
-    letter-spacing: .09em;
-    text-transform: uppercase;
-    color: var(--ink-faint);
-    margin-bottom: 14px;
+  h1{font-size:2.15rem;line-height:1.18;margin:0 0 14px;letter-spacing:-.015em}
+  .standfirst{font-size:1.12rem;color:var(--ink-soft);margin:0}
+  .meta{
+    font-family:var(--mono);font-size:12.5px;color:var(--ink-soft);
+    margin-top:22px;line-height:1.9;
   }
-  h1 {
-    font-size: clamp(30px, 6vw, 46px);
-    line-height: 1.12;
-    margin: 0 0 18px;
-    letter-spacing: -0.02em;
+  .meta b{color:var(--ink);font-weight:600}
+  h2{
+    font-size:1.6rem;margin:64px 0 6px;letter-spacing:-.01em;
+    padding-top:10px;border-top:1px solid var(--rule);
   }
-  .standfirst { font-size: 20px; color: var(--ink-soft); margin: 0; }
-  h2 {
-    font-family: var(--sans);
-    font-size: clamp(22px, 4vw, 29px);
-    letter-spacing: -0.01em;
-    margin: 64px 0 6px;
-    padding-top: 14px;
-    border-top: 2px solid var(--ink);
+  h2 .num{font-family:var(--mono);font-size:.72em;color:var(--accent);margin-right:.5em}
+  h3{font-size:1.16rem;margin:38px 0 4px;letter-spacing:-.005em}
+  h4{font-size:1rem;margin:26px 0 4px;font-family:var(--mono);font-weight:600;color:var(--ink-soft)}
+  p{margin:14px 0}
+  a{color:var(--accent)}
+  ul,ol{padding-left:1.35em}
+  li{margin:7px 0}
+  code{
+    font-family:var(--mono);font-size:.84em;
+    background:#efece4;padding:.12em .34em;border-radius:4px;
   }
-  h3 {
-    font-family: var(--sans);
-    font-size: 19px;
-    margin: 38px 0 4px;
-    letter-spacing: -0.005em;
+  pre{
+    white-space:pre;overflow-x:auto;
+    background:var(--code-bg);color:var(--code-ink);
+    font-family:var(--mono);font-size:13px;line-height:1.6;
+    padding:16px 18px;border-radius:8px;margin:18px 0;
   }
-  h4 {
-    font-family: var(--sans);
-    font-size: 15px;
-    text-transform: uppercase;
-    letter-spacing: .07em;
-    color: var(--ink-faint);
-    margin: 28px 0 8px;
+  pre code{background:none;padding:0;font-size:inherit;color:inherit}
+
+  /* ---------- table of contents ---------- */
+  nav.toc{
+    background:#fff;border:1px solid var(--rule);border-radius:10px;
+    padding:18px 22px;margin:30px 0 10px;
   }
-  p { margin: 14px 0; }
-  a { color: var(--accent); }
-  code {
-    font-family: var(--mono);
-    font-size: .86em;
-    background: var(--accent-soft);
-    padding: .12em .34em;
-    border-radius: 4px;
-    word-break: break-word;
+  nav.toc h2{all:unset;font-family:var(--mono);font-size:12px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--ink-soft);display:block;margin-bottom:10px}
+  nav.toc ol{margin:0;padding-left:1.2em;font-size:.95rem}
+  nav.toc li{margin:5px 0}
+  nav.toc a{text-decoration:none}
+  nav.toc a:hover{text-decoration:underline}
+  nav.toc .sub{color:var(--ink-soft);font-size:.88em}
+
+  /* ---------- callouts ---------- */
+  .callout{
+    border-left:4px solid var(--accent);background:var(--accent-soft);
+    padding:14px 18px;margin:24px 0;border-radius:0 8px 8px 0;font-size:.97rem;
   }
-  pre {
-    font-family: var(--mono);
-    font-size: 13.5px;
-    line-height: 1.55;
-    background: var(--panel);
-    border: 1px solid var(--rule);
-    border-radius: 10px;
-    padding: 16px 18px;
-    overflow-x: auto;
-    white-space: pre;
-    margin: 20px 0;
+  .callout.warn{border-left-color:var(--warn);background:var(--warn-soft)}
+  .callout .label{
+    font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--accent);display:block;margin-bottom:6px;font-weight:600;
   }
-  pre.wrapped { white-space: pre-wrap; }
-  pre code { background: none; padding: 0; font-size: inherit; }
-  .add { color: var(--green); }
-  .del { color: var(--red); }
-  .meta { color: var(--ink-faint); }
-  ul, ol { padding-left: 24px; }
-  li { margin: 7px 0; }
-  /* ---- TOC ---- */
-  nav.toc {
-    background: var(--panel);
-    border: 1px solid var(--rule);
-    border-radius: 12px;
-    padding: 20px 24px;
-    font-family: var(--sans);
-    font-size: 15.5px;
+  .callout.warn .label{color:var(--warn)}
+  .callout p:first-of-type{margin-top:0}
+  .callout p:last-child{margin-bottom:0}
+  .skippable{
+    font-family:var(--mono);font-size:12px;color:var(--ink-soft);
+    background:#f2efe8;border:1px dashed var(--rule);border-radius:6px;
+    padding:8px 12px;display:inline-block;margin:6px 0 0;
   }
-  nav.toc strong {
-    display: block;
-    font-size: 13px;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    color: var(--ink-faint);
-    margin-bottom: 10px;
+
+  /* ---------- diagram family A: file strip ---------- */
+  .filestrip{
+    background:#fff;border:1px solid var(--rule);border-radius:9px;
+    margin:24px 0;overflow:hidden;font-family:var(--mono);font-size:12.5px;
   }
-  nav.toc ol { margin: 0; padding-left: 20px; }
-  nav.toc ol ol { padding-left: 18px; margin: 4px 0; font-size: 14.5px; }
-  nav.toc li { margin: 4px 0; }
-  nav.toc a { text-decoration: none; }
-  nav.toc a:hover { text-decoration: underline; }
-  /* ---- callouts ---- */
-  .callout {
-    border: 1px solid var(--rule);
-    border-left: 4px solid var(--accent);
-    background: var(--panel);
-    border-radius: 0 10px 10px 0;
-    padding: 14px 18px;
-    margin: 24px 0;
-    font-size: 17px;
+  .filestrip .fs-head{
+    background:#f4f1ea;border-bottom:1px solid var(--rule);
+    padding:8px 14px;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);
+    display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;
   }
-  .callout .label {
-    font-family: var(--sans);
-    font-size: 12px;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    color: var(--accent);
-    font-weight: 700;
-    display: block;
-    margin-bottom: 4px;
+  .filestrip .row{
+    display:flex;gap:0;border-bottom:1px solid #f2efe8;line-height:1.5;
   }
-  .callout p:first-of-type { margin-top: 0; }
-  .callout p:last-child { margin-bottom: 0; }
-  .callout.warn { border-left-color: var(--amber); background: var(--amber-soft); }
-  .callout.warn .label { color: var(--amber); }
-  .callout.key { border-left-color: var(--green); background: var(--green-soft); }
-  .callout.key .label { color: var(--green); }
-  .skippable {
-    background: var(--accent-soft);
-    border-radius: 10px;
-    padding: 12px 18px;
-    font-family: var(--sans);
-    font-size: 15px;
-    color: var(--ink-soft);
-    margin: 18px 0 6px;
+  .filestrip .row:last-child{border-bottom:none}
+  .filestrip .ln{
+    flex:0 0 34px;text-align:right;padding:5px 8px 5px 0;color:#a9a294;
+    background:#faf8f3;border-right:1px solid #f0ece3;user-select:none;
   }
-  /* ---- diagrams ---- */
-  figure {
-    margin: 30px 0;
-    padding: 0;
+  .filestrip .sg{flex:0 0 16px;text-align:center;padding:5px 0;color:var(--ink-soft)}
+  .filestrip .tx{padding:5px 10px 5px 4px;white-space:pre-wrap;word-break:break-word;flex:1}
+  .filestrip .row.add{background:var(--add)}
+  .filestrip .row.add .sg,.filestrip .row.add .tx{color:var(--add-ink)}
+  .filestrip .row.del{background:var(--del)}
+  .filestrip .row.del .sg,.filestrip .row.del .tx{color:var(--del-ink);text-decoration:line-through;text-decoration-color:#e3b3b3}
+  .filestrip .row.ctx .tx{color:var(--ink-soft)}
+  .filestrip .row.note{background:#f7f5ef}
+  .filestrip .row.note .tx{color:#8a8271;font-style:italic}
+  .eof{
+    display:inline-block;font-family:var(--mono);font-size:10.5px;
+    background:#fff2c9;color:#7a5c00;border:1px solid #e8d79a;
+    border-radius:3px;padding:0 5px;margin-left:8px;vertical-align:1px;
+    text-decoration:none !important;font-style:normal;
   }
-  figcaption {
-    font-family: var(--sans);
-    font-size: 13.5px;
-    color: var(--ink-faint);
-    margin-top: 10px;
-    text-align: center;
+
+  /* ---------- diagram family B: pipeline ---------- */
+  .pipe{margin:26px 0}
+  .pipe .stage{
+    display:flex;gap:14px;align-items:flex-start;
+    background:#fff;border:1px solid var(--rule);border-radius:9px;
+    padding:13px 16px;margin:0 0 6px;
   }
-  .board {
-    background: var(--panel);
-    border: 1px solid var(--rule);
-    border-radius: 12px;
-    padding: 22px 18px;
+  .pipe .stage.muted{background:#f7f5ef;border-style:dashed}
+  .pipe .badge{
+    flex:0 0 auto;font-family:var(--mono);font-size:11px;font-weight:600;
+    background:var(--accent);color:#fff;border-radius:20px;padding:3px 10px;margin-top:2px;
+    white-space:nowrap;
   }
-  .flow {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    font-family: var(--sans);
+  .pipe .stage.muted .badge{background:#a49b88}
+  .pipe .body{flex:1;min-width:0}
+  .pipe .title{font-weight:600;font-size:.98rem;font-family:Georgia,serif}
+  .pipe .sub{font-size:.86rem;color:var(--ink-soft);margin-top:2px}
+  .pipe .data{
+    font-family:var(--mono);font-size:11.5px;background:#f4f1ea;border:1px solid var(--rule);
+    border-radius:5px;padding:5px 8px;margin-top:8px;white-space:pre-wrap;word-break:break-all;
+    color:#3e4757;
   }
-  .stage {
-    border: 1px solid var(--rule);
-    border-radius: 10px;
-    padding: 12px 14px;
-    background: var(--bg);
+  .pipe .arrow{
+    text-align:center;color:#c3bbaa;font-size:16px;line-height:1;margin:1px 0 6px;
   }
-  .stage .sname {
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: .01em;
+
+  /* ---------- diagram family C: commit graph ---------- */
+  .graph{
+    background:#fff;border:1px solid var(--rule);border-radius:9px;
+    padding:18px;margin:26px 0;overflow-x:auto;
   }
-  .stage .swhat { font-size: 13.5px; color: var(--ink-soft); margin-top: 3px; }
-  .stage.ok { border-color: var(--green); }
-  .stage.bad { border-color: var(--red); }
-  .stage.dim { opacity: .45; }
-  .arrow {
-    align-self: center;
-    color: var(--ink-faint);
-    font-size: 18px;
-    line-height: 1;
-    padding: 7px 0;
+  .graph .lane{display:flex;align-items:center;gap:8px;margin:12px 0;min-width:min-content}
+  .graph .lanelabel{
+    flex:0 0 96px;font-family:var(--mono);font-size:11px;color:var(--ink-soft);
+    text-align:right;padding-right:6px;
   }
-  .pill {
-    display: inline-block;
-    font-family: var(--mono);
-    font-size: 11.5px;
-    background: var(--accent-soft);
-    color: var(--ink);
-    border-radius: 20px;
-    padding: 3px 10px;
-    margin: 5px 5px 0 0;
-    white-space: nowrap;
+  .node{
+    font-family:var(--mono);font-size:11.5px;
+    border:1px solid var(--rule);background:#f7f5ef;border-radius:7px;
+    padding:6px 10px;white-space:nowrap;
   }
-  .pill.g { background: var(--green-soft); }
-  .pill.r { background: var(--red-soft); }
-  .pill.a { background: var(--amber-soft); }
-  /* tree */
-  .tree {
-    font-family: var(--mono);
-    font-size: 13px;
-    line-height: 1.9;
+  .node .sha{font-weight:600;color:var(--accent)}
+  .node.head{background:var(--accent);border-color:var(--accent);color:#fff}
+  .node.head .sha{color:#cfe8de}
+  .node.ghost{border-style:dashed;background:#fff;color:#8a8271}
+  .link{flex:0 0 26px;height:1px;background:#d6cfc0;position:relative}
+  .link::after{content:"▸";position:absolute;right:-4px;top:-10px;color:#c3bbaa;font-size:12px}
+
+  /* ---------- diagram family D: PR UI mock ---------- */
+  .ui{
+    background:#fff;border:1px solid var(--rule);border-radius:10px;
+    margin:26px 0;overflow:hidden;box-shadow:0 1px 0 rgba(0,0,0,.03);
   }
-  .tree .row { display: flex; gap: 10px; align-items: baseline; }
-  .tree .fname { min-width: 0; word-break: break-all; }
-  .tree .note { color: var(--ink-faint); font-family: var(--sans); font-size: 12.5px; }
-  .tree .new { color: var(--green); font-weight: 700; }
-  .tree .gone { color: var(--red); text-decoration: line-through; }
-  /* github comment mock */
-  .gh {
-    font-family: var(--sans);
-    border: 1px solid var(--rule);
-    border-radius: 10px;
-    overflow: hidden;
-    background: var(--bg);
+  .ui .ui-bar{
+    background:#f4f1ea;border-bottom:1px solid var(--rule);padding:9px 14px;
+    font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);
   }
-  .gh .ghhead {
-    background: var(--panel);
-    border-bottom: 1px solid var(--rule);
-    padding: 9px 14px;
-    font-size: 13.5px;
-    color: var(--ink-soft);
+  .ui .ui-body{padding:16px 18px}
+  .ui .comment{
+    border:1px solid var(--rule);border-radius:8px;overflow:hidden;margin-top:12px;
   }
-  .gh .ghbody { padding: 14px; font-size: 15px; }
-  .gh .ghlink { color: var(--accent); word-break: break-all; font-family: var(--mono); font-size: 12.5px; }
-  .badge {
-    display: inline-block;
-    font-family: var(--sans);
-    font-size: 11.5px;
-    font-weight: 700;
-    border-radius: 20px;
-    padding: 2px 9px;
-    vertical-align: middle;
+  .ui .comment-head{
+    background:#f7f5ef;border-bottom:1px solid var(--rule);padding:7px 12px;
+    font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);
   }
-  .badge.b-ok { background: var(--green-soft); color: var(--green); }
-  .badge.b-no { background: var(--red-soft); color: var(--red); }
-  .badge.b-q { background: var(--amber-soft); color: var(--amber); }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-family: var(--sans);
-    font-size: 15px;
-    margin: 24px 0;
+  .ui .comment-body{padding:12px 14px;font-size:.95rem}
+  .ui .checkline{
+    display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:12px;
+    padding:7px 0;border-bottom:1px solid #f2efe8;
   }
-  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
-  th { font-size: 12.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-faint); }
-  /* ---- quiz ---- */
-  .quiz { font-family: var(--sans); }
-  .q {
-    background: var(--panel);
-    border: 1px solid var(--rule);
-    border-radius: 12px;
-    padding: 20px 22px;
-    margin: 24px 0;
+  .ui .checkline:last-child{border-bottom:none}
+  .ui .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+  .ui .dot.ok{background:#2f9e5f}
+  .ui .dot.run{background:#d69e2e}
+  .ui .dot.skip{background:#b7ae9c}
+  .ui .lnk{color:var(--accent);text-decoration:underline}
+
+  /* ---------- comparison grid ---------- */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:24px 0}
+  @media (max-width:640px){.grid2{grid-template-columns:1fr}}
+  .card{
+    background:#fff;border:1px solid var(--rule);border-radius:9px;padding:14px 16px;
   }
-  .q .qnum {
-    font-size: 12px;
-    letter-spacing: .09em;
-    text-transform: uppercase;
-    color: var(--ink-faint);
-    font-weight: 700;
+  .card h4{margin:0 0 6px}
+  .card p{margin:6px 0;font-size:.93rem}
+
+  table{width:100%;border-collapse:collapse;margin:22px 0;font-size:.92rem}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+  th{font-family:var(--mono);font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft)}
+  td code{font-size:.86em}
+
+  /* ---------- quiz ---------- */
+  .quiz{margin:28px 0}
+  .q{
+    background:#fff;border:1px solid var(--rule);border-radius:10px;
+    padding:18px 20px;margin:18px 0;
   }
-  .q .qtext { font-size: 17.5px; margin: 8px 0 14px; font-weight: 600; line-height: 1.45; }
-  .opts { display: flex; flex-direction: column; gap: 9px; }
-  .opt {
-    display: block;
-    width: 100%;
-    text-align: left;
-    font: inherit;
-    font-size: 15.5px;
-    color: var(--ink);
-    background: var(--bg);
-    border: 1.5px solid var(--rule);
-    border-radius: 9px;
-    padding: 11px 14px;
-    cursor: pointer;
-    transition: border-color .12s, background .12s;
+  .q .qn{
+    font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--accent);margin-bottom:8px;
   }
-  .opt:hover:not(.locked) { border-color: var(--accent); }
-  .opt .letter { font-family: var(--mono); font-weight: 700; color: var(--ink-faint); margin-right: 8px; }
-  .opt.right { border-color: var(--green); background: var(--green-soft); }
-  .opt.wrong { border-color: var(--red); background: var(--red-soft); }
-  .opt.locked { cursor: default; }
-  .fb {
-    display: none;
-    margin-top: 14px;
-    padding: 12px 15px;
-    border-radius: 9px;
-    font-size: 15.5px;
-    line-height: 1.55;
+  .q .qtext{font-weight:600;margin:0 0 12px}
+  .opts{display:flex;flex-direction:column;gap:8px}
+  .opt{
+    text-align:left;font:inherit;font-size:.95rem;
+    background:#faf8f3;border:1px solid var(--rule);border-radius:7px;
+    padding:10px 13px;cursor:pointer;transition:background .12s,border-color .12s;
+    display:flex;gap:10px;align-items:flex-start;
   }
-  .fb.show { display: block; }
-  .fb.good { background: var(--green-soft); border: 1px solid var(--green); }
-  .fb.bad { background: var(--red-soft); border: 1px solid var(--red); }
-  .fb .verdict { font-weight: 700; display: block; margin-bottom: 3px; }
-  .score {
-    font-family: var(--sans);
-    background: var(--panel);
-    border: 1px solid var(--rule);
-    border-radius: 12px;
-    padding: 16px 20px;
-    font-size: 16px;
+  .opt:hover:not(.locked){background:#f2efe8}
+  .opt .key{font-family:var(--mono);font-size:12px;color:var(--ink-soft);flex:0 0 auto;margin-top:2px}
+  .opt.correct{background:var(--add);border-color:#9dcfab}
+  .opt.correct .key{color:var(--add-ink)}
+  .opt.wrong{background:var(--del);border-color:#e6b3b3}
+  .opt.wrong .key{color:var(--del-ink)}
+  .opt.locked{cursor:default}
+  .fb{
+    margin-top:12px;font-size:.93rem;border-radius:7px;padding:11px 14px;display:none;
   }
-  hr.soft { border: 0; border-top: 1px solid var(--rule); margin: 40px 0; }
-  .footnote { font-size: 15px; color: var(--ink-faint); font-family: var(--sans); }
-  @media (min-width: 620px) {
-    .flow.horiz { flex-direction: row; align-items: stretch; }
-    .flow.horiz .stage { flex: 1; }
-    .flow.horiz .arrow { align-self: center; padding: 0 9px; }
+  .fb.show{display:block}
+  .fb.good{background:var(--add);color:#17512a;border-left:4px solid var(--add-ink)}
+  .fb.bad{background:var(--del);color:#7d2222;border-left:4px solid var(--del-ink)}
+  .score{
+    font-family:var(--mono);font-size:13px;background:#fff;border:1px solid var(--rule);
+    border-radius:8px;padding:12px 16px;margin-top:20px;color:var(--ink-soft);
+  }
+  .score b{color:var(--ink)}
+  footer{
+    margin-top:70px;padding-top:20px;border-top:1px solid var(--rule);
+    font-family:var(--mono);font-size:12px;color:var(--ink-soft);
+  }
+  @media (max-width:640px){
+    body{font-size:17px}
+    h1{font-size:1.7rem}
+    h2{font-size:1.35rem;margin-top:48px}
+    .graph .lanelabel{flex:0 0 70px}
+    pre{font-size:12px}
   }
 </style>
 </head>
 <body>
 <div class="wrap">
 
-<header class="hero">
-  <div class="kicker">Pull request #60 · tg-language-assistant</div>
-  <h1>The pipeline that explains this page</h1>
-  <p class="standfirst">A one-line change to a plain-text <code>TODO</code> file. The line is about the machinery that produced the page you are reading — which makes this the rare pull request that is simultaneously a note-to-self and a live test of itself.</p>
+<header class="masthead">
+  <p class="kicker">Explain Diff · PR #60</p>
+  <h1>Two lines of <code>TODO</code>, and the pipeline they exist to test</h1>
+  <p class="standfirst">The smallest interesting diff in this repository. Its payload is a scratch note; its
+  purpose is to make a freshly-merged GitHub Actions workflow prove that it works — publish an HTML explanation
+  to <code>gh-pages</code>, and leave exactly one comment on the pull request.</p>
+  <p class="meta">
+    <b>Repository</b> syltruong/tg-language-assistant — a Telegram language-learning bot<br>
+    <b>Base</b> <code>master</code> @ <code>2573a19</code> · <b>Head</b> <code>4f0b7b8</code> (<code>test-explain-diff-pipeline</code>)<br>
+    <b>Diff</b> 1 file changed, 3 insertions, 1 deletion — all of it in <code>TODO</code><br>
+    <b>Generated</b> 2026-07-25 by the very workflow under examination
+  </p>
 </header>
 
 <nav class="toc">
-  <strong>Contents</strong>
+  <h2>Contents</h2>
   <ol>
-    <li><a href="#tldr">The change in one breath</a></li>
     <li><a href="#background">Background</a>
-      <ol>
-        <li><a href="#deep">Deep background for beginners</a></li>
-        <li><a href="#narrow">The pipeline this PR is about</a></li>
-      </ol>
+      <ul>
+        <li><a href="#deep">The deep version <span class="sub">— skip if you know Actions and gh-pages</span></a></li>
+        <li><a href="#narrow">The narrow version <span class="sub">— what #59 built, and what it couldn't check</span></a></li>
+      </ul>
     </li>
-    <li><a href="#intuition">Intuition: a pipeline cannot vouch for itself</a>
-      <ol>
-        <li><a href="#bootstrap">The bootstrapping problem</a></li>
-        <li><a href="#payload">Why a <code>TODO</code> line is the ideal payload</a></li>
-        <li><a href="#state">What the stateful steps actually touch</a></li>
-      </ol>
-    </li>
-    <li><a href="#code">The code walkthrough</a>
-      <ol>
-        <li><a href="#thediff">The diff itself</a></li>
-        <li><a href="#twoinsert">Why git says “2 insertions, 1 deletion”</a></li>
-        <li><a href="#unchanged">The files that did <em>not</em> change</a></li>
-      </ol>
-    </li>
-    <li><a href="#verified">What “verified” would mean</a></li>
-    <li><a href="#observed">Field notes from this run</a></li>
+    <li><a href="#intuition">Intuition: a self-referential smoke test</a></li>
+    <li><a href="#code">The code: every changed byte</a></li>
+    <li><a href="#pipeline">What the two lines actually exercise</a></li>
+    <li><a href="#openq">What this run can and cannot prove</a></li>
     <li><a href="#quiz">Quiz</a></li>
   </ol>
 </nav>
 
-<h2 id="tldr">The change in one breath</h2>
+<h2 id="background"><span class="num">01</span>Background</h2>
 
-<p>One line is appended to the repository's <code>TODO</code> file:</p>
+<p>Most explanations of a code change begin with the code. This one has to begin somewhere else, because
+the code change is two lines of a plain-text scratch file and nothing in the running program is affected
+by it. Understanding this pull request means understanding the <em>machinery it triggers</em>. So we will
+build up that machinery first, then return to the diff and find it surprisingly rich.</p>
 
-<pre class="wrapped"><code>- [ ] Verify explain-diff-html CI pipeline (explain-diff.yml) actually publishes to gh-pages and comments on PRs</code></pre>
+<h3 id="deep">The deep version</h3>
+<p class="skippable">Skip ahead to <a href="#narrow">the narrow version</a> if you already know GitHub Actions, GitHub Pages, and three-dot diffs.</p>
 
-<p>That is the entire diff. No Python was touched, no workflow was edited, no test was added. If you judged pull requests by lines changed, this one would not register at all.</p>
+<p><strong>The project.</strong> <code>tg-language-assistant</code> is a Telegram bot for language learners
+holding a live conversation with a native speaker. You send it a message; it translates, corrects, analyses,
+or drafts a reply. Its domain vocabulary is documented with unusual care in <code>CONTEXT.md</code> — an
+<em>Anchor Message</em> is the message that started a turn, a <em>Slot Message</em> is the single bot reply
+that gets edited in place as you tap buttons, an <em>Action</em> is one self-contained unit of bot behaviour.
+None of these concepts change in this pull request. They matter only as the backdrop against which a plain
+<code>TODO</code> file sits in the repository root, collecting ideas that are not yet issues.</p>
 
-<p>But the author's commit message tells you what is really going on:</p>
+<p><strong>GitHub Actions.</strong> A <em>workflow</em> is a YAML file under <code>.github/workflows/</code>.
+It declares an event to listen for (<code>on:</code>), a set of <em>jobs</em>, and inside each job a list of
+<em>steps</em>. Each step either runs a shell command or invokes a reusable <em>action</em> published by
+someone else. When the event fires, GitHub allocates a fresh virtual machine, clones your repository into a
+working directory, and executes the steps in order. If any step exits non-zero, the job fails and the
+remaining steps are skipped.</p>
 
-<pre class="wrapped"><code>Add TODO item to verify explain-diff CI pipeline
+<p>Two details of that model do real work later in this story. First, <em>permissions</em>: each workflow
+run receives a scoped token, and it can only do what the <code>permissions:</code> block grants — writing
+to the repository, commenting on pull requests, and so on. Second, <em>the filesystem is ephemeral and
+scoped</em>: steps share the runner's disk, so one step can write a file and a later step can read it, but
+only paths inside the checked-out workspace are meaningful to actions that upload or commit directories.</p>
 
-Small throwaway change to exercise the explain-diff-html GitHub
-Actions workflow now that it lives on master, since the workflow
-can't validate itself from within the PR that first introduced it.</code></pre>
-
-<p>So the change has two jobs. The <em>content</em> of the line records a genuine piece of unfinished business: nobody has yet watched the new explain-diff pipeline complete a full lap. The <em>existence</em> of the line is the thing that makes the lap happen, because every push to a pull request triggers the pipeline. This document is the output of that lap. If you are reading it at a <code>github.io/.../pr-60/</code> address, the greater part of the <code>TODO</code> item has already answered itself.</p>
-
-<div class="callout key">
-  <span class="label">The shape of it</span>
-  <p>This is a <strong>smoke test dressed as a note</strong>. The diff is deliberately trivial so that anything that goes wrong can only be the pipeline's fault, never the change's.</p>
-</div>
-
-<h2 id="background">Background</h2>
-
-<h3 id="deep">Deep background for beginners</h3>
-
-<div class="skippable">If you already know what GitHub Actions, the <code>gh-pages</code> branch, and Claude Code skills are, skip ahead to <a href="#narrow">the pipeline this PR is about</a>.</div>
-
-<p>The repository is <strong>tg-language-assistant</strong>, a Telegram bot for language learners. Someone mid-conversation with a native speaker sends a message to the bot and gets back a translation, a vocabulary breakdown, a grammar correction, or a few suggested replies. The domain vocabulary is written down carefully in <code>CONTEXT.md</code> — <em>Anchor Message</em>, <em>Slot Message</em>, <em>Instant Action</em>, <em>Action Runner</em> — and architectural decisions live as numbered ADRs under <code>docs/adr/</code>. It is a small codebase that takes its own documentation unusually seriously.</p>
-
-<p>None of that domain machinery matters for this pull request. What matters is the scaffolding around it, and there are three pieces worth knowing.</p>
-
-<p><strong>First, continuous integration.</strong> GitHub can run programs for you in response to repository events. You describe them in YAML files under <code>.github/workflows/</code>. This project has a conventional one, <code>ci.yml</code>: on every pull request it installs dependencies, runs <code>ruff</code> for linting and <code>pytest</code> for tests; on a push to <code>master</code> it additionally deploys to fly.io. The unit of work is a <em>job</em>; a job is a list of <em>steps</em>; a step either runs a shell command or invokes a reusable <em>action</em> pinned by name and version, like <code>actions/checkout@v4</code>.</p>
-
-<p><strong>Second, GitHub Pages and the <code>gh-pages</code> convention.</strong> GitHub will serve static files straight out of a repository as a website. A long-standing convention is to keep those files on a dedicated branch named <code>gh-pages</code>, entirely separate from your source history, and let a bot push to it. A file at <code>pr-60/index.html</code> on that branch becomes a URL ending in <code>/pr-60/</code>. This gives you somewhere to publish build artefacts without polluting <code>master</code>.</p>
-
-<p><strong>Third, Claude Code skills.</strong> A <em>skill</em> is a Markdown file of instructions that an AI coding agent can be asked to follow, invoked like a slash command. This repo keeps several under <code>.claude/skills/</code> — <code>tdd</code>, <code>diagnose</code>, <code>triage</code>, and others. One of them, <code>explain-diff-html</code>, says in effect: <em>read a code change, explore the surrounding code until you understand it, then write a single self-contained HTML page with background, intuition, a code walkthrough, and an interactive quiz.</em> That skill is what produced this page.</p>
+<p><strong>GitHub Pages.</strong> A repository can serve static files over HTTPS from a branch. Here the
+branch is <code>gh-pages</code>, which is an <em>orphan</em> branch: it shares no history with
+<code>master</code> and contains no source code at all, just published output. A file committed at
+<code>pr-60/index.html</code> on that branch becomes reachable at
+<code>https://syltruong.github.io/tg-language-assistant/pr-60/</code>. This is the delivery mechanism for
+everything you are reading.</p>
 
 <div class="callout">
-  <span class="label">Definition · skill</span>
-  <p>A <strong>skill</strong> is a prompt-as-a-file: reusable instructions the agent loads on demand. It is not code, so nothing compiles it and no test suite checks it. Its only real specification is whether the artefact it produces is any good — which is precisely why it is awkward to verify automatically.</p>
+  <span class="label">Key concept — three-dot diff</span>
+  <p><code>git diff master..HEAD</code> compares the two <em>endpoints</em>: anything that landed on
+  <code>master</code> after you branched shows up as a spurious reversal in your diff.
+  <code>git diff master...HEAD</code> (three dots) instead compares the <em>merge base</em> — the last
+  commit the two branches had in common — against your head. That is the "what did this PR change"
+  question, and it is what a reviewer means. The instruction embedded in the workflow prompt is to diff
+  the base branch against the current head, and three dots is how you honour it faithfully.</p>
 </div>
 
-<p>Finally, the <code>TODO</code> file. It is thirteen lines of plain text at the repository root, a flat checklist in Markdown-ish syntax. Some entries are ticked (<code>[x] html formatting of responses</code>), most are not. It sits alongside a more formal tracker: <code>CLAUDE.md</code> states that issues live in GitHub Issues, and <code>docs/agents/issue-tracker.md</code> spells out the <code>gh</code> commands for working with them. In practice the two coexist — <code>TODO</code> is the back of an envelope, GitHub Issues is the filing cabinet. This pull request writes on the envelope.</p>
+<h3 id="narrow">The narrow version: what #59 built</h3>
 
-<h3 id="narrow">The pipeline this PR is about</h3>
+<p>The commit immediately before this pull request, <code>2573a19</code> ("Add explain-diff-html skill,
+#59"), added three things that concern us.</p>
 
-<p>The immediately preceding commit on <code>master</code> — <code>2573a19</code>, merged as pull request #59 — did the substantial work. It added the <code>explain-diff-html</code> skill, then wired it into CI so that the explanation is generated automatically for every pull request rather than by a human remembering to ask. Two new workflow files came with it.</p>
+<p><strong>One:</strong> a Claude Code <em>skill</em> at <code>.claude/skills/explain-diff-html/SKILL.md</code>.
+A skill is a Markdown file of instructions that a human invokes as <code>/explain-diff-html</code>. This
+one asks for a single self-contained HTML page with four sections — Background, Intuition, Code, Quiz —
+written in a particular register, with HTML diagrams rather than ASCII art. Crucially for CI, its output
+path is <em>parameterised</em>: it defaults to a dated file in <code>/tmp</code>, but honours an explicit
+path if the invocation supplies one.</p>
 
-<p><code>.github/workflows/explain-diff.yml</code> runs a single job with four steps. It is worth seeing the whole shape at once, because everything in this pull request refers back to it:</p>
+<p><strong>Two:</strong> <code>.github/workflows/explain-diff.yml</code>, which runs that skill
+non-interactively on every push to a pull request, publishes the result, and comments the link.</p>
 
-<figure>
-<div class="board">
-<div class="flow">
+<p><strong>Three:</strong> <code>.github/workflows/explain-diff-cleanup.yml</code>, which deletes the
+published folder when the pull request closes, so <code>gh-pages</code> does not accumulate output for
+merged work forever.</p>
+
+<p>Here is the whole shape of the pipeline, with the data it carries for <em>this</em> pull request:</p>
+
+<div class="pipe">
   <div class="stage">
-    <div class="sname">1 · Trigger &amp; guard</div>
-    <div class="swhat">Fires on <code>pull_request</code>: <code>opened</code>, <code>synchronize</code>, <code>reopened</code>. Skips pull requests from forks, where secrets are unavailable. One concurrency group per PR, cancelling in-progress runs.</div>
-    <div><span class="pill">event: synchronize</span><span class="pill">pr: 60</span><span class="pill g">head repo == base repo</span></div>
-  </div>
-  <div class="arrow">▼</div>
-  <div class="stage">
-    <div class="sname">2 · Checkout</div>
-    <div class="swhat"><code>actions/checkout@v4</code> with <code>fetch-depth: 0</code> — the full history, so the agent can diff the branch against its base.</div>
-    <div><span class="pill">HEAD = merge commit</span><span class="pill">refs/pull/60/merge</span></div>
-  </div>
-  <div class="arrow">▼</div>
-  <div class="stage">
-    <div class="sname">3 · Generate with Claude</div>
-    <div class="swhat"><code>anthropics/claude-code-action@v1</code> is handed a prompt that invokes <code>/explain-diff-html</code>, names the base branch, and redirects the output away from the skill's interactive <code>/tmp</code> default.</div>
-    <div><span class="pill">--max-turns 40</span><span class="pill">Bash,Read,Write,Edit,Glob,Grep</span><span class="pill a">writes ./explain-diff-output/index.html</span></div>
-  </div>
-  <div class="arrow">▼</div>
-  <div class="stage">
-    <div class="sname">4 · Publish</div>
-    <div class="swhat"><code>JamesIves/github-pages-deploy-action@v4</code> copies the folder to branch <code>gh-pages</code> under <code>pr-60/</code>, with <code>clean: false</code> so other pull requests' folders survive.</div>
-    <div><span class="pill g">gh-pages:pr-60/index.html</span></div>
-  </div>
-  <div class="arrow">▼</div>
-  <div class="stage">
-    <div class="sname">5 · Comment</div>
-    <div class="swhat"><code>marocchino/sticky-pull-request-comment@v2</code> keyed on <code>header: explain-diff</code> — edits one comment in place instead of adding a new one on every push.</div>
-    <div><span class="pill g">🔎 Explain Diff for this PR: …/pr-60/</span></div>
-  </div>
-</div>
-</div>
-<figcaption>The explain-diff pipeline as it stands on <code>master</code>. This is the diagram everything else in this page varies.</figcaption>
-</figure>
-
-<p>A second workflow, <code>explain-diff-cleanup.yml</code>, handles the other end of the lifecycle. When a pull request closes, it checks out <code>gh-pages</code>, and if a <code>pr-&lt;number&gt;/</code> folder exists it removes it, commits as <code>github-actions[bot]</code>, and pushes. Without it, <code>gh-pages</code> would accrete a folder per pull request forever.</p>
-
-<p>Pull request #59 also needed one correction along the way, recorded in its own history: the workflow initially failed with <em>"Could not fetch an OIDC token"</em> because <code>claude-code-action@v1</code> requests a GitHub OIDC token internally and the <code>permissions</code> block did not grant <code>id-token: write</code>. That detail matters to the story — it is evidence that the pipeline's failure modes are not hypothetical, and that they surface only when it actually runs.</p>
-
-<div class="callout warn">
-  <span class="label">The state of play</span>
-  <p>As of the checkout that produced this page, <code>origin/gh-pages</code> sits at exactly one commit — <code>2573a19</code>, the same commit as <code>master</code> — and its tree is a full copy of the source: <code>bot/</code>, <code>docs/</code>, <code>CONTEXT.md</code>, <code>uv.lock</code>, and so on. There is no <code>pr-*</code> folder anywhere on it. The branch was created from <code>master</code> and has never been deployed to. Every step downstream of Claude in the diagram above is, at this moment, entirely untried.</p>
-</div>
-
-<h2 id="intuition">Intuition: a pipeline cannot vouch for itself</h2>
-
-<h3 id="bootstrap">The bootstrapping problem</h3>
-
-<p>Here is the awkward position pull request #59 was in. It introduced a machine whose job is to comment on pull requests and publish web pages about them. The natural way to test such a machine is to open a pull request and watch. But the only pull request available was #59 itself — and using it as the test subject has three distinct problems.</p>
-
-<p>The first is <strong>confounding</strong>. Pull request #59 added a dozen files: several skills, two workflows, supporting documents. If the pipeline had produced a mediocre explanation, was that the pipeline's fault or the diff's? A change that adds prompt files has no interesting data flow to draw, no toy example to work through. You cannot calibrate an instrument on a sample you do not trust.</p>
-
-<p>The second is <strong>iteration cost</strong>. The only way to fix a workflow is to push a commit and wait. #59 took three commits to converge, one of them purely to add a missing permission. Each of those pushes is a run against a moving target, and the workflow file being executed changes underneath you between attempts.</p>
-
-<p>The third, and the sharpest, is <strong>irreversible state</strong>. Steps 4 and 5 do not merely compute; they write to places outside the run. Step 4 pushes a commit to a shared long-lived branch. Step 5 mutates a comment on the pull request. And the cleanup workflow only fires on <code>closed</code> — an event that, for the pull request introducing the cleanup workflow, arrives at the very moment its own machinery becomes real. You cannot rehearse a step whose whole purpose is to modify the world.</p>
-
-<figure>
-<div class="board">
-  <h4 style="margin-top:0">Testing the pipeline from inside PR #59</h4>
-  <div class="flow">
-    <div class="stage ok"><div class="sname">1–2 · Trigger &amp; checkout</div><div class="swhat">Works. Actions does use the workflow file from the PR's merge ref, so a newly added workflow does run in its own pull request.</div></div>
-    <div class="arrow">▼</div>
-    <div class="stage bad"><div class="sname">3 · Generate</div><div class="swhat">Ran, and failed on a missing permission. Fixed by a commit <em>inside</em> the same PR — so the thing under test changed mid-experiment.</div><div><span class="pill r">Could not fetch an OIDC token</span></div></div>
-    <div class="arrow">▼</div>
-    <div class="stage dim"><div class="sname">4 · Publish</div><div class="swhat">Never reached a known-good state; <code>gh-pages</code> still shows no deploy.</div></div>
-    <div class="arrow">▼</div>
-    <div class="stage dim"><div class="sname">5 · Comment</div><div class="swhat">Unobserved.</div></div>
-  </div>
-  <hr class="soft">
-  <h4>Testing the pipeline from PR #60</h4>
-  <div class="flow">
-    <div class="stage ok"><div class="sname">1–5 · The whole chain</div><div class="swhat">The workflow under test is frozen on <code>master</code>. The diff is one line of prose. Anything that fails now is unambiguously the pipeline.</div><div><span class="pill g">workflow: fixed</span><span class="pill g">diff: 1 line</span><span class="pill g">blame: unambiguous</span></div></div>
-  </div>
-</div>
-<figcaption>Same pipeline diagram, two attempts to test it. The difference is not the machine but what is held still while you watch it.</figcaption>
-</figure>
-
-<div class="callout key">
-  <span class="label">The core intuition</span>
-  <p>To test a machine, hold the machine still and vary the input. Pull request #59 had to vary both at once. Pull request #60 exists to supply the boring input that #59 could not: a change so small that the pipeline is the only variable left.</p>
-</div>
-
-<h3 id="payload">Why a <code>TODO</code> line is the ideal payload</h3>
-
-<p>Suppose you need a throwaway commit to trigger a workflow. There are several stock manoeuvres, and it is instructive to see why each is worse than the one chosen here.</p>
-
-<table>
-  <thead><tr><th>Manoeuvre</th><th>Trouble with it</th></tr></thead>
-  <tbody>
-    <tr><td>An empty commit (<code>--allow-empty</code>)</td><td>Triggers the run, but leaves nothing behind. When someone reads the history in six months, the commit explains nothing and the follow-up work is unrecorded.</td></tr>
-    <tr><td>A whitespace tweak somewhere in <code>bot/</code></td><td>Touches production code for a non-production reason, and drags <code>ci.yml</code>'s lint-and-test job along for a ride it does not need.</td></tr>
-    <tr><td>Bumping a version or a comment</td><td>Same objection, plus it invites a reviewer to wonder whether the bump was meaningful.</td></tr>
-    <tr><td><strong>A line in <code>TODO</code></strong></td><td>Nothing. It is inert to lint and tests, it is honest about being a note, and the note it makes is the very thing the commit is doing.</td></tr>
-  </tbody>
-</table>
-
-<p>The last row is the trick, and it is a genuinely tidy one. Most throwaway commits are pure waste: you pay a line of history for a moment of CI feedback. This one converts the waste into a record. The change is a trigger and a reminder at the same time, and the reminder is about the trigger.</p>
-
-<figure>
-<div class="board">
-  <h4 style="margin-top:0">What the reviewer of PR #60 sees</h4>
-  <div class="gh">
-    <div class="ghhead"><strong>github-actions</strong> bot commented · sticky comment keyed <code>explain-diff</code></div>
-    <div class="ghbody">
-      🔎 <strong>Explain Diff</strong> for this PR: <span class="ghlink">https://syltruong.github.io/tg-language-assistant/pr-60/</span>
-      <div style="margin-top:8px; color: var(--ink-faint); font-size: 14px;">Regenerated automatically on every push to this PR.</div>
+    <span class="badge">event</span>
+    <div class="body">
+      <div class="title">A push lands on the PR branch</div>
+      <div class="sub"><code>pull_request</code>, types <code>opened</code> / <code>synchronize</code> / <code>reopened</code></div>
+      <div class="data">pull_request.number   = 60
+pull_request.base.ref = master
+head.repo.full_name   = syltruong/tg-language-assistant   → equals repo, so not a fork</div>
     </div>
   </div>
-  <p style="font-family: var(--sans); font-size: 14.5px; color: var(--ink-soft); margin-bottom: 0;">If this comment exists and the link resolves to the page you are now reading, then <span class="badge b-ok">publishes to gh-pages</span> and <span class="badge b-ok">comments on PRs</span> — the two clauses of the <code>TODO</code> item — are both satisfied. What remains unobserved is the <span class="badge b-q">cleanup on close</span>.</p>
-</div>
-<figcaption>The artefact the pipeline is supposed to produce. It is also the acceptance criterion for the line this PR adds.</figcaption>
-</figure>
-
-<h3 id="state">What the stateful steps actually touch</h3>
-
-<p>It helps to picture the <code>gh-pages</code> branch as a filesystem that three separate agents write to. Below is that branch at three points in time — the same tree diagram, varied.</p>
-
-<figure>
-<div class="board">
-  <h4 style="margin-top:0">Now · before any deploy has happened</h4>
-  <div class="tree">
-    <div class="row"><span class="fname">bot/ docs/ tests/</span><span class="note">inherited from master — a full source copy</span></div>
-    <div class="row"><span class="fname">CONTEXT.md  TODO  uv.lock  …</span><span class="note">ditto</span></div>
-    <div class="row"><span class="note">(no pr-* folders — one commit on the branch: 2573a19)</span></div>
+  <div class="arrow">▼</div>
+  <div class="stage">
+    <span class="badge">guard</span>
+    <div class="body">
+      <div class="title">Fork check</div>
+      <div class="sub">Secrets are not exposed to <code>pull_request</code> runs from forks, so the job is
+      skipped rather than failed noisily on someone else's branch.</div>
+    </div>
   </div>
-  <hr class="soft">
-  <h4>After step 4 of this run</h4>
-  <div class="tree">
-    <div class="row"><span class="fname">bot/ docs/ tests/ …</span><span class="note">untouched, because clean: false</span></div>
-    <div class="row"><span class="fname new">pr-60/index.html</span><span class="note new">← this page</span></div>
+  <div class="arrow">▼</div>
+  <div class="stage">
+    <span class="badge">step 1</span>
+    <div class="body">
+      <div class="title">Checkout with full history</div>
+      <div class="sub"><code>fetch-depth: 0</code> — a shallow clone has no merge base, and without a merge base there is no three-dot diff.</div>
+    </div>
   </div>
-  <hr class="soft">
-  <h4>After PR #60 is closed or merged</h4>
-  <div class="tree">
-    <div class="row"><span class="fname">bot/ docs/ tests/ …</span><span class="note">untouched</span></div>
-    <div class="row"><span class="fname gone">pr-60/index.html</span><span class="note">← <code>git rm -r pr-60</code> by explain-diff-cleanup.yml</span></div>
+  <div class="arrow">▼</div>
+  <div class="stage">
+    <span class="badge">step 2</span>
+    <div class="body">
+      <div class="title">Claude runs the skill</div>
+      <div class="sub"><code>anthropics/claude-code-action@v1</code>, prompted with <code>/explain-diff-html</code> plus the base ref and the redirected output path.</div>
+      <div class="data">--max-turns 40
+--allowedTools "Bash,Read,Write,Edit,Glob,Grep"
+writes → ./explain-diff-output/index.html</div>
+    </div>
+  </div>
+  <div class="arrow">▼</div>
+  <div class="stage">
+    <span class="badge">step 3</span>
+    <div class="body">
+      <div class="title">Publish to the <code>gh-pages</code> branch</div>
+      <div class="sub"><code>JamesIves/github-pages-deploy-action@v4</code> commits the folder into a per-PR subdirectory.</div>
+      <div class="data">folder:        explain-diff-output   (in the workspace — hence not /tmp)
+target-folder: pr-60
+clean:         false                 → other PRs' folders survive</div>
+    </div>
+  </div>
+  <div class="arrow">▼</div>
+  <div class="stage">
+    <span class="badge">step 4</span>
+    <div class="body">
+      <div class="title">Update the sticky comment</div>
+      <div class="sub"><code>marocchino/sticky-pull-request-comment@v2</code> with <code>header: explain-diff</code> — finds its own previous comment by that marker and edits it instead of posting a new one.</div>
+      <div class="data">https://syltruong.github.io/tg-language-assistant/pr-60/</div>
+    </div>
+  </div>
+  <div class="arrow">▼</div>
+  <div class="stage muted">
+    <span class="badge">on close</span>
+    <div class="body">
+      <div class="title">Cleanup workflow removes <code>pr-60/</code></div>
+      <div class="sub">A separate workflow on <code>pull_request: closed</code> checks out <code>gh-pages</code>, and if the folder exists, <code>git rm -r</code>s it and pushes.</div>
+    </div>
   </div>
 </div>
-<figcaption>One branch, three moments. <code>clean: false</code> is what keeps the middle row from wiping its neighbours; the cleanup workflow is what keeps the bottom row from growing without bound.</figcaption>
-</figure>
-
-<p>Notice how the design splits responsibility. The deploy step is deliberately additive — it never deletes, so two pull requests open at once cannot clobber each other's pages. The consequence is that <em>something else</em> must do the deleting, and that something is a separate workflow on a separate event. Additive writes plus a compensating cleanup is a common and sound arrangement, but it has a characteristic weakness: the compensation runs exactly once, at a moment nobody is watching, and a bug in it is silent. It shows up months later as a branch full of stale folders. That is a large part of why the <code>TODO</code> item is worth writing down rather than assuming.</p>
-
-<h2 id="code">The code walkthrough</h2>
-
-<h3 id="thediff">The diff itself</h3>
-
-<p>There is exactly one hunk, in exactly one file.</p>
-
-<pre><code><span class="meta">diff --git a/TODO b/TODO
-index f681f72..4c5d0d5 100644
---- a/TODO
-+++ b/TODO
-@@ -10,4 +10,5 @@</span>
- - [ ] onboarding process for language pairs (consider implementing as a Claude skill)
- - [ ] Add telemetry
- - [ ] Action.format() should return FormattedResult directly (text + parse_mode together) …
-<span class="del">-- [ ] ResponsePublisher._locks grows one entry per distinct user_id, never evicted — …
-\ No newline at end of file</span>
-<span class="add">+- [ ] ResponsePublisher._locks grows one entry per distinct user_id, never evicted — …
-+- [ ] Verify explain-diff-html CI pipeline (explain-diff.yml) actually publishes to gh-pages and comments on PRs
-\ No newline at end of file</span></code></pre>
-
-<p>The new entry lands at the bottom of the file, and its neighbours are worth a glance, because placement carries meaning here. The last three items before it are all <em>deferred maintenance with a stated trigger</em>: refactor <code>Action.format()</code> to return a <code>FormattedResult</code> directly; add TTL or LRU eviction to <code>ResponsePublisher._locks</code> <em>"once the user base is large enough for this to matter"</em>. These are not features. They are known-and-parked concerns, each carrying enough context that a future reader can judge whether the moment has come.</p>
-
-<p>The new line fits that mould precisely. It names the artefact (<code>explain-diff.yml</code>), states the two observable outcomes it wants confirmed (publishes to <code>gh-pages</code>; comments on pull requests), and implicitly sets its own trigger: check the next time a pull request goes by. Contrast it with a line reading <em>"check CI works"</em> — the version actually written can be closed by evidence, and a future reader knows what evidence to look for.</p>
-
-<div class="callout">
-  <span class="label">Style note</span>
-  <p>Nothing enforces this, but every recent entry in <code>TODO</code> follows the same implicit template: <em>what</em>, then <em>why or when</em>. It is the same instinct that produced <code>CONTEXT.md</code>'s <em>Avoid</em> lists and the ADR directory — write down the reasoning, not just the task, because the reasoning is what rots first.</p>
-</div>
-
-<h3 id="twoinsert">Why git says “2 insertions, 1 deletion”</h3>
-
-<p><code>git diff --stat</code> reports <code>1 file changed, 2 insertions(+), 1 deletion(-)</code> for what is plainly the addition of a single line. This is not a mystery, but it trips people up often enough to be worth two paragraphs.</p>
-
-<p>The <code>TODO</code> file has no trailing newline. You can see it in the raw bytes: the file ends <code>…comments on PRs</code> with no <code>0x0a</code> after it. Git records that fact in the diff as the marker <code>\ No newline at end of file</code>, and the marker is attached to a specific line — the last one.</p>
-
-<p>So when you append a line to such a file, two things change. The old last line gains a newline it did not have, and a new last line appears without one. In git's line-oriented model the old last line is therefore not unchanged: it must be deleted and re-added in its newline-terminated form. Hence one deletion and two insertions for one logical addition.</p>
 
 <div class="callout warn">
-  <span class="label">Edge case</span>
-  <p>The new line also ends without a newline, so the file's missing-trailing-newline quirk is preserved rather than fixed. Tidying it would have been defensible, but it would also have added a second unrelated line of churn to a commit whose entire virtue is being minimal. Leaving it alone is the right call — though it does mean the next person to append to <code>TODO</code> will see the same odd two-for-one diff.</p>
+  <span class="label">Edge case that already bit once</span>
+  <p><code>#59</code> needed a follow-up fix: <code>claude-code-action@v1</code> fetches a GitHub OIDC
+  token internally, so without <code>id-token: write</code> in the workflow's <code>permissions</code>
+  block the step fails with "Could not fetch an OIDC token" <em>before</em> Claude is ever invoked. The
+  final permission set is therefore three-part: <code>contents: write</code> to push to
+  <code>gh-pages</code>, <code>pull-requests: write</code> to comment, and <code>id-token: write</code>
+  for the action's own handshake.</p>
 </div>
 
-<h3 id="unchanged">The files that did <em>not</em> change</h3>
+<p>That fix is the tell. A workflow of this shape has many independent ways to fail — a missing permission,
+a path the deploy action cannot see, a branch that does not exist yet, a comment marker that does not
+match — and every one of them is invisible until the thing runs end to end against the real repository.
+Which is exactly the gap this pull request exists to close.</p>
 
-<p>In a pull request this small, the absences are as informative as the presence. Four things a reader might reasonably have expected are all deliberately absent.</p>
+<h2 id="intuition"><span class="num">02</span>Intuition: a self-referential smoke test</h2>
 
-<ul>
-  <li><strong><code>.github/workflows/explain-diff.yml</code> is untouched.</strong> This is the whole point. The workflow must be frozen for the run to mean anything; had this pull request also tweaked it, it would have reproduced #59's confounding problem in miniature.</li>
-  <li><strong><code>.github/workflows/explain-diff-cleanup.yml</code> is untouched</strong> — and remains the one part of the lifecycle this run cannot exercise, since it fires only on <code>closed</code>.</li>
-  <li><strong>No test was added.</strong> There is no meaningful unit test for "does a GitHub workflow deploy to a branch". The test is the run; the <code>TODO</code> line is the assertion, and a human eye is the test runner.</li>
-  <li><strong>No GitHub Issue was filed,</strong> even though <code>CLAUDE.md</code> designates GitHub Issues as the tracker. The item went to <code>TODO</code> instead. That is consistent with how the file is already used — it holds small, self-assigned, near-term follow-ups — but it is worth naming as a judgement call rather than a rule. An argument exists for promoting this to an issue with a label, precisely because a one-line verification task is the kind of thing that quietly never gets done.</li>
-</ul>
+<p>The intuition is best stated as a small paradox. The pull request that <em>introduced</em> the
+explain-diff pipeline is a poor test of it: much of what the pipeline touches lives outside the pull
+request. The <code>gh-pages</code> branch has to exist. Pages has to be enabled and serving from it.
+The repository secret <code>ANTHROPIC_API_KEY</code> has to be present. The comment marker has to match a
+previous comment that, on a first run, is not there. As the first commit message in this pull request puts
+it: the workflow "can't validate itself from within the PR that first introduced it."</p>
 
-<p>One further consequence of touching only <code>TODO</code>: the main <code>ci.yml</code> workflow still runs on this pull request, dutifully installing dependencies, linting, and executing the full <code>pytest</code> suite against a change to a text file. It will pass, and it tells you nothing. Only the explain-diff workflow is carrying information on this run.</p>
+<p>So you need a second pull request whose diff is deliberately, almost comically trivial — small enough
+that any failure is unambiguously the pipeline's fault and never the diff's. A single line appended to a
+scratch file is about as close to zero payload as a real commit gets. The line even names its own purpose:</p>
 
-<h2 id="verified">What “verified” would mean</h2>
+<pre><code>- [ ] Verify explain-diff-html CI pipeline (explain-diff.yml) actually publishes
+      to gh-pages and comments on PRs</code></pre>
 
-<p>The <code>TODO</code> item asks for verification, so it is worth being concrete about what would let someone tick the box. The pipeline has five checkpoints, and this run supplies evidence for most of them.</p>
+<p>Then a second push arrives — <code>- [ ] Another trivial edit</code> — and this is where the test stops
+being trivial. A first push and a second push exercise <em>different</em> code paths through the same YAML.</p>
+
+<div class="grid2">
+  <div class="card">
+    <h4>Push #1 — the create path</h4>
+    <p><code>pr-60/</code> does not exist on <code>gh-pages</code>. The deploy action creates it. There is
+    no comment carrying the <code>explain-diff</code> marker, so the sticky-comment action posts a new one.</p>
+    <p>Proves: permissions, OIDC, output path, Pages publish, comment creation.</p>
+  </div>
+  <div class="card">
+    <h4>Push #2 — the regenerate path</h4>
+    <p><code>pr-60/index.html</code> already exists and must be <em>overwritten</em>, not duplicated.
+    A comment with the marker already exists and must be <em>edited</em>, not appended. And if run #1 were
+    still going, the concurrency group would cancel it.</p>
+    <p>Proves: idempotency — the property the comment's own text promises.</p>
+  </div>
+</div>
+
+<p>That promise is written into the sticky comment: "Regenerated automatically on every push to this PR."
+Idempotency under repeated pushes is a claim, and push #2 is the experiment that tests it. Here is what
+the reviewer sees on the pull request page in the two cases — the same single comment, its body silently
+replaced:</p>
+
+<div class="ui">
+  <div class="ui-bar">syltruong/tg-language-assistant · Pull request #60 · <b>test-explain-diff-pipeline → master</b></div>
+  <div class="ui-body">
+    <div class="checkline"><span class="dot ok"></span> CI / check &nbsp;<span style="color:#8a8271">— lint + pytest, untouched by a TODO edit</span></div>
+    <div class="checkline"><span class="dot ok"></span> Explain Diff / explain &nbsp;<span style="color:#8a8271">— run #2, replaces run #1's output</span></div>
+    <div class="checkline"><span class="dot skip"></span> Explain Diff Cleanup &nbsp;<span style="color:#8a8271">— waits for <code>closed</code></span></div>
+    <div class="comment">
+      <div class="comment-head">github-actions[bot] · <code>&lt;!-- explain-diff --&gt;</code> marker · <b>edited</b></div>
+      <div class="comment-body">
+        🔎 <b>Explain Diff</b> for this PR: <span class="lnk">https://syltruong.github.io/tg-language-assistant/pr-60/</span>
+        <div style="color:#8a8271;margin-top:8px;font-size:.9em">Regenerated automatically on every push to this PR.</div>
+      </div>
+    </div>
+    <p style="font-size:.88rem;color:#8a8271;margin:14px 0 0;font-family:var(--mono)">
+      One comment, not two. The URL is stable across pushes; only the bytes behind it change.</p>
+  </div>
+</div>
+
+<p>And the state on the publishing branch, which is where the evidence lives:</p>
+
+<div class="filestrip">
+  <div class="fs-head"><span>branch <b>gh-pages</b> — an orphan branch, no source code</span><span>2 commits</span></div>
+  <div class="row ctx"><span class="ln">1</span><span class="sg"></span><span class="tx">5f86e52  Reset gh-pages to an empty orphan branch          ← prepared by hand</span></div>
+  <div class="row add"><span class="ln">2</span><span class="sg">+</span><span class="tx">5f1cf10  Deploying to gh-pages from @ …@14cabdce 🚀        ← run #1 of THIS PR</span></div>
+  <div class="row note"><span class="ln"></span><span class="sg"></span><span class="tx">tree: pr-60/index.html   (50,560 bytes)</span></div>
+</div>
+
+<div class="callout">
+  <span class="label">Why this matters</span>
+  <p>That second commit is not hypothetical. Before the current run, <code>gh-pages</code> already held
+  <code>pr-60/index.html</code> at roughly 50 KB, deployed from an earlier merge ref of this same pull
+  request. So the create path has <em>already</em> succeeded once, unattended. What remains open is the
+  regenerate path — whether the page you are reading correctly replaced that file, and whether the sticky
+  comment was edited rather than duplicated.</p>
+</div>
+
+<h2 id="code"><span class="num">03</span>The code: every changed byte</h2>
+
+<p>With the machinery in view, the diff itself takes a paragraph — and then repays a second look, because
+even here git has something to teach.</p>
+
+<h3>The two commits</h3>
 
 <table>
-  <thead><tr><th>Checkpoint</th><th>Evidence</th><th>Status</th></tr></thead>
-  <tbody>
-    <tr><td>Workflow triggers on a same-repo pull request</td><td>This page exists, which means step 3 ran.</td><td><span class="badge b-ok">shown</span></td></tr>
-    <tr><td>Agent can diff the branch against its base</td><td>The diff above was recovered inside the runner (see the field notes below for the wrinkle).</td><td><span class="badge b-ok">shown</span></td></tr>
-    <tr><td>Output lands at <code>./explain-diff-output/index.html</code></td><td>The path override in the prompt was honoured.</td><td><span class="badge b-ok">shown</span></td></tr>
-    <tr><td>Deploy pushes to <code>gh-pages</code> under <code>pr-60/</code></td><td>Confirmed if this page is being served from that URL.</td><td><span class="badge b-q">check the URL</span></td></tr>
-    <tr><td>Sticky comment appears and is edited, not duplicated, on re-push</td><td>Requires two pushes to observe properly.</td><td><span class="badge b-q">check the PR</span></td></tr>
-    <tr><td>Cleanup removes <code>pr-60/</code> when the PR closes</td><td>Cannot be observed until this pull request is closed or merged.</td><td><span class="badge b-no">not yet</span></td></tr>
-  </tbody>
+  <tr><th>Commit</th><th>Author</th><th>Change</th></tr>
+  <tr>
+    <td><code>ca6f860</code></td>
+    <td>Claude</td>
+    <td>Appends the "Verify explain-diff-html CI pipeline" item. The message states the reasoning: a
+    throwaway change to exercise the workflow now that it lives on <code>master</code>.</td>
+  </tr>
+  <tr>
+    <td><code>4f0b7b8</code></td>
+    <td>Syl Truong</td>
+    <td>Appends <code>- [ ] Another trivial edit</code> — a second push, purely to trigger a second run.</td>
+  </tr>
 </table>
 
-<p>Which suggests the honest disposition for the <code>TODO</code> line: it should survive the merge of this pull request rather than being ticked off by it. Most of the pipeline can be confirmed from inside a run; the final step, by construction, can only be confirmed from outside one.</p>
+<h3>The net diff against <code>master</code></h3>
 
-<h2 id="observed">Field notes from this run</h2>
+<pre><code>diff --git a/TODO b/TODO
+index f681f72..0403731 100644
+--- a/TODO
++++ b/TODO
+@@ -10,4 +10,6 @@
+ - [ ] onboarding process for language pairs (consider implementing as a Claude skill)
+ - [ ] Add telemetry
+ - [ ] Action.format() should return FormattedResult directly (text + parse_mode …)
+-- [ ] ResponsePublisher._locks grows one entry per distinct user_id, never evicted …
+\ No newline at end of file
++- [ ] ResponsePublisher._locks grows one entry per distinct user_id, never evicted …
++- [ ] Verify explain-diff-html CI pipeline (explain-diff.yml) actually publishes to gh-pages and comments on PRs
++- [ ] Another trivial edit</code></pre>
 
-<p>Since the point of the exercise is to learn something about the pipeline, here are two things that surfaced while generating this page. Both are small, and both are exactly the sort of detail the <code>TODO</code> item was written to catch.</p>
+<p>Read the arithmetic: three insertions, one deletion, for what is conceptually two appended lines. The
+deleted line and the first inserted line are <em>textually identical</em>. Nothing about the
+<code>ResponsePublisher</code> note changed.</p>
 
-<p><strong>The prompt names a branch that does not exist locally.</strong> The workflow interpolates the base branch name and asks the agent to <em>"compare the base branch <code>master</code> against the current branch head"</em>. But <code>actions/checkout@v4</code> on a <code>pull_request</code> event leaves you on a detached merge ref with no local <code>master</code> branch. The obvious command fails:</p>
+<div class="callout">
+  <span class="label">Key concept — the missing final newline</span>
+  <p>A text file's last line ordinarily ends with <code>\n</code>. On <code>master</code>, <code>TODO</code>
+  did not: its final byte was the letter <code>r</code> of "matter". Git tracks content, not lines, and it
+  marks this with <code>\ No newline at end of file</code>. To append after such a line you must first
+  <em>terminate</em> it — which changes those bytes — so git records the old unterminated line as removed
+  and the newline-terminated version as added. One line of visual churn, zero lines of semantic change.
+  This is why appending to a no-trailing-newline file always shows a phantom deletion, and why the second
+  commit's diff shows the same phantom again for the line <em>it</em> appended after.</p>
+</div>
 
-<pre class="wrapped"><code>$ git diff master...HEAD
-fatal: ambiguous argument 'master...HEAD': unknown revision or path not in the working tree.
+<p>Watch the file evolve through both commits. The badge marks where the file ends without a newline:</p>
 
-$ git rev-parse --verify master
-fatal: Needed a single revision
+<div class="filestrip">
+  <div class="fs-head"><span><b>TODO</b> on <code>master</code> @ 2573a19 (last 4 of 13 lines)</span><span>blob f681f72</span></div>
+  <div class="row ctx"><span class="ln">10</span><span class="sg"> </span><span class="tx">- [ ] onboarding process for language pairs …</span></div>
+  <div class="row ctx"><span class="ln">11</span><span class="sg"> </span><span class="tx">- [ ] Add telemetry</span></div>
+  <div class="row ctx"><span class="ln">12</span><span class="sg"> </span><span class="tx">- [ ] Action.format() should return FormattedResult directly …</span></div>
+  <div class="row ctx"><span class="ln">13</span><span class="sg"> </span><span class="tx">- [ ] ResponsePublisher._locks grows one entry per distinct user_id …<span class="eof">no ⏎ at EOF</span></span></div>
+</div>
 
-$ git rev-parse --verify origin/master
-2573a19a65739931a150dd88a077a80adf7eab33</code></pre>
+<div class="filestrip">
+  <div class="fs-head"><span>after <b>ca6f860</b> — line 13 rewritten only to gain its newline</span><span>blob 4c5d0d5</span></div>
+  <div class="row del"><span class="ln">13</span><span class="sg">−</span><span class="tx">- [ ] ResponsePublisher._locks … (unterminated)</span></div>
+  <div class="row add"><span class="ln">13</span><span class="sg">+</span><span class="tx">- [ ] ResponsePublisher._locks … (now newline-terminated — same visible text)</span></div>
+  <div class="row add"><span class="ln">14</span><span class="sg">+</span><span class="tx">- [ ] Verify explain-diff-html CI pipeline (explain-diff.yml) actually publishes to gh-pages and comments on PRs<span class="eof">no ⏎ at EOF</span></span></div>
+</div>
 
-<p>The remote-tracking ref <code>origin/master</code> is present, so recovering is a matter of one extra step — but it is an extra step the agent has to discover, and it costs turns out of the <code>--max-turns 40</code> budget. Saying <code>origin/${{ ... base.ref }}</code> in the prompt would remove the stumble entirely.</p>
+<div class="filestrip">
+  <div class="fs-head"><span>after <b>4f0b7b8</b> — the same trick, one line down</span><span>blob 0403731</span></div>
+  <div class="row del"><span class="ln">14</span><span class="sg">−</span><span class="tx">- [ ] Verify explain-diff-html CI pipeline … (unterminated)</span></div>
+  <div class="row add"><span class="ln">14</span><span class="sg">+</span><span class="tx">- [ ] Verify explain-diff-html CI pipeline … (now terminated)</span></div>
+  <div class="row add"><span class="ln">15</span><span class="sg">+</span><span class="tx">- [ ] Another trivial edit</span></div>
+  <div class="row note"><span class="ln"></span><span class="sg"></span><span class="tx">…and this time the file does end with a newline. The wart is gone.</span></div>
+</div>
 
-<p><strong>The checkout confirms the merge-ref semantics.</strong> <code>HEAD</code> here is <code>14cabdc</code>, whose subject is literally <em>"Merge <code>ca6f860</code> into <code>2573a19</code>"</em>. That is GitHub's synthetic merge commit, and it is why a workflow added inside a pull request does run within that same pull request. It also means the diff of interest is the two-dot range between the base commit and the head commit, not anything involving <code>HEAD</code> directly — a subtlety that a prompt phrased in terms of "branch head" glosses over.</p>
+<p>Because the second commit's phantom deletion and insertion cancel out against the first commit's, the
+net three-dot diff shows only one phantom rather than two. It is a small illustration of a general point:
+a squashed diff is not the sum of its commits' line counts.</p>
 
-<p>Neither of these is a failure. The pipeline delivered its artefact. But they are precisely the friction you cannot see from reading YAML, and finding them is what a smoke test is for. The pull request that exists to test the pipeline has, in the course of being tested, produced two concrete suggestions for it.</p>
+<div class="callout warn">
+  <span class="label">Not changed — worth knowing</span>
+  <p>No Python, YAML, prompt template, or documentation file is touched. Lint and tests in
+  <code>ci.yml</code> run and pass, but they exercise nothing new: <code>TODO</code> is not imported,
+  parsed, or asserted on anywhere. The bot's behaviour on <code>master</code> and on this branch is
+  byte-for-byte identical.</p>
+</div>
 
-<h2 id="quiz">Quiz</h2>
+<h3>What the neighbouring lines are for</h3>
 
-<p>Five questions. They are meant to be answerable if you followed the argument, not if you memorised the YAML.</p>
+<p>One incidental benefit of reading a <code>TODO</code> diff closely is the context lines, which are a
+compact tour of the project's live design debts. Two are worth naming because they show what kind of
+backlog this is:</p>
+
+<ul>
+  <li><strong><code>Action.format()</code> should return <code>FormattedResult</code> directly</strong> —
+  today an Action exposes <code>parse_mode</code> as a separate property (a deliberate choice, recorded in
+  <code>docs/adr/0002-action-parse-mode-independent-from-response-format.md</code>) and the Action Runner
+  assembles the pair. Returning text and parse mode together would remove that assembly step.</li>
+  <li><strong><code>ResponsePublisher._locks</code> grows one entry per distinct <code>user_id</code>,
+  never evicted</strong> — a known unbounded-growth issue, explicitly deferred until the user base makes
+  it matter. Not a bug report; a dated decision to wait.</li>
+</ul>
+
+<p>The new entries join that register. "Verify explain-diff-html CI pipeline" is a note-to-self that this
+very run is the verification, and it stays unchecked until a human confirms the outcome.</p>
+
+<h2 id="pipeline"><span class="num">04</span>What the two lines actually exercise</h2>
+
+<p>It is worth being precise about which lines of YAML are under test, since that is the whole payload of
+the change. Four mechanisms in <code>explain-diff.yml</code> only ever engage on a repeat push, and this
+pull request is the first thing in the repository's history to produce one.</p>
+
+<h4>Concurrency</h4>
+<pre><code>concurrency:
+  group: explain-diff-${{ github.event.pull_request.number }}
+  cancel-in-progress: true</code></pre>
+<p>The group key is per-PR, so pull requests never queue behind each other, but two runs for
+<em>the same</em> pull request cannot overlap: the newer push cancels the older run. This matters more here
+than in an ordinary test job, because both runs would otherwise race to commit to the same
+<code>pr-60/</code> path on <code>gh-pages</code> and to edit the same comment. Cancellation is the
+serialisation.</p>
+
+<h4>A non-clean deploy into a per-PR folder</h4>
+<pre><code>branch: gh-pages
+folder: explain-diff-output
+target-folder: pr-${{ github.event.pull_request.number }}
+clean: false</code></pre>
+<p><code>clean: false</code> is the load-bearing flag. With cleaning on, each deploy would wipe everything
+on <code>gh-pages</code> that is not in the uploaded folder — so publishing <code>pr-60/</code> would
+delete <code>pr-59/</code>, <code>pr-61/</code>, and any other live explanation. With it off, the deploy is
+additive: it replaces the contents of the target folder and leaves siblings untouched. The cost is that
+stale folders never disappear on their own, which is precisely why the cleanup workflow exists as the
+counterweight.</p>
+
+<h4>The redirected output path</h4>
+<p>The default skill behaviour — write a dated file into <code>/tmp</code> — is right for a human at a
+terminal and wrong in CI, because the deploy step uploads a directory <em>relative to the workspace</em>.
+Rather than special-casing CI inside the skill, the workflow passes the destination in the prompt and the
+skill honours it. The mechanism is a plain instruction, and it is what makes one skill serve both an
+interactive session and an unattended runner.</p>
+
+<h4>The sticky comment marker</h4>
+<p><code>header: explain-diff</code> becomes an invisible HTML marker in the comment body. On each run the
+action searches the pull request's comments for that marker: found, and it edits in place; absent, and it
+creates. One PR therefore accumulates exactly one explain-diff comment no matter how many times you push —
+the difference between a helpful bot and a noisy one.</p>
+
+<h3>The lifecycle, one more time</h3>
+
+<p>The same three-lane picture, now with the actual commits of this pull request in it:</p>
+
+<div class="graph">
+  <div class="lane">
+    <span class="lanelabel">master</span>
+    <span class="node"><span class="sha">2573a19</span> · skill + workflows land</span>
+  </div>
+  <div class="lane">
+    <span class="lanelabel">PR branch</span>
+    <span class="node"><span class="sha">ca6f860</span> · +1 TODO line</span>
+    <span class="link"></span>
+    <span class="node head"><span class="sha">4f0b7b8</span> · +1 more</span>
+  </div>
+  <div class="lane">
+    <span class="lanelabel">merge ref</span>
+    <span class="node ghost"><span class="sha">14cabdce</span> · run #1 → published</span>
+    <span class="link"></span>
+    <span class="node ghost"><span class="sha">02449b5</span> · run #2 → this page</span>
+  </div>
+  <div class="lane">
+    <span class="lanelabel">gh-pages</span>
+    <span class="node"><span class="sha">5f86e52</span> · empty orphan</span>
+    <span class="link"></span>
+    <span class="node"><span class="sha">5f1cf10</span> · pr-60/index.html</span>
+    <span class="link"></span>
+    <span class="node ghost">next · pr-60/index.html <b>overwritten</b></span>
+  </div>
+</div>
+
+<div class="callout">
+  <span class="label">Key concept — the merge ref</span>
+  <p>A <code>pull_request</code> run does not check out your branch tip. It checks out
+  <code>refs/pull/60/merge</code>: a synthetic merge of your head into the base, which is why the local
+  <code>git log</code> here shows a detached HEAD at a commit whose subject is "Merge 4f0b7b8… into
+  2573a19…". This is a feature — you are told what the code will look like <em>after</em> merging, not
+  merely what it looks like on the branch — but it is also why the base is referred to by name
+  (<code>master</code>) in the prompt rather than assumed to be <code>HEAD~1</code>.</p>
+</div>
+
+<h2 id="openq"><span class="num">05</span>What this run can and cannot prove</h2>
+
+<p>Honesty about a smoke test's coverage is part of the test. Reading the branch state, the following is
+established, and the following is not.</p>
+
+<div class="grid2">
+  <div class="card">
+    <h4>established</h4>
+    <p>The <code>gh-pages</code> branch contains <code>pr-60/index.html</code>, deployed unattended from an
+    earlier run of this pull request. So: the fork guard passed, the OIDC permission was sufficient, Claude
+    wrote to the workspace path, and the deploy step committed and pushed.</p>
+  </div>
+  <div class="card">
+    <h4>still open at the moment of writing</h4>
+    <p>Whether this run <em>overwrote</em> that file rather than sitting beside it; whether the sticky
+    comment was edited rather than duplicated; whether GitHub Pages is actually serving the URL; and
+    whether the cleanup workflow removes <code>pr-60/</code> when the pull request closes. That last one
+    cannot be tested before merge by construction.</p>
+  </div>
+</div>
+
+<p>Which yields a concrete checklist for whoever ticks the <code>TODO</code> item off. Open the URL in the
+comment and confirm it renders. Confirm there is exactly one explain-diff comment on the pull request.
+Confirm the page describes the second commit, <code>4f0b7b8</code> — that is the proof of regeneration, since
+run #1 could not have known about a commit that did not yet exist. Then close the pull request and confirm
+<code>pr-60/</code> disappears from <code>gh-pages</code>.</p>
+
+<p>If all four hold, the mechanism is sound and the interesting question moves elsewhere: not whether the
+pipeline runs, but whether an explanation generated for every push is worth reading. A two-line
+<code>TODO</code> edit is a deliberately unfair trial of that — there is almost nothing to explain, so the
+page fills up with background and machinery. The fair trial is the next substantive pull request, where
+this same apparatus has a real design change to make legible.</p>
+
+<h2 id="quiz"><span class="num">06</span>Quiz</h2>
+
+<p>Five questions. Each one is answerable from the substance above; none turn on a memorised detail.</p>
 
 <div class="quiz" id="quiz"></div>
+<div class="score" id="score">Answered <b>0</b> of 5.</div>
 
-<div class="score" id="score">Answer the questions above to see your score.</div>
-
-<hr class="soft">
-
-<p class="footnote">Generated by the <code>explain-diff-html</code> skill running in GitHub Actions, for pull request #60 of <code>syltruong/tg-language-assistant</code> — comparing <code>2573a19</code> (base <code>master</code>) with <code>ca6f860</code> (head), checked out as merge commit <code>14cabdc</code>.</p>
+<footer>
+  Generated for pull request #60 (<code>test-explain-diff-pipeline</code> → <code>master</code>) on 2026-07-25
+  by the <code>explain-diff-html</code> skill, running inside <code>.github/workflows/explain-diff.yml</code>.
+  Base <code>2573a19</code> · head <code>4f0b7b8</code> · 1 file changed.
+</footer>
 
 </div>
 
 <script>
 const QUESTIONS = [
   {
-    q: "The diff adds one line to <code>TODO</code>, yet <code>git diff --stat</code> reports 2 insertions and 1 deletion. Why?",
+    q: "The net diff shows 3 insertions and 1 deletion, yet the two commits only append lines and change nothing that already existed. Where does the deletion come from?",
     opts: [
-      "Git counts the modified hunk header as an insertion.",
-      "The file lacks a trailing newline, so the previous last line has to be rewritten in newline-terminated form.",
-      "The line was long enough that git wrapped it into two diff lines.",
-      "A merge commit is involved, so every change is double-counted."
+      "The <code>ResponsePublisher._locks</code> item was reworded while the lines were being appended.",
+      "On <code>master</code>, <code>TODO</code> ended without a trailing newline, so appending required rewriting that final line to terminate it.",
+      "Git counts the <code>@@ -10,4 +10,6 @@</code> hunk header itself as one deleted line.",
+      "The first commit deleted a line that the second commit restored, and the three-dot diff shows both halves."
     ],
     correct: 1,
     fb: [
-      "Not quite — hunk headers (the <code>@@ -10,4 +10,5 @@</code> line) are metadata and are never counted as insertions.",
-      "Exactly. <code>TODO</code> ends without a newline, and git attaches the <code>\\ No newline at end of file</code> marker to a specific line. Appending forces the old last line to gain a newline, so git records it as deleted and re-added — one deletion, two insertions, one logical new line.",
-      "No — git's diff is line-oriented and never splits a long line. Line length has no effect on the counts.",
-      "No. The merge commit is how Actions checks out the PR, but the stat was taken over the two-dot range between base and head; merges don't double-count."
+      "No — compare the deleted and inserted text and they are identical, character for character. Something other than the wording changed.",
+      "Exactly. The old final byte was the <code>r</code> of \"matter\". Git tracks bytes, not lines, so terminating that line is a content change: the unterminated version is recorded as removed and the newline-terminated one as added. Pure churn, no semantic change.",
+      "No — hunk headers are diff metadata and are never counted in the insertion or deletion totals.",
+      "No — a three-dot diff compares the merge base against the head, so a delete-then-restore inside the branch would cancel out entirely and appear nowhere."
     ]
   },
   {
-    q: "The commit message says the workflow “can't validate itself from within the PR that first introduced it.” Which of these is the strongest reason?",
+    q: "Why does the workflow tell Claude to write to <code>./explain-diff-output/index.html</code> instead of the skill's usual dated file in <code>/tmp</code>?",
     opts: [
-      "GitHub Actions refuses to run a workflow file that was added in the pull request itself.",
-      "Secrets such as <code>ANTHROPIC_API_KEY</code> are never available to <code>pull_request</code> runs.",
-      "The publish and comment steps write to shared state outside the run, and the cleanup step only fires on <code>closed</code> — so they can't be rehearsed while you're still iterating on the workflow.",
-      "The <code>concurrency</code> block cancels in-progress runs, so no run in PR #59 could ever finish."
-    ],
-    correct: 2,
-    fb: [
-      "This is the common misconception, and this very run disproves it: for same-repo pull requests Actions uses the merge ref, so a newly added workflow does run. PR #59's runs did execute — one of them failed on a missing <code>id-token</code> permission.",
-      "Only for forks. The workflow explicitly guards against that case with <code>if: head.repo.full_name == github.repository</code>; for same-repo pull requests secrets are available.",
-      "Right. Steps 4 and 5 push to <code>gh-pages</code> and mutate a PR comment — irreversible, outside-the-run effects — and the cleanup workflow's trigger arrives only when the PR closes. Combine that with the workflow file changing between attempts and you have no stable experiment.",
-      "No — <code>cancel-in-progress</code> only cancels superseded runs for the same PR when a new push arrives. The latest run always gets to finish."
-    ]
-  },
-  {
-    q: "The deploy step sets <code>clean: false</code>. What breaks if you remove it?",
-    opts: [
-      "Nothing on this PR, but folders belonging to other open pull requests risk being removed, since the source folder only ever contains one PR's page.",
-      "The deploy would fail outright, because <code>gh-pages</code> already contains a copy of the source tree.",
-      "The sticky comment would be posted twice per push.",
-      "The cleanup workflow would no longer be able to find <code>pr-60/</code>."
-    ],
-    correct: 0,
-    fb: [
-      "Correct. The published folder for each PR is deployed from a source directory holding exactly one <code>index.html</code>. Additive deploys are what let several open pull requests coexist on the branch — and that's precisely why a separate cleanup workflow has to exist to do the deleting.",
-      "No — the deploy writes into <code>target-folder: pr-60</code> and is untroubled by the rest of the branch's contents.",
-      "No — comment behaviour is governed entirely by <code>sticky-pull-request-comment</code> and its <code>header</code> key, in a different step.",
-      "Backwards. Cleanup runs later on a fresh checkout of <code>gh-pages</code>; the <code>clean</code> flag has no bearing on whether the folder is findable."
-    ]
-  },
-  {
-    q: "A contributor opens a pull request from a fork of the repository. What happens to the explain-diff pipeline?",
-    opts: [
-      "It runs normally; the explanation is published under <code>pr-N/</code>.",
-      "It runs but fails at the deploy step, leaving a red X on the pull request.",
-      "The job is skipped by an <code>if</code> condition, because secrets aren't exposed to fork pull requests.",
-      "The cleanup workflow runs instead, as a fallback."
-    ],
-    correct: 2,
-    fb: [
-      "No — the job never starts for forks. This is intentional, not an oversight.",
-      "This is what the guard exists to prevent. The comment in the YAML says it plainly: secrets aren't available to fork-triggered <code>pull_request</code> runs, so the job skips rather than failing noisily. A skipped job is quiet; a failed one nags every contributor.",
-      "Correct. <code>if: github.event.pull_request.head.repo.full_name == github.repository</code> skips the job entirely, trading a missing explanation for a clean pull request status.",
-      "No — cleanup is bound to the <code>closed</code> event only and is unrelated to fork handling."
-    ]
-  },
-  {
-    q: "Inside the runner, <code>git diff master...HEAD</code> fails with “unknown revision.” What is going on, and what should the pipeline do about it?",
-    opts: [
-      "<code>fetch-depth: 0</code> was omitted, so history is shallow; add it.",
-      "The checkout leaves a detached merge ref with no local <code>master</code> branch, only the remote-tracking <code>origin/master</code>; the prompt should name <code>origin/&lt;base.ref&gt;</code>.",
-      "<code>master</code> was renamed to <code>main</code>; update the branch name in the workflow.",
-      "The repository is a shallow clone of <code>gh-pages</code>, which has no <code>master</code>; check out the right branch."
+      "Files under <code>/tmp</code> are deleted before the next step in a job begins.",
+      "The Pages deploy step uploads a folder relative to the checked-out workspace, so the output has to live inside the workspace.",
+      "The skill cannot write outside the repository when only <code>Write</code> and <code>Edit</code> are allowlisted.",
+      "GitHub Pages requires the served file to be tracked on the PR branch before it can be published."
     ],
     correct: 1,
     fb: [
-      "<code>fetch-depth: 0</code> <em>is</em> already set, which is why the full history and <code>origin/master</code> are present. Depth isn't the problem — the missing local branch ref is.",
-      "Exactly. <code>actions/checkout@v4</code> on a <code>pull_request</code> event checks out the synthetic merge commit in detached HEAD and creates no local branch for the base. <code>origin/master</code> resolves fine, so interpolating <code>origin/${{ …base.ref }}</code> into the prompt removes the stumble — and saves turns from the <code>--max-turns 40</code> budget.",
-      "No — <code>master</code> is the live default branch here, and <code>origin/master</code> resolves to <code>2573a19</code>. The name is right; the ref form is not.",
-      "No — the explain-diff job checks out the pull request head. It's the separate cleanup workflow that checks out <code>gh-pages</code>."
+      "No — steps in a job share the runner's filesystem, and <code>/tmp</code> persists across them. The problem is what the deploy step can address, not what survives.",
+      "Right. <code>folder: explain-diff-output</code> is resolved relative to the workspace, so a <code>/tmp</code> path is simply invisible to it. Note the design choice: the skill parameterises its output path rather than special-casing CI.",
+      "No — <code>Bash</code> and <code>Write</code> are both allowlisted and neither is confined to the repository. The constraint comes from the deploy step downstream.",
+      "No — the published file is committed to the orphan <code>gh-pages</code> branch by the deploy action; it is never part of the PR branch."
+    ]
+  },
+  {
+    q: "The deploy step sets <code>clean: false</code>. What would break if it were <code>true</code>?",
+    opts: [
+      "The <code>pr-60/</code> folder would never be updated on a second push, since cleaning happens after upload.",
+      "Every deploy would remove everything on <code>gh-pages</code> outside the uploaded folder, so publishing one PR would delete the other PRs' explanations.",
+      "The cleanup workflow would fail, because <code>git rm -r</code> needs the folder to still be present.",
+      "The commit history of <code>gh-pages</code> would be squashed, losing the record of earlier deploys."
+    ],
+    correct: 1,
+    fb: [
+      "No — cleaning affects which sibling files survive a deploy, not whether the target folder's own contents are replaced. Overwriting the target works either way.",
+      "Correct. Cleaning makes the branch mirror the uploaded folder, so <code>pr-59/</code> and friends would vanish each time another PR deployed. The trade-off is that stale folders now linger — which is exactly why the cleanup-on-close workflow exists.",
+      "Not the main consequence. Cleanup runs much later, on <code>pull_request: closed</code>, and it already guards with an <code>if [ -d \"$folder\" ]</code> check.",
+      "No — <code>clean</code> controls file removal within a deploy; it does not rewrite branch history."
+    ]
+  },
+  {
+    q: "This pull request pushes twice. What does the <em>second</em> push test that the first could not?",
+    opts: [
+      "That the <code>ANTHROPIC_API_KEY</code> secret is readable, which only happens on a synchronize event.",
+      "That the run is idempotent: an existing <code>pr-60/</code> is overwritten and an existing sticky comment is edited rather than duplicated.",
+      "That the fork guard correctly skips the job, since only re-pushes carry fork provenance.",
+      "That the base branch is resolved from <code>pull_request.base.ref</code> rather than from the merge ref."
+    ],
+    correct: 1,
+    fb: [
+      "No — the secret is equally available on <code>opened</code>; the first run already proved that by publishing successfully.",
+      "Yes. The create paths (new folder, new comment) ran on push #1; the update paths only engage when prior state exists. The sticky comment's own promise — \"Regenerated automatically on every push\" — is what push #2 puts to the test.",
+      "No — fork provenance comes from the head repository, which is the same on every push. This branch is not a fork, so the guard passes rather than skips.",
+      "No — the base ref is read from the event payload identically on both runs."
+    ]
+  },
+  {
+    q: "The checkout step uses <code>fetch-depth: 0</code>. What depends on it?",
+    opts: [
+      "The Pages deploy action, which needs the full history of <code>gh-pages</code> to append a commit.",
+      "The three-dot diff against <code>master</code>, which needs the merge base — unavailable in a shallow clone.",
+      "The concurrency group, which resolves the PR number by walking back through commit history.",
+      "The sticky comment action, which locates its previous comment by scanning past commits for the marker."
+    ],
+    correct: 1,
+    fb: [
+      "No — that action fetches the <code>gh-pages</code> branch itself; it does not rely on the source checkout's depth.",
+      "Right. A shallow clone may not contain the commit where the branches diverged, and without a merge base <code>git diff master...HEAD</code> cannot be computed — you would fall back to a misleading endpoint comparison.",
+      "No — the PR number comes straight from the event payload, <code>github.event.pull_request.number</code>.",
+      "No — the marker lives in a comment body on GitHub, found through the API, with no relation to git history."
     ]
   }
 ];
 
-const LETTERS = ["A", "B", "C", "D"];
-const state = { answered: 0, right: 0 };
+const quizEl = document.getElementById('quiz');
+const scoreEl = document.getElementById('score');
+let answered = 0, right = 0;
 
-const container = document.getElementById("quiz");
 QUESTIONS.forEach((item, qi) => {
-  const card = document.createElement("div");
-  card.className = "q";
+  const box = document.createElement('div');
+  box.className = 'q';
 
-  const num = document.createElement("div");
-  num.className = "qnum";
-  num.textContent = "Question " + (qi + 1) + " of " + QUESTIONS.length;
-  card.appendChild(num);
+  const n = document.createElement('div');
+  n.className = 'qn';
+  n.textContent = 'Question ' + (qi + 1) + ' of ' + QUESTIONS.length;
+  box.appendChild(n);
 
-  const text = document.createElement("div");
-  text.className = "qtext";
-  text.innerHTML = item.q;
-  card.appendChild(text);
+  const qt = document.createElement('p');
+  qt.className = 'qtext';
+  qt.innerHTML = item.q;
+  box.appendChild(qt);
 
-  const opts = document.createElement("div");
-  opts.className = "opts";
-  card.appendChild(opts);
+  const opts = document.createElement('div');
+  opts.className = 'opts';
+  const fb = document.createElement('div');
+  fb.className = 'fb';
 
-  const fb = document.createElement("div");
-  fb.className = "fb";
-  card.appendChild(fb);
-
-  item.opts.forEach((optText, oi) => {
-    const btn = document.createElement("button");
-    btn.className = "opt";
-    btn.type = "button";
-    btn.innerHTML = '<span class="letter">' + LETTERS[oi] + '</span>' + optText;
-    btn.addEventListener("click", () => {
-      if (card.dataset.done === "1") return;
-      card.dataset.done = "1";
-
-      const isRight = oi === item.correct;
-      state.answered += 1;
-      if (isRight) state.right += 1;
-
-      Array.from(opts.children).forEach((b, bi) => {
-        b.classList.add("locked");
-        if (bi === item.correct) b.classList.add("right");
-        else if (bi === oi) b.classList.add("wrong");
+  item.opts.forEach((text, oi) => {
+    const b = document.createElement('button');
+    b.className = 'opt';
+    b.type = 'button';
+    b.innerHTML = '<span class="key">' + 'ABCD'[oi] + '</span><span>' + text + '</span>';
+    b.addEventListener('click', () => {
+      if (box.dataset.done) return;
+      box.dataset.done = '1';
+      answered++;
+      const ok = oi === item.correct;
+      if (ok) right++;
+      opts.querySelectorAll('.opt').forEach((el, i) => {
+        el.classList.add('locked');
+        if (i === item.correct) el.classList.add('correct');
+        else if (i === oi) el.classList.add('wrong');
       });
-
-      fb.className = "fb show " + (isRight ? "good" : "bad");
-      fb.innerHTML =
-        '<span class="verdict">' +
-        (isRight ? "Correct." : "Not this one — the answer is " + LETTERS[item.correct] + ".") +
-        "</span>" +
-        item.fb[oi];
-
-      updateScore();
+      fb.className = 'fb show ' + (ok ? 'good' : 'bad');
+      fb.innerHTML = '<b>' + (ok ? 'Correct.' : 'Not quite.') + '</b> ' + item.fb[oi]
+        + (ok ? '' : '<br><br><b>The answer is ' + 'ABCD'[item.correct] + '.</b> ' + item.fb[item.correct]);
+      render();
     });
-    opts.appendChild(btn);
+    opts.appendChild(b);
   });
 
-  container.appendChild(card);
+  box.appendChild(opts);
+  box.appendChild(fb);
+  quizEl.appendChild(box);
 });
 
-function updateScore() {
-  const el = document.getElementById("score");
-  if (state.answered < QUESTIONS.length) {
-    el.innerHTML = "<strong>" + state.right + " / " + state.answered + "</strong> correct so far — " +
-      (QUESTIONS.length - state.answered) + " to go.";
-    return;
+function render() {
+  let msg = 'Answered <b>' + answered + '</b> of ' + QUESTIONS.length
+          + ' — <b>' + right + '</b> correct.';
+  if (answered === QUESTIONS.length) {
+    if (right === QUESTIONS.length) msg += ' A clean sweep: you have the pipeline and the newline both.';
+    else if (right >= 3) msg += ' Solid. Worth re-reading the sections behind the ones you missed.';
+    else msg += ' The Intuition and Code sections are where these answers live.';
   }
-  const closing = state.right === QUESTIONS.length
-    ? "A clean sweep. You have understood a one-line pull request more thoroughly than most thousand-line ones get read."
-    : state.right >= 3
-      ? "Solid. Worth re-reading the sections behind the ones you missed — the interesting content of this PR is all in the reasoning, not the diff."
-      : "The diff is one line, but the argument around it has a few moving parts. The Intuition section is where most of the answers live.";
-  el.innerHTML = "<strong>Final score: " + state.right + " / " + QUESTIONS.length + ".</strong> " + closing;
+  scoreEl.innerHTML = msg;
 }
+render();
 </script>
 </body>
 </html>
