@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Explain Diff: Removing the Explain Diff Cleanup Workflow</title>
+<style>
+  :root {
+    --bg: #fbfaf7;
+    --panel: #ffffff;
+    --ink: #23262b;
+    --muted: #5b6169;
+    --accent: #7a4de8;
+    --accent-dark: #5a30bd;
+    --accent-light: #efe8fd;
+    --good: #1f8a55;
+    --good-bg: #e7f7ee;
+    --bad: #c0392b;
+    --bad-bg: #fdecea;
+    --border: #e4e1da;
+    --code-bg: #282c34;
+    --code-ink: #eceff4;
+    --radius: 10px;
+    --maxw: 900px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.65;
+    font-size: 17px;
+  }
+
+  a { color: var(--accent-dark); }
+
+  header.hero {
+    background: linear-gradient(135deg, var(--accent-dark), var(--accent));
+    color: white;
+    padding: 3.5rem 1.5rem 3rem;
+    text-align: center;
+  }
+
+  header.hero h1 {
+    margin: 0 0 0.6rem;
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    font-weight: 700;
+  }
+
+  header.hero p {
+    margin: 0 auto;
+    max-width: 640px;
+    opacity: 0.92;
+    font-size: 1.05rem;
+  }
+
+  header.hero .repo-tag {
+    display: inline-block;
+    margin-top: 1rem;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.85rem;
+    background: rgba(255,255,255,0.15);
+    padding: 0.3rem 0.8rem;
+    border-radius: 999px;
+  }
+
+  main {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding: 0 1.25rem 4rem;
+  }
+
+  nav.toc {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.4rem 1.6rem;
+    margin: -2.2rem auto 2.5rem;
+    max-width: calc(var(--maxw) - 2.5rem);
+    box-shadow: 0 8px 24px rgba(30,20,60,0.08);
+  }
+
+  nav.toc h2 {
+    margin: 0 0 0.7rem;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+  }
+
+  nav.toc ol {
+    margin: 0;
+    padding-left: 1.2rem;
+  }
+
+  nav.toc li { margin: 0.3rem 0; }
+
+  section {
+    margin: 3.2rem 0;
+  }
+
+  section h2 {
+    font-size: 1.6rem;
+    border-bottom: 3px solid var(--accent-light);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.2rem;
+  }
+
+  section h3 {
+    font-size: 1.15rem;
+    margin-top: 2rem;
+    color: var(--accent-dark);
+  }
+
+  p { margin: 1rem 0; }
+
+  .callout {
+    border-left: 4px solid var(--accent);
+    background: var(--accent-light);
+    padding: 1rem 1.3rem;
+    border-radius: 0 8px 8px 0;
+    margin: 1.4rem 0;
+  }
+
+  .callout .label {
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    color: var(--accent-dark);
+    display: block;
+    margin-bottom: 0.35rem;
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    padding: 1rem 1.2rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.5;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    background: #f0edf9;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+
+  pre code {
+    background: none;
+    padding: 0;
+  }
+
+  .diff-add { color: #98c379; }
+  .diff-del { color: #e06c75; }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.3rem 1.5rem;
+    margin: 1.2rem 0;
+  }
+
+  /* --- Diagram: pipeline flow --- */
+  .flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin: 1.8rem 0;
+    padding: 1.2rem;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .flow-box {
+    background: white;
+    border: 2px solid var(--accent);
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    min-width: 140px;
+    text-align: center;
+    font-size: 0.88rem;
+  }
+
+  .flow-box strong { display: block; margin-bottom: 0.2rem; color: var(--accent-dark); }
+  .flow-box small { color: var(--muted); }
+
+  .flow-arrow {
+    font-size: 1.4rem;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 640px) {
+    .flow { flex-direction: column; }
+    .flow-arrow { transform: rotate(90deg); }
+  }
+
+  /* --- Timeline diagram --- */
+  .timeline {
+    position: relative;
+    margin: 2rem 0;
+    padding-left: 2.2rem;
+  }
+
+  .timeline::before {
+    content: "";
+    position: absolute;
+    left: 0.55rem;
+    top: 0.4rem;
+    bottom: 0.4rem;
+    width: 3px;
+    background: var(--accent-light);
+    border-radius: 2px;
+  }
+
+  .timeline-item {
+    position: relative;
+    margin-bottom: 1.6rem;
+  }
+
+  .timeline-item::before {
+    content: "";
+    position: absolute;
+    left: -2.2rem;
+    top: 0.25rem;
+    width: 1.15rem;
+    height: 1.15rem;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 3px solid var(--accent-light);
+  }
+
+  .timeline-item .commit-hash {
+    font-family: monospace;
+    font-size: 0.78rem;
+    background: #eee;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    color: var(--muted);
+  }
+
+  .timeline-item h4 { margin: 0.3rem 0 0.3rem; font-size: 1.02rem; }
+  .timeline-item p { margin: 0.2rem 0; color: var(--muted); font-size: 0.95rem; }
+
+  /* --- UI mockups --- */
+  .mock-comment {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: white;
+    max-width: 520px;
+    margin: 1.2rem auto;
+    overflow: hidden;
+    font-size: 0.92rem;
+  }
+
+  .mock-comment .mock-header {
+    background: #f6f8fa;
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  .mock-comment .mock-avatar {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: bold;
+  }
+
+  .mock-comment .mock-body {
+    padding: 1rem;
+  }
+
+  .mock-filelist {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    max-width: 420px;
+    margin: 1.2rem auto;
+    font-size: 0.9rem;
+  }
+
+  .mock-filelist .mfl-header {
+    background: #24292f;
+    color: white;
+    padding: 0.5rem 1rem;
+    font-family: monospace;
+    font-size: 0.82rem;
+  }
+
+  .mock-filelist ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .mock-filelist li {
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .mock-filelist li:last-child { border-bottom: none; }
+  .mock-filelist li .icon { color: #cbb84a; }
+  .mock-filelist li.persisted { background: #f4fbf7; }
+  .mock-filelist li .tag {
+    margin-left: auto;
+    font-size: 0.72rem;
+    background: var(--good-bg);
+    color: var(--good);
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+  }
+
+  /* --- Quiz --- */
+  .quiz-question {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.4rem 1.5rem;
+    margin: 1.5rem 0;
+  }
+
+  .quiz-question h4 {
+    margin-top: 0;
+    font-size: 1.05rem;
+  }
+
+  .quiz-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    margin-top: 1rem;
+  }
+
+  .quiz-option {
+    text-align: left;
+    padding: 0.7rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .quiz-option:hover { border-color: var(--accent); background: var(--accent-light); }
+
+  .quiz-option.correct {
+    background: var(--good-bg);
+    border-color: var(--good);
+  }
+
+  .quiz-option.incorrect {
+    background: var(--bad-bg);
+    border-color: var(--bad);
+  }
+
+  .quiz-option:disabled { cursor: default; }
+
+  .quiz-feedback {
+    margin-top: 0.9rem;
+    padding: 0.8rem 1rem;
+    border-radius: 8px;
+    font-size: 0.92rem;
+    display: none;
+  }
+
+  .quiz-feedback.show { display: block; }
+  .quiz-feedback.correct { background: var(--good-bg); color: #145c39; }
+  .quiz-feedback.incorrect { background: var(--bad-bg); color: #8a251a; }
+
+  table.diff-summary {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.2rem 0;
+    font-size: 0.92rem;
+  }
+  table.diff-summary th, table.diff-summary td {
+    border: 1px solid var(--border);
+    padding: 0.55rem 0.8rem;
+    text-align: left;
+  }
+  table.diff-summary th { background: #f6f4fb; }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.85rem;
+    padding: 2rem 1rem 3rem;
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <h1>Explain Diff: Removing the Explain&nbsp;Diff Cleanup Workflow</h1>
+  <p>A one-file change to CI configuration that quietly settles an argument about what should happen to
+     generated documentation once nobody's looking at the pull request anymore.</p>
+  <span class="repo-tag">syltruong/tg-language-assistant &middot; master → HEAD</span>
+</header>
+
+<main>
+
+<nav class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#background">Background</a></li>
+    <li><a href="#intuition">Intuition</a></li>
+    <li><a href="#code">Code Walkthrough</a></li>
+    <li><a href="#quiz">Quiz</a></li>
+  </ol>
+</nav>
+
+<section id="background">
+  <h2>Background</h2>
+
+  <h3>The deep background: how a GitHub Actions pipeline talks to GitHub Pages</h3>
+  <p>
+    If you've never wired up GitHub Actions to GitHub Pages before, here's the short version, and you can
+    skip ahead to the next subsection if this is already old hat. A GitHub Actions <em>workflow</em> is a
+    YAML file living under <code>.github/workflows/</code> that says "when event X happens, run these
+    steps." GitHub Pages, meanwhile, is a static-site host baked into every GitHub repo: point it at a
+    branch (conventionally called <code>gh-pages</code>), and whatever files sit in that branch become a
+    website at <code>https://&lt;owner&gt;.github.io/&lt;repo&gt;/</code>.
+  </p>
+  <p>
+    Put those two together and you get a very common pattern: a workflow that triggers on some event,
+    generates an HTML file, and pushes it into the <code>gh-pages</code> branch so it's browsable on the
+    web &mdash; no server to run, no hosting bill, just files in a branch.
+  </p>
+
+  <h3>The narrow background: this repository's "explain diff" pipeline</h3>
+  <p>
+    This repository uses exactly that pattern to explain its own pull requests. In fact, the very page
+    you're reading right now was produced by it. Here's the pipeline, defined in
+    <code>.github/workflows/explain-diff.yml</code>, which already exists on <code>master</code> and is
+    untouched by this PR:
+  </p>
+
+  <div class="flow">
+    <div class="flow-box"><strong>PR opened / updated</strong><small>pull_request event</small></div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-box"><strong>Claude generates HTML</strong><small>runs <code>/explain-diff-html</code></small></div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-box"><strong>Deploy to <code>gh-pages</code></strong><small>folder <code>pr-&lt;number&gt;/</code></small></div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-box"><strong>Comment on the PR</strong><small>with a link to the page</small></div>
+  </div>
+
+  <p>
+    Every push to a pull request re-runs this, so the explanation folder for, say, PR&nbsp;53 lives at
+    <code>gh-pages/pr-53/index.html</code> and stays up to date as the PR evolves. Looking at the actual
+    <code>gh-pages</code> branch in this repo today, you'll find folders like <code>pr-53/</code> and
+    <code>pr-60/</code> sitting there from earlier PRs.
+  </p>
+
+  <p>
+    That raises an obvious follow-up question: once a PR is merged or closed, what happens to its
+    explanation folder? Does it just accumulate forever, or does something clean it up? That question is
+    the entire subject of this PR &mdash; and, as you're about to see, the repo's answer to it changed its
+    mind twice in the space of a few minutes before landing here.
+  </p>
+
+  <div class="callout">
+    <span class="label">Key files involved</span>
+    <code>.github/workflows/explain-diff-cleanup.yml</code> &mdash; the file this PR deletes. It never had
+    any effect on the <em>generation</em> pipeline above; its only job was tidying up afterwards.
+  </div>
+</section>
+
+<section id="intuition">
+  <h2>Intuition</h2>
+
+  <p>
+    Strip away the YAML and this PR is really about one design question: <strong>should generated
+    documentation for a closed pull request keep existing?</strong> There are two reasonable answers, and
+    the commit history of this very PR argues both sides before settling on one.
+  </p>
+
+  <h3>Option A: auto-delete on close</h3>
+  <p>
+    The original <code>explain-diff-cleanup.yml</code> (the version currently on <code>master</code>)
+    took this position. It listened for <code>pull_request: types: [closed]</code>, and when a PR closed
+    it deleted that PR's folder from <code>gh-pages</code>. The reasoning is tidy: closed PRs are done,
+    keeping their explanation around is clutter, so sweep it away automatically. Think of it like a
+    whiteboard that gets erased the moment the meeting it was used for ends.
+  </p>
+
+  <h3>Option B: keep everything, forever</h3>
+  <p>
+    This PR's final state takes the opposite position: there should be <em>no</em> cleanup mechanism at
+    all, automatic or manual. Once an explanation is published, it stays published. Think of it less like a
+    whiteboard and more like a museum &mdash; every exhibit that ever went up stays up, so anyone can walk
+    back through the collection later, whether that's a teammate ramping up on the project's history, or
+    someone in six months wondering "wait, why did we make that change back in PR&nbsp;53?"
+  </p>
+
+  <div class="callout">
+    <span class="label">Why permanence wins here</span>
+    The value of an explain-diff page isn't just "helping the reviewer of this one PR." It's a
+    standing archive of <em>why</em> the codebase looks the way it does. Deleting that the moment a PR
+    closes throws away exactly the artifact you'd want six months later when nobody remembers the
+    reasoning behind a change.
+  </div>
+
+  <h3>The middle ground that got skipped</h3>
+  <p>
+    Interestingly, the commit history of this PR briefly stopped at a middle position &mdash; "keep it
+    around by default, but let a human manually trigger a deletion for a specific PR number if needed"
+    &mdash; before abandoning even that in favor of full permanence. You'll see both steps in the Code
+    section below, because although the final diff against <code>master</code> is a plain deletion, the
+    journey to get there is the more interesting story.
+  </p>
+
+  <p>Here's what the site currently looks like, and what it'll continue to look like after this PR merges &mdash; nothing changes about the published pages themselves, only about whether anything is ever allowed to remove them:</p>
+
+  <div class="mock-filelist">
+    <div class="mfl-header">github.io/tg-language-assistant/</div>
+    <ul>
+      <li><span class="icon">&#128193;</span> pr-53/ <span class="tag">stays forever</span></li>
+      <li><span class="icon">&#128193;</span> pr-60/ <span class="tag">stays forever</span></li>
+      <li><span class="icon">&#128193;</span> pr-62/ <span class="tag">this very PR</span></li>
+    </ul>
+  </div>
+</section>
+
+<section id="code">
+  <h2>Code Walkthrough</h2>
+
+  <p>
+    This PR's branch contains two commits sitting on top of <code>master</code>. Comparing
+    <code>master</code> directly against the branch head collapses them into a single net change (a file
+    deletion), but reading them in order tells you <em>why</em> the deletion happened, so let's walk
+    through both.
+  </p>
+
+  <div class="timeline">
+    <div class="timeline-item">
+      <span class="commit-hash">6242e75</span>
+      <h4>"Make explain-diff cleanup a manual workflow"</h4>
+      <p>Changes the trigger from automatic (on PR close) to manual (<code>workflow_dispatch</code> with a
+      required <code>pr_number</code> input).</p>
+    </div>
+    <div class="timeline-item">
+      <span class="commit-hash">7eef877</span>
+      <h4>"Remove explain-diff cleanup workflow"</h4>
+      <p>Deletes the file outright &mdash; even manual cleanup is deemed unwanted.</p>
+    </div>
+  </div>
+
+  <h3>Step 1 &mdash; from automatic to manual</h3>
+  <p>
+    The first commit's message explains the motive directly: artifacts on <code>gh-pages</code> should
+    <em>persist</em> after a PR closes rather than vanish automatically. Rather than deleting the
+    workflow outright at this point, it was made opt-in: a maintainer can still run it by hand from the
+    Actions tab, but nothing fires on its own.
+  </p>
+  <pre><code> on:
+-  pull_request:
+-    types: [closed]
++  workflow_dispatch:
++    inputs:
++      pr_number:
++        description: "PR number whose explain-diff artifacts should be removed"
++        required: true
++        type: number
+ ...
+     run: |
+-      folder="pr-${{ <span class="diff-del">github.event.pull_request.number</span> }}"
++      folder="pr-${{ <span class="diff-add">inputs.pr_number</span> }}"
+       if [ -d "$folder" ]; then
+         git rm -r "$folder"
+         ...
+-        git commit -m "Remove explain-diff output for closed PR #${{ github.event.pull_request.number }}"
++        git commit -m "Remove explain-diff output for PR #${{ inputs.pr_number }}"
+         git push
++      else
++        echo "No explain-diff output found for PR #${{ inputs.pr_number }}; nothing to do."
+       fi</code></pre>
+  <p>
+    Note the small but thoughtful addition of the <code>else</code> branch: since a human is now
+    triggering this by typing in a PR number, it's worth telling them clearly when there was nothing to
+    clean up, rather than silently doing nothing.
+  </p>
+
+  <h3>Step 2 &mdash; from manual to gone</h3>
+  <p>
+    Barely a quarter of an hour later (per the commit timestamps), the second commit revisits the
+    question and reaches a stronger conclusion: even a manual deletion button shouldn't exist, because
+    the artifacts should persist <strong>indefinitely</strong>, full stop. The whole file is removed:
+  </p>
+  <pre><code>-name: Explain Diff Cleanup
+-
+-on:
+-  workflow_dispatch:
+-    inputs:
+-      pr_number:
+-        description: "PR number whose explain-diff artifacts should be removed"
+-        required: true
+-        type: number
+-
+-permissions:
+-  contents: write
+-
+-jobs:
+-  cleanup:
+-    runs-on: ubuntu-latest
+-    steps:
+-      - name: Checkout gh-pages
+-        uses: actions/checkout@v4
+-        with:
+-          ref: gh-pages
+-          fetch-depth: 0
+-
+-      - name: Remove PR's explanation folder
+-        run: |
+-          folder="pr-${{ inputs.pr_number }}"
+-          if [ -d "$folder" ]; then
+-            git rm -r "$folder"
+-            git config user.name "github-actions[bot]"
+-            git config user.email "github-actions[bot]@users.noreply.github.com"
+-            git commit -m "Remove explain-diff output for PR #${{ inputs.pr_number }}"
+-            git push
+-          else
+-            echo "No explain-diff output found for PR #${{ inputs.pr_number }}; nothing to do."
+-          fi</code></pre>
+
+  <h3>What this means for <code>master</code></h3>
+  <p>
+    Because <code>master</code> only ever had the <em>original, automatic</em> version of the file (Step 1
+    and Step 2 both happened on this PR's branch), comparing <code>master</code> straight against the
+    branch head just shows one clean deletion of that original file. The intermediate "manual dispatch"
+    version never touches <code>master</code> at all &mdash; it's a stepping stone visible only in this
+    branch's history.
+  </p>
+
+  <table class="diff-summary">
+    <tr><th>File</th><th>On <code>master</code></th><th>On this branch (HEAD)</th></tr>
+    <tr>
+      <td><code>.github/workflows/explain-diff-cleanup.yml</code></td>
+      <td>Exists &mdash; auto-deletes on PR close</td>
+      <td>Deleted entirely</td>
+    </tr>
+    <tr>
+      <td><code>.github/workflows/explain-diff.yml</code></td>
+      <td>Unchanged</td>
+      <td>Unchanged &mdash; generation pipeline is untouched</td>
+    </tr>
+  </table>
+
+  <div class="callout">
+    <span class="label">What did NOT change</span>
+    The <code>explain-diff.yml</code> workflow that generates and publishes these pages (the one
+    described in the Background section) is completely untouched. This PR only removes the deletion
+    side of the pipeline &mdash; publishing continues exactly as before.
+  </div>
+
+  <p>
+    One nice side effect: with no cleanup workflow left, the <code>gh-pages</code> branch no longer needs
+    to grant any workflow <code>contents: write</code> permission for the purpose of deleting things.
+    Fewer workflows with write access to a branch is generally a good thing from a "what could possibly go
+    wrong" standpoint &mdash; there's simply one fewer automation with the power to force-push a deletion
+    commit to your public site.
+  </p>
+</section>
+
+<section id="quiz">
+  <h2>Quiz</h2>
+  <p>Five questions to check that the change actually stuck. Click an answer to see if you're right.</p>
+
+  <div class="quiz-question" data-answer="1">
+    <h4>1. What is the net effect of this PR when you diff <code>master</code> against the branch head?</h4>
+    <div class="quiz-options">
+      <button class="quiz-option">A new workflow is added that deletes <code>gh-pages</code> folders when a PR opens</button>
+      <button class="quiz-option">The <code>explain-diff-cleanup.yml</code> workflow is deleted entirely</button>
+      <button class="quiz-option"><code>explain-diff.yml</code> is renamed to <code>explain-diff-cleanup.yml</code></button>
+      <button class="quiz-option">A <code>pr_number</code> input is added to <code>explain-diff.yml</code></button>
+    </div>
+    <div class="quiz-feedback"></div>
+  </div>
+
+  <div class="quiz-question" data-answer="2">
+    <h4>2. Before this PR, what event triggered the <em>original</em> cleanup workflow on <code>master</code>?</h4>
+    <div class="quiz-options">
+      <button class="quiz-option">A push to the <code>gh-pages</code> branch</button>
+      <button class="quiz-option">A pull request being opened</button>
+      <button class="quiz-option">A pull request being closed</button>
+      <button class="quiz-option">Only a manual <code>workflow_dispatch</code> trigger</button>
+    </div>
+    <div class="quiz-feedback"></div>
+  </div>
+
+  <div class="quiz-question" data-answer="0">
+    <h4>3. This branch has an intermediate commit that never shows up when you diff <code>master</code> against the final branch head. What did it do?</h4>
+    <div class="quiz-options">
+      <button class="quiz-option">Converted the cleanup workflow to a manual <code>workflow_dispatch</code> trigger with a <code>pr_number</code> input</button>
+      <button class="quiz-option">Added automated tests for the cleanup workflow</button>
+      <button class="quiz-option">Changed the deploy target from <code>gh-pages</code> to a different branch</button>
+      <button class="quiz-option">Removed the "comment on PR with link" step from <code>explain-diff.yml</code></button>
+    </div>
+    <div class="quiz-feedback"></div>
+  </div>
+
+  <div class="quiz-question" data-answer="2">
+    <h4>4. After this PR merges, what happens to a PR's <code>gh-pages</code> folder (e.g. <code>pr-53/</code>) once that PR is closed?</h4>
+    <div class="quiz-options">
+      <button class="quiz-option">It's deleted automatically within 24 hours</button>
+      <button class="quiz-option">It's deleted the next time someone manually runs the cleanup workflow</button>
+      <button class="quiz-option">It persists indefinitely &mdash; there is no cleanup mechanism left at all</button>
+      <button class="quiz-option">It's moved into an <code>archive/</code> subfolder</button>
+    </div>
+    <div class="quiz-feedback"></div>
+  </div>
+
+  <div class="quiz-question" data-answer="1">
+    <h4>5. Why might a project prefer to keep explain-diff pages around indefinitely rather than cleaning them up?</h4>
+    <div class="quiz-options">
+      <button class="quiz-option">GitHub Pages technically requires every folder ever published to remain forever</button>
+      <button class="quiz-option">They form a durable, browsable archive of why past changes were made, useful long after the PR is closed</button>
+      <button class="quiz-option">It measurably speeds up CI runs for future pull requests</button>
+      <button class="quiz-option">GitHub's terms of service require it</button>
+    </div>
+    <div class="quiz-feedback"></div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  Generated by the <code>/explain-diff-html</code> skill &mdash; itself an example of the kind of thing this PR's archive would preserve.
+</footer>
+
+<script>
+  const feedbackText = {
+    correct: "Correct! ",
+    incorrect: "Not quite. "
+  };
+
+  const explanations = [
+    "The final diff against master is a plain file deletion of .github/workflows/explain-diff-cleanup.yml — nothing else changes.",
+    "The original workflow (still on master) triggered on `pull_request: types: [closed]`, deleting the folder as soon as a PR closed.",
+    "Commit 6242e75 switched the trigger to workflow_dispatch with a required pr_number input — a manual, opt-in cleanup. It was superseded by the very next commit, so master never saw it.",
+    "With explain-diff-cleanup.yml gone entirely, nothing ever removes a PR's folder from gh-pages again — automatic or manual.",
+    "The whole point of the final decision in this PR is that these pages act as a permanent record of why changes were made, valuable well after the PR itself is forgotten."
+  ];
+
+  document.querySelectorAll('.quiz-question').forEach((q, qIndex) => {
+    const correctIdx = parseInt(q.dataset.answer, 10);
+    const options = q.querySelectorAll('.quiz-option');
+    const feedback = q.querySelector('.quiz-feedback');
+
+    options.forEach((opt, idx) => {
+      opt.addEventListener('click', () => {
+        if (opt.disabled) return;
+        options.forEach(o => o.disabled = true);
+
+        if (idx === correctIdx) {
+          opt.classList.add('correct');
+          feedback.textContent = feedbackText.correct + explanations[qIndex];
+          feedback.classList.add('show', 'correct');
+        } else {
+          opt.classList.add('incorrect');
+          options[correctIdx].classList.add('correct');
+          feedback.textContent = feedbackText.incorrect + explanations[qIndex];
+          feedback.classList.add('show', 'incorrect');
+        }
+      });
+    });
+  });
+</script>
+
+</body>
+</html>
