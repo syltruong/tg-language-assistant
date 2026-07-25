@@ -66,8 +66,16 @@ The single inline keyboard currently accepting input. It lives on the slot messa
 ### Session
 Per-user in-memory state managed by Telegram's `context.user_data`. Tracks language pair, message history, detected actions, active message IDs, and a per-message `run_id` correlating a Slot Message back to the Trace that produced it (see Trace). Currently not persisted across bot restarts.
 
+### Saved Insight
+An immutable snapshot of one Conversation Turn that the user explicitly chose to keep. Captures the Anchor Message, the Action that produced the result, the rendered result text, and the Language Pair in force at the time. Written verbatim — no LLM call and no interpretation on the write path, because a distillation can always be recomputed from a raw snapshot while a discarded snapshot is gone for good. Append-only: saving the same turn again after running a different Action produces a second Saved Insight, not an edit. Capture never depends on Session — everything needed is carried on the Telegram callback, so a Save survives a bot restart mid-conversation (see ADR-0006). Surfaced via `/saved`.
+_Avoid_: note, bookmark, memory, favourite, card
+
+### Insight Repository
+The module that owns persistence of Saved Insights. Follows the repository abstraction established in ADR-0001 (SQLite backend, swappable interface). Append-only from the caller's perspective: it exposes a save that is idempotent per turn-and-Action, and reads scoped to a single user. Deletion is represented as a soft delete, never a row removal.
+_Avoid_: insight store, memory store
+
 ### Vocabulary List
-A per-user persistent collection of vocabulary entries built two ways: **passively** (words/phrases automatically extracted from Vocabulary Hint and Analyze actions) and **actively** (user taps the Save button in the inline keyboard, which saves the anchor message and its translation as an entry). Passive and active entries are distinguished in the list. Accessible via `/history`. Active entries are surfaced separately as "Favourites."
+A per-user view of the vocabulary a user has encountered — words and phrases lifted from the stored results of their Vocabulary Hint and Analyze Saved Insights. A derived view, not a store: it has no capture path of its own and is recomputed from Saved Insights rather than written to. Not yet built.
 
 ### User Preferences
 The subset of user state that must survive a bot restart: **language pair** and **instant action preference**. Message history and conversation logs are not considered preferences — they are optional features built on top of persistence. Accessed exclusively through the User Repository — no module reads User Preferences directly from storage.
@@ -75,9 +83,6 @@ The subset of user state that must survive a bot restart: **language pair** and 
 ### User Repository
 The module that owns persistence of User Preferences. Follows the repository abstraction established in ADR-0001 (SQLite backend, swappable interface). The sole read/write interface for language pair and instant action preference across bot restarts.
 _Avoid_: user store, preferences manager
-
-### Vocabulary Repository
-The future persistence module for Vocabulary Lists. Deferred until after core architecture is stable — the Vocabulary List exists as a domain concept but is not yet persisted across restarts.
 
 ### Message Trigger
 The module that coordinates the Instant Action flow: resolves which Action to run (from the user's Instant Action preference, Language Role, and Action Registry), calls the Action Runner to get a formatted result, then calls the Response Publisher to deliver it. Owns no LLM logic and no formatting — its only domain knowledge is how to resolve an Action from a classified Anchor Message. Receives Action Registry, Action Runner, Response Publisher, and Session via constructor injection.
@@ -136,3 +141,16 @@ _Avoid_: review queue, moderation queue
 
 ### Safety Guardrails
 Deferred until public launch. Until then, `ALLOWED_USERS` is the sole access control mechanism. When rate limiting is introduced, it must be designed tier-aware from the start (to support future subscription tiers). Subscription management is a separate workstream and does not belong to the language learning feature roadmap.
+
+## Relationships
+
+- A **Conversation Turn** may produce zero or more **Saved Insights** — one per Action whose result the user chose to keep
+- A **Saved Insight** belongs to exactly one **Conversation Turn** and records exactly one **Action**
+- A **Saved Insight** carries the **Language Pair** in force when it was saved, not the user's current one
+- The **Insight Repository** is the sole read/write interface for **Saved Insights**
+- The **Vocabulary List** is derived from **Saved Insights**; it is never written to directly
+
+## Flagged ambiguities
+
+- "Save" previously meant adding an entry to the **Vocabulary List**. It now means capturing a **Saved Insight** — a whole turn, not a word. The Vocabulary List keeps its name but is now a derived view over Saved Insights, with no capture path of its own; the "Vocabulary Repository" term is retired as a result.
+- "Memory" was used informally for this capability while it was being designed. Resolved: the domain term is **Saved Insight**. "Memory" is avoided because it collides with the LLM sense of conversational memory, which this bot deliberately does not keep (see LLM Interface — no multi-turn state).
