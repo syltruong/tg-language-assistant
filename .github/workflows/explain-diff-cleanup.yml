@@ -1,8 +1,12 @@
 name: Explain Diff Cleanup
 
 on:
-  pull_request:
-    types: [closed]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number whose explain-diff artifacts should be removed"
+        required: true
+        type: number
 
 permissions:
   contents: write
@@ -19,11 +23,13 @@ jobs:
 
       - name: Remove PR's explanation folder
         run: |
-          folder="pr-${{ github.event.pull_request.number }}"
+          folder="pr-${{ inputs.pr_number }}"
           if [ -d "$folder" ]; then
             git rm -r "$folder"
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git commit -m "Remove explain-diff output for closed PR #${{ github.event.pull_request.number }}"
+            git commit -m "Remove explain-diff output for PR #${{ inputs.pr_number }}"
             git push
+          else
+            echo "No explain-diff output found for PR #${{ inputs.pr_number }}; nothing to do."
           fi
