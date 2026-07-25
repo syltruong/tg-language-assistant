@@ -103,6 +103,18 @@ class MsgSaveFailed(MsgKey):
     pass
 
 
+class MsgSavedListHeader(MsgKey):
+    pass
+
+
+class MsgSavedListEmpty(MsgKey):
+    pass
+
+
+class MsgSavedListEntry(MsgKey):
+    pass
+
+
 # ── Catalogs ─────────────────────────────────────────────────────────
 
 
@@ -141,6 +153,11 @@ CATALOGS: dict[str, dict[type, str]] = {
         MsgSave: "💾 Save",
         MsgSaved: "✅ Saved",
         MsgSaveFailed: "Couldn't save that one. Please try again.",
+        MsgSavedListHeader: "What you've kept:",
+        MsgSavedListEmpty: (
+            "Nothing kept yet. Tap 💾 Save on a reply to keep it for later."
+        ),
+        MsgSavedListEntry: "{index}. {anchor} — {action}, {date}",
     },
     # "fr": {
     #     TextTooLongError: "Le message est trop long. ...",
