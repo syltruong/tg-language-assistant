@@ -1,9 +1,10 @@
-from bot.config.messages import MsgRateThisResponse, t
+from bot.config.messages import MsgRateThisResponse, MsgSave, MsgSaved, t
 from bot.keyboard import (
-    KEYBOARD,
     RATE_DOWN,
     RATE_LABEL,
     RATE_UP,
+    SAVE,
+    build_action_keyboard,
     build_suggestions_keyboard,
     strip_rating_rows,
 )
@@ -13,6 +14,30 @@ _SUGGESTIONS = [
     Suggestion(text="Bien merci!", note="warm"),
     Suggestion(text="Oui, ça va!", note="playful"),
 ]
+
+KEYBOARD = build_action_keyboard()
+
+
+class TestSaveRow:
+    def test_action_keyboard_has_a_save_row_above_the_rating_rows(self):
+        save_row = KEYBOARD.inline_keyboard[-3]
+
+        assert [btn.callback_data for btn in save_row] == [SAVE]
+
+    def test_save_button_label_comes_from_the_message_catalog(self):
+        assert KEYBOARD.inline_keyboard[-3][0].text == t(MsgSave)
+
+    def test_a_kept_turn_shows_the_saved_label(self):
+        kept = build_action_keyboard(saved=True)
+
+        assert kept.inline_keyboard[-3][0].text == t(MsgSaved)
+
+    def test_suggestions_keyboard_has_no_save_row(self):
+        """Suggestions are reply options — Save belongs to the action keyboard."""
+        kb = build_suggestions_keyboard(_SUGGESTIONS)
+
+        callbacks = [btn.callback_data for row in kb.inline_keyboard for btn in row]
+        assert SAVE not in callbacks
 
 
 class TestRatingRow:

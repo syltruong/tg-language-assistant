@@ -1,9 +1,11 @@
 import pytest
 
 from bot.feedback import FakeFeedbackClient
-from bot.keyboard import KEYBOARD, RATE_DOWN, RATE_LABEL, RATE_UP
+from bot.keyboard import RATE_DOWN, RATE_LABEL, RATE_UP, build_action_keyboard
 from bot.triggers.feedback import FeedbackTrigger
 from tests.factories import make_callback_update, make_context
+
+KEYBOARD = build_action_keyboard()
 
 
 class TestFeedbackTrigger:

@@ -6,7 +6,7 @@ from telegram.ext import ContextTypes
 from bot.actions.registry import ActionRegistry
 from bot.errors import UserFacingError
 from bot.gateway import MessageGateway
-from bot.keyboard import KEYBOARD
+from bot.keyboard import build_action_keyboard
 from bot.localizer import Localizer
 from bot.publisher import ResponsePublisherProtocol
 from bot.runner import ActionRunner
@@ -56,8 +56,9 @@ class MessageTrigger:
             chat_id=update.effective_chat.id,
             reply_to_message_id=update.message.message_id,
             session=session,
-            reply_markup=KEYBOARD,
+            reply_markup=build_action_keyboard(),
             user_id=update.effective_user.id,
         )
+        session.store_slot_action(msg_id, action_type)
         if result.run_id:
             session.store_run_id(msg_id, result.run_id)

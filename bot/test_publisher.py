@@ -70,14 +70,16 @@ class TestPublishNewSlot:
 
     @pytest.mark.asyncio
     async def test_forwards_reply_markup(self):
-        from bot.keyboard import KEYBOARD
+        from bot.keyboard import build_action_keyboard
+
+        keyboard = build_action_keyboard()
         bot = _make_bot(sent_message_id=42)
         session = UserSession({})
         publisher = ResponsePublisher(bot=bot)
 
-        await publisher.publish_new_slot(FormattedResult("Hi", None), chat_id=1, reply_to_message_id=2, session=session, reply_markup=KEYBOARD, user_id=1)
+        await publisher.publish_new_slot(FormattedResult("Hi", None), chat_id=1, reply_to_message_id=2, session=session, reply_markup=keyboard, user_id=1)
 
-        assert bot.send_message.call_args.kwargs["reply_markup"] is KEYBOARD
+        assert bot.send_message.call_args.kwargs["reply_markup"] is keyboard
 
     @pytest.mark.asyncio
     async def test_forwards_parse_mode(self):
@@ -167,14 +169,16 @@ class TestEditSlot:
 
     @pytest.mark.asyncio
     async def test_forwards_reply_markup(self):
-        from bot.keyboard import KEYBOARD
+        from bot.keyboard import build_action_keyboard
+
+        keyboard = build_action_keyboard()
         bot = _make_bot()
         session = UserSession({})
         publisher = ResponsePublisher(bot=bot)
 
-        await publisher.edit_slot(FormattedResult("Hi", None), chat_id=1, slot_id=77, session=session, reply_markup=KEYBOARD, user_id=1)
+        await publisher.edit_slot(FormattedResult("Hi", None), chat_id=1, slot_id=77, session=session, reply_markup=keyboard, user_id=1)
 
-        assert bot.edit_message_text.call_args.kwargs["reply_markup"] is KEYBOARD
+        assert bot.edit_message_text.call_args.kwargs["reply_markup"] is keyboard
 
     @pytest.mark.asyncio
     async def test_forwards_parse_mode(self):

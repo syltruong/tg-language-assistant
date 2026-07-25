@@ -91,6 +91,18 @@ class MsgRateThisResponse(MsgKey):
     pass
 
 
+class MsgSave(MsgKey):
+    pass
+
+
+class MsgSaved(MsgKey):
+    pass
+
+
+class MsgSaveFailed(MsgKey):
+    pass
+
+
 # ── Catalogs ─────────────────────────────────────────────────────────
 
 
@@ -126,6 +138,9 @@ CATALOGS: dict[str, dict[type, str]] = {
         MsgChooseLanguage: "Which language would you like to learn?",
         MsgLanguageSelected: "You're learning {language}. Send me a message to get started.",
         MsgRateThisResponse: "Rate this response:",
+        MsgSave: "💾 Save",
+        MsgSaved: "✅ Saved",
+        MsgSaveFailed: "Couldn't save that one. Please try again.",
     },
     # "fr": {
     #     TextTooLongError: "Le message est trop long. ...",

@@ -62,7 +62,7 @@ class TestKeyboardTriggerKeyboardLifecycle:
 
     @pytest.mark.asyncio
     async def test_result_carries_keyboard_markup(self):
-        from bot.keyboard import KEYBOARD
+        from bot.keyboard import build_action_keyboard
 
         trigger, _, publisher = _make_trigger()
         update = make_callback_update(
@@ -74,7 +74,7 @@ class TestKeyboardTriggerKeyboardLifecycle:
         await trigger.handle(update, context)
 
         _, _, _, reply_markup = publisher.edits[0]
-        assert reply_markup is KEYBOARD
+        assert reply_markup.inline_keyboard == build_action_keyboard().inline_keyboard
 
 
 class TestKeyboardTriggerRouting:
@@ -132,7 +132,7 @@ class TestKeyboardTriggerReplyFlow:
 
     @pytest.mark.asyncio
     async def test_reply_callback_attaches_suggestions_keyboard(self):
-        from bot.keyboard import KEYBOARD
+        from bot.keyboard import build_action_keyboard
 
         runner = FakeActionRunner(result="• Bien merci!", suggestions=_SUGGESTIONS)
         trigger, _, publisher = _make_trigger(runner=runner)
@@ -146,7 +146,7 @@ class TestKeyboardTriggerReplyFlow:
         await trigger.handle(update, context)
 
         _, _, _, reply_markup = publisher.edits[0]
-        assert reply_markup is not KEYBOARD
+        assert reply_markup.inline_keyboard != build_action_keyboard().inline_keyboard
         assert len(reply_markup.inline_keyboard) == 4
         assert reply_markup.inline_keyboard[0][0].callback_data == "select:0"
 
@@ -171,7 +171,7 @@ class TestKeyboardTriggerRephraseFlow:
 
     @pytest.mark.asyncio
     async def test_rephrase_callback_attaches_suggestions_keyboard(self):
-        from bot.keyboard import KEYBOARD
+        from bot.keyboard import build_action_keyboard
 
         runner = FakeActionRunner(result="• C'est super!", suggestions=_SUGGESTIONS)
         trigger, _, publisher = _make_trigger(runner=runner)
@@ -185,7 +185,7 @@ class TestKeyboardTriggerRephraseFlow:
         await trigger.handle(update, context)
 
         _, _, _, reply_markup = publisher.edits[0]
-        assert reply_markup is not KEYBOARD
+        assert reply_markup.inline_keyboard != build_action_keyboard().inline_keyboard
         assert len(reply_markup.inline_keyboard) == 4
         assert reply_markup.inline_keyboard[0][0].callback_data == "select:0"
 
@@ -193,7 +193,7 @@ class TestKeyboardTriggerRephraseFlow:
 class TestKeyboardTriggerSelectionFlow:
     @pytest.mark.asyncio
     async def test_select_callback_edits_slot_with_selected_text_and_standard_keyboard(self):
-        from bot.keyboard import KEYBOARD
+        from bot.keyboard import build_action_keyboard
 
         trigger, _, publisher = _make_trigger()
         update = make_callback_update(
@@ -211,4 +211,4 @@ class TestKeyboardTriggerSelectionFlow:
         result, _, slot_id, reply_markup = publisher.edits[0]
         assert result.text == "Oui, ça va!"
         assert slot_id == 77
-        assert reply_markup is KEYBOARD
+        assert reply_markup.inline_keyboard == build_action_keyboard().inline_keyboard
