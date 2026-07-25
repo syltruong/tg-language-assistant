@@ -28,7 +28,7 @@ jobs:
       - name: Generate explanation with Claude
         uses: anthropics/claude-code-action@v1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
             /explain-diff-html
 
@@ -43,6 +43,16 @@ jobs:
           claude_args: |
             --max-turns 40
             --allowedTools "Bash,Read,Write,Edit,Glob,Grep"
+
+      - name: Prepare .nojekyll for gh-pages root
+        run: mkdir -p pages-root && touch pages-root/.nojekyll
+
+      - name: Ensure .nojekyll at gh-pages root
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: pages-root
+          clean: false
 
       - name: Deploy explanation to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
