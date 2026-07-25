@@ -37,10 +37,10 @@ class MessageTrigger:
         language_pair = session.language_pair
 
         try:
-            anchor = self._gateway.process(update, language_pair)
+            anchor = await self._gateway.process(update, language_pair)
         except UserFacingError as exc:
             await update.message.reply_text(
-                self._localizer.t(type(exc), session.base_language)
+                self._localizer.t(type(exc), session.base_language, **exc.format_kwargs)
             )
             return
 

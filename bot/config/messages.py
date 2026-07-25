@@ -11,6 +11,7 @@ from bot.errors import (
     TextHasNoWrittenContentError,
     TextTooLongError,
     UnauthorizedError,
+    UnsupportedLanguageError,
 )
 
 DEFAULT_LOCALE = "en"
@@ -105,6 +106,10 @@ CATALOGS: dict[str, dict[type, str]] = {
         MessageHasNoTextError: "No message to process. Send a message first.",
         TextHasNoWrittenContentError: ("Please send text with actual written content."),
         UnauthorizedError: "Sorry, you are not authorized to use this bot.",
+        UnsupportedLanguageError: (
+            "Sorry, I couldn't tell if that was written in {base} or {target}."
+            " Please send text in one of those languages."
+        ),
         # UI strings (MsgKey-keyed)
         MsgChooseAction: "What can I help you with?",
         MsgClear: "Okay thanks bye! Send another message if you need anything else ✨",

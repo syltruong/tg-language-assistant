@@ -16,6 +16,7 @@ from bot.config import ALLOWED_USERS, MODEL_NAME, OPENAI_API_KEY, TOKEN
 from bot.feedback import LangSmithFeedbackClient
 from bot.gateway import LinguaLanguageDetector, MessageGateway
 from bot.keyboard import LANG_TARGET_PREFIX, RATE_PREFIX
+from bot.language_detection import GraphLanguageClassifier
 from bot.llm_interface import LangGraphLLMClient, OpenAILLMClient
 from bot.localizer import Localizer
 from bot.publisher import ResponsePublisher
@@ -56,10 +57,12 @@ def main() -> None:
 
     localizer = Localizer()
     authorizer = AllowlistAuthorizer(allowlist=ALLOWED_USERS)
-    language_detector = LinguaLanguageDetector()
-    gateway = MessageGateway(authorizer=authorizer, language_detector=language_detector)
-    registry = ActionRegistry(localizer=localizer)
     llm = LangGraphLLMClient(inner=OpenAILLMClient(api_key=OPENAI_API_KEY, model=MODEL_NAME))
+    language_classifier = GraphLanguageClassifier(
+        language_detector=LinguaLanguageDetector(), llm_client=llm
+    )
+    gateway = MessageGateway(authorizer=authorizer, language_classifier=language_classifier)
+    registry = ActionRegistry(localizer=localizer)
     runner = ActionRunner(llm=llm, system_prompt_template=_load_system_prompt())
     publisher = ResponsePublisher(bot=app.bot)
 
