@@ -24,6 +24,10 @@ STREAM_CHUNK_SIZE = int(os.getenv("STREAM_CHUNK_SIZE", "40"))
 
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
 
+# SQLite file backing the repositories (ADR-0001). In production this must sit
+# on the mounted Fly volume — see [mounts] in fly.toml — or it is wiped on deploy.
+DB_PATH = os.getenv("DB_PATH", "./data/bot.db")
+
 N_SUGGESTED_REPLIES = int(os.getenv("N_SUGGESTED_REPLIES", "4"))
 
 # Hash Telegram user IDs before sending them to LangSmith (a third-party service).
