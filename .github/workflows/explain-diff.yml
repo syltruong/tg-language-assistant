@@ -1,0 +1,61 @@
+name: Explain Diff
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: explain-diff-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  explain:
+    # Secrets aren't available to pull_request runs triggered from forks,
+    # so skip those rather than fail noisily.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate explanation with Claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            /explain-diff-html
+
+            Explain the changes introduced by this pull request: compare the
+            base branch `${{ github.event.pull_request.base.ref }}` against
+            the current branch head (use git to diff them yourself).
+
+            This is a non-interactive CI run, not a local session: write the
+            generated HTML file to `./explain-diff-output/index.html`
+            (create the directory if it doesn't exist) instead of the
+            default /tmp location.
+          claude_args: |
+            --max-turns 40
+            --allowedTools "Bash,Read,Write,Edit,Glob,Grep"
+
+      - name: Deploy explanation to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: explain-diff-output
+          target-folder: pr-${{ github.event.pull_request.number }}
+          clean: false
+
+      - name: Comment on PR with the link
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: explain-diff
+          message: |
+            🔎 **Explain Diff** for this PR: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/pr-${{ github.event.pull_request.number }}/
+
+            Regenerated automatically on every push to this PR.
