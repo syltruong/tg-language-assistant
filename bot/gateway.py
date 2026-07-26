@@ -18,7 +18,6 @@ from bot.errors import (
     TextHasNoWrittenContentError,
     TextTooLongError,
     UnauthorizedError,
-    UnsupportedLanguageError,
 )
 
 TEXT_MAX_LENGTH = 500
@@ -39,6 +38,11 @@ class AnchorMessage:
 @runtime_checkable
 class LanguageDetector(Protocol):
     def detect(self, text: str) -> str: ...
+
+
+@runtime_checkable
+class LanguageClassifier(Protocol):
+    async def classify(self, text: str, language_pair: LanguagePair) -> tuple[str, LanguageRole]: ...
 
 
 class FakeLanguageDetector:
@@ -73,12 +77,12 @@ class MessageGateway:
     def __init__(
         self,
         authorizer: Authorizer,
-        language_detector: LanguageDetector,
+        language_classifier: LanguageClassifier,
     ) -> None:
         self._authorizer = authorizer
-        self._language_detector = language_detector
+        self._language_classifier = language_classifier
 
-    def process(self, update: Update, language_pair: LanguagePair) -> AnchorMessage:
+    async def process(self, update: Update, language_pair: LanguagePair) -> AnchorMessage:
         user_id = update.effective_user.id if update.effective_user else None
         if not self._authorizer.is_authorized(user_id):
             raise UnauthorizedError()
@@ -95,14 +99,7 @@ class MessageGateway:
         if not any(unicodedata.category(ch).startswith("L") for ch in text):
             raise TextHasNoWrittenContentError()
 
-        detected_iso = self._language_detector.detect(text)
-
-        if detected_iso == language_pair.target:
-            role = LanguageRole.TARGET
-        elif detected_iso == language_pair.base:
-            role = LanguageRole.BASE
-        else:
-            raise UnsupportedLanguageError()
+        detected_iso, role = await self._language_classifier.classify(text, language_pair)
 
         return AnchorMessage(
             text=text,

@@ -10,7 +10,7 @@ from bot.config.messages import (
     MsgThinking,
     t,
 )
-from bot.errors import TextTooLongError
+from bot.errors import TextTooLongError, UnsupportedLanguageError
 
 
 class TestTranslateFunction:
@@ -33,6 +33,11 @@ class TestTranslateFunction:
     def test_format_kwargs_are_interpolated(self):
         result = t(MsgAiError, "en", error="timeout")
         assert result == "Error calling AI: timeout"
+
+    def test_unsupported_language_error_interpolates_base_and_target(self):
+        result = t(UnsupportedLanguageError, "en", base="en", target="fr")
+        assert "en" in result
+        assert "fr" in result
 
     def test_missing_key_raises_key_error(self):
         class UnknownKey:

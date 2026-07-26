@@ -3,7 +3,9 @@ import pytest
 from bot.actions.registry import ActionRegistry
 from bot.actions.verbs.translate import TranslateAction
 from bot.auth import FakeAuthorizer
-from bot.gateway import FakeLanguageDetector, MessageGateway
+from bot.errors import UnsupportedLanguageError
+from bot.gateway import LanguageRole, MessageGateway
+from bot.language_detection import FakeLanguageClassifier
 from bot.localizer import Localizer
 from bot.publisher import FakeResponsePublisher
 from bot.runner import FakeActionRunner
@@ -18,12 +20,15 @@ def _make_registry() -> ActionRegistry:
 
 def _make_trigger(
     detected_lang: str = "fr",
+    detected_role: LanguageRole = LanguageRole.TARGET,
     runner_result: str = "translation",
     runner_run_id: str | None = None,
+    language_classifier=None,
 ) -> tuple[MessageTrigger, FakeActionRunner, FakeResponsePublisher]:
     gateway = MessageGateway(
         authorizer=FakeAuthorizer(allow=True),
-        language_detector=FakeLanguageDetector(detected_lang),
+        language_classifier=language_classifier
+        or FakeLanguageClassifier(detected_lang, detected_role),
     )
     registry = _make_registry()
     runner = FakeActionRunner(result=runner_result, run_id=runner_run_id)
@@ -40,7 +45,7 @@ def _make_trigger(
 class TestMessageTriggerRouting:
     @pytest.mark.asyncio
     async def test_base_language_message_also_runs_translate_action(self):
-        trigger, runner, _ = _make_trigger(detected_lang="en")
+        trigger, runner, _ = _make_trigger(detected_lang="en", detected_role=LanguageRole.BASE)
         update = make_update(text="Hello", user_id=1)
         context = make_context()
 
@@ -71,3 +76,26 @@ class TestMessageTriggerRouting:
         session = UserSession.from_context(context)
         # FakeResponsePublisher assigns ids to the messages it sends, starting at 1000.
         assert session.get_run_id(1000) == "run-abc"
+
+
+class _RaisingClassifier:
+    """A language classifier that always reports the language as unsupported."""
+
+    async def classify(self, text, language_pair):
+        raise UnsupportedLanguageError(base=language_pair.base, target=language_pair.target)
+
+
+class TestMessageTriggerUnsupportedLanguage:
+    @pytest.mark.asyncio
+    async def test_user_receives_a_reply_instead_of_a_silent_failure(self):
+        trigger, runner, _ = _make_trigger(language_classifier=_RaisingClassifier())
+        update = make_update(text="Hola mundo", user_id=1)
+        context = make_context()
+
+        await trigger.handle(update, context)
+
+        update.message.reply_text.assert_awaited_once()
+        reply_text = update.message.reply_text.await_args.args[0]
+        assert "en" in reply_text
+        assert "fr" in reply_text
+        assert runner.last_action is None

@@ -61,15 +61,26 @@ class AgentState(TypedDict):
     output: str
 
 
-def _build_completion_graph(inner: LLMClient):
-    """Build a single-node, checkpointer-less graph that calls `inner` and stores its text as `output`."""
+def build_call_llm_node(inner: LLMClient):
+    """Build a graph node that calls `inner` with state's system/user prompt and stores its text as `output`.
 
-    async def call_llm(state: AgentState) -> AgentState:
+    Reads `system_prompt`/`user_prompt` and writes `output`; otherwise agnostic
+    to the rest of the state shape, so it can be reused as one node inside a
+    larger graph (not just the single-node completion graph below).
+    """
+
+    async def call_llm(state: dict) -> dict:
         completion = await inner.complete(state["system_prompt"], state["user_prompt"])
         return {**state, "output": completion.text}
 
+    return call_llm
+
+
+def _build_completion_graph(inner: LLMClient):
+    """Build a single-node, checkpointer-less graph that calls `inner` and stores its text as `output`."""
+
     graph = StateGraph(AgentState)
-    graph.add_node("call_llm", call_llm)
+    graph.add_node("call_llm", build_call_llm_node(inner))
     graph.set_entry_point("call_llm")
     graph.set_finish_point("call_llm")
     return graph.compile()
