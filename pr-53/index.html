@@ -3,766 +3,685 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Explain Diff — Fix silent failure on unsupported language, detect language via LangGraph</title>
+<title>Fixing a silent failure: language detection gets an LLM safety net</title>
 <style>
   :root {
-    --bg: #0f1220;
-    --panel: #171b2e;
-    --panel-2: #1f2440;
-    --border: #2b315088;
-    --text: #e7e9f5;
-    --muted: #a3a8c9;
-    --accent: #7dd3fc;
-    --accent-2: #f0abfc;
-    --good: #86efac;
-    --bad: #fca5a5;
-    --warn: #fcd34d;
-    --code-bg: #0b0e1c;
-    --radius: 14px;
-    --maxw: 920px;
+    --bg: #fbfaf7;
+    --ink: #1f2430;
+    --ink-soft: #4b5266;
+    --accent: #7a4de8;
+    --accent-soft: #efe8ff;
+    --good: #1a7f52;
+    --good-bg: #e7f7ee;
+    --bad: #b3261e;
+    --bad-bg: #fdecea;
+    --card: #ffffff;
+    --border: #e4e0d8;
+    --code-bg: #272233;
+    --code-ink: #f1eef9;
+    --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    --serif: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
   * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
   body {
     margin: 0;
-    background: linear-gradient(180deg, #0b0e1c 0%, #0f1220 400px, #0f1220 100%);
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
     line-height: 1.65;
   }
-  header.hero {
-    max-width: var(--maxw);
+  .wrap {
+    max-width: 880px;
     margin: 0 auto;
-    padding: 56px 24px 24px;
+    padding: 2rem 1.25rem 6rem;
   }
-  header.hero .kicker {
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    font-size: 0.75rem;
-    color: var(--accent);
-    font-weight: 700;
+  header.hero {
+    padding: 3rem 0 2rem;
+    border-bottom: 3px solid var(--ink);
+    margin-bottom: 2rem;
   }
   header.hero h1 {
-    font-size: 1.9rem;
-    line-height: 1.3;
-    margin: 10px 0 8px;
+    font-family: var(--serif);
+    font-size: 2.1rem;
+    line-height: 1.25;
+    margin: 0 0 0.6rem;
   }
-  header.hero p.sub {
-    color: var(--muted);
-    font-size: 1.02rem;
+  header.hero p.subtitle {
+    color: var(--ink-soft);
+    font-size: 1.05rem;
     margin: 0;
   }
+  .badge-row {
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .badge {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    border: 1px solid #d9c9ff;
+  }
   nav.toc {
-    max-width: var(--maxw);
-    margin: 16px auto 40px;
-    padding: 20px 24px;
-    background: var(--panel);
+    background: var(--card);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 2.5rem;
   }
   nav.toc h2 {
     font-size: 0.85rem;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--muted);
-    margin: 0 0 12px;
+    letter-spacing: 0.08em;
+    color: var(--ink-soft);
+    margin: 0 0 0.75rem;
   }
   nav.toc ol {
     margin: 0;
-    padding-left: 1.2em;
-    columns: 2;
+    padding-left: 1.2rem;
   }
-  nav.toc li { margin-bottom: 6px; }
-  nav.toc a { color: var(--text); text-decoration: none; border-bottom: 1px dashed #ffffff33; }
-  nav.toc a:hover { color: var(--accent); border-color: var(--accent); }
-
-  main { max-width: var(--maxw); margin: 0 auto; padding: 0 24px 100px; }
-
-  section { margin-bottom: 64px; scroll-margin-top: 20px; }
+  nav.toc li { margin-bottom: 0.35rem; }
+  nav.toc a { color: var(--accent); text-decoration: none; font-weight: 600; }
+  nav.toc a:hover { text-decoration: underline; }
+  section {
+    margin-bottom: 3.5rem;
+  }
   section h2 {
-    font-size: 1.5rem;
+    font-family: var(--serif);
+    font-size: 1.6rem;
     border-bottom: 2px solid var(--border);
-    padding-bottom: 10px;
-    margin-top: 0;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.25rem;
   }
-  section h3 { font-size: 1.15rem; color: var(--accent); margin-top: 34px; }
-  section p { color: #dfe1f0; }
-  section .muted { color: var(--muted); }
-
-  a.back-to-top {
-    display: inline-block;
-    margin-top: 8px;
-    font-size: 0.8rem;
-    color: var(--muted);
-    text-decoration: none;
+  section h3 {
+    font-family: var(--serif);
+    font-size: 1.2rem;
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+    color: var(--ink);
   }
-  a.back-to-top:hover { color: var(--accent); }
-
+  p { margin: 0 0 1rem; }
+  a { color: var(--accent); }
+  .lede {
+    font-size: 1.08rem;
+    color: var(--ink-soft);
+  }
   .callout {
-    border-radius: var(--radius);
-    padding: 16px 20px;
-    margin: 20px 0;
-    border: 1px solid var(--border);
-    background: var(--panel-2);
+    border-left: 4px solid var(--accent);
+    background: var(--accent-soft);
+    padding: 0.9rem 1.1rem;
+    border-radius: 0 8px 8px 0;
+    margin: 1.25rem 0;
   }
-  .callout.definition { border-left: 4px solid var(--accent); }
-  .callout.warn { border-left: 4px solid var(--warn); }
-  .callout.gotcha { border-left: 4px solid var(--accent-2); }
-  .callout .label {
-    text-transform: uppercase;
-    font-size: 0.7rem;
-    letter-spacing: 0.1em;
-    font-weight: 700;
-    color: var(--muted);
-    margin-bottom: 6px;
+  .callout strong.label {
     display: block;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    margin-bottom: 0.35rem;
   }
-
+  .callout.warn {
+    border-left-color: #c8801a;
+    background: #fdf3e3;
+  }
+  .callout.warn strong.label { color: #96600d; }
   pre {
     background: var(--code-bg);
-    border: 1px solid var(--border);
+    color: var(--code-ink);
+    padding: 1rem 1.1rem;
     border-radius: 10px;
-    padding: 16px 18px;
     overflow-x: auto;
-    font-size: 0.86rem;
+    font-family: var(--mono);
+    font-size: 0.85rem;
     white-space: pre-wrap;
     word-break: break-word;
-    color: #d7e2ff;
+    line-height: 1.55;
   }
   code {
-    font-family: "SF Mono", ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+    font-family: var(--mono);
+    background: #efe9dd;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    font-size: 0.9em;
   }
-  p code, li code, td code {
-    background: #0b0e1c;
-    border: 1px solid var(--border);
-    padding: 1px 6px;
-    border-radius: 6px;
-    font-size: 0.88em;
-    color: var(--accent);
+  pre code {
+    background: none;
+    padding: 0;
   }
-  .filename {
-    display: inline-block;
-    font-family: ui-monospace, monospace;
-    font-size: 0.8rem;
-    color: var(--muted);
-    background: #00000040;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 2px 8px;
-    margin-bottom: 6px;
+  .file-tag {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    margin-bottom: 0.4rem;
+    display: block;
   }
-
-  /* Diagram building blocks */
+  /* Diagram families */
   .diagram {
-    background: var(--panel);
+    background: var(--card);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 24px;
-    margin: 24px 0;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
   }
   .diagram .caption {
-    color: var(--muted);
-    font-size: 0.85rem;
-    margin-top: 14px;
+    font-size: 0.8rem;
+    color: var(--ink-soft);
     text-align: center;
+    margin-top: 1rem;
+    font-style: italic;
   }
   .flow {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+    gap: 0.5rem;
     justify-content: center;
-    gap: 8px;
   }
-  .node {
-    background: var(--panel-2);
-    border: 1px solid #3d4470;
-    border-radius: 10px;
-    padding: 12px 16px;
+  .flow-box {
+    background: var(--bg);
+    border: 2px solid var(--ink);
+    border-radius: 8px;
+    padding: 0.7rem 1rem;
+    font-family: var(--mono);
+    font-size: 0.82rem;
     text-align: center;
-    min-width: 130px;
-    font-size: 0.9rem;
+    min-width: 120px;
   }
-  .node.start { border-color: var(--accent); }
-  .node.end { border-color: var(--good); }
-  .node .tag {
-    display: block;
-    font-size: 0.68rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--muted);
-    margin-bottom: 4px;
+  .flow-box.node-accent {
+    border-color: var(--accent);
+    background: var(--accent-soft);
   }
-  .arrow {
-    color: var(--muted);
-    font-size: 1.3rem;
-    padding: 0 2px;
+  .flow-box.node-end {
+    border-color: var(--good);
+    background: var(--good-bg);
   }
-  .branch {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    align-items: center;
+  .flow-box.node-fail {
+    border-color: var(--bad);
+    background: var(--bad-bg);
   }
-  .branch-row {
-    display: flex;
-    gap: 24px;
-    flex-wrap: wrap;
-    justify-content: center;
+  .flow-arrow {
+    font-size: 1.4rem;
+    color: var(--ink-soft);
   }
-  .branch-col {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
+  .flow-label {
+    font-size: 0.72rem;
+    color: var(--ink-soft);
+    text-align: center;
+    font-family: var(--mono);
   }
-  .branch-label {
-    font-size: 0.75rem;
-    color: var(--muted);
-    font-style: italic;
-  }
-
-  /* chat mockup */
+  /* Chat / phone mockup */
   .phone {
     max-width: 320px;
-    margin: 10px auto;
-    background: #17212b;
-    border-radius: 18px;
-    padding: 14px;
-    border: 1px solid #2b344a;
+    margin: 1rem auto;
+    border: 3px solid var(--ink);
+    border-radius: 22px;
+    padding: 0.75rem;
+    background: #eae6f5;
+  }
+  .phone .titlebar {
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--ink-soft);
+    margin-bottom: 0.5rem;
   }
   .bubble {
-    max-width: 82%;
-    padding: 9px 12px;
-    border-radius: 12px;
-    margin: 6px 0;
-    font-size: 0.86rem;
+    padding: 0.55rem 0.8rem;
+    border-radius: 14px;
+    margin-bottom: 0.5rem;
+    font-size: 0.88rem;
+    max-width: 85%;
     line-height: 1.4;
   }
   .bubble.user {
-    background: #2b5278;
+    background: var(--accent);
+    color: white;
     margin-left: auto;
     border-bottom-right-radius: 3px;
-    color: #fff;
   }
   .bubble.bot {
-    background: #232e3c;
+    background: white;
+    border: 1px solid var(--border);
     margin-right: auto;
     border-bottom-left-radius: 3px;
-    color: #e4e8ee;
   }
-  .bubble.crash {
-    background: repeating-linear-gradient(45deg, #3a1d1d, #3a1d1d 8px, #2a1414 8px, #2a1414 16px);
+  .bubble.bot.silence {
     border: 1px dashed var(--bad);
     color: var(--bad);
     font-style: italic;
   }
-
+  .bubble.bot.fixed {
+    border-color: var(--good);
+  }
   table {
     width: 100%;
     border-collapse: collapse;
-    margin: 18px 0;
-    font-size: 0.9rem;
+    margin: 1rem 0;
+    font-size: 0.92rem;
   }
   th, td {
+    border: 1px solid var(--border);
+    padding: 0.55rem 0.7rem;
     text-align: left;
-    padding: 8px 10px;
-    border-bottom: 1px solid var(--border);
     vertical-align: top;
   }
-  th { color: var(--muted); font-weight: 600; }
-
-  /* quiz */
-  .quiz-item {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px 22px;
-    margin-bottom: 20px;
+  th {
+    background: var(--accent-soft);
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
   }
-  .quiz-item h4 { margin: 0 0 14px; font-size: 1rem; }
-  .quiz-options { display: flex; flex-direction: column; gap: 8px; }
+  td code, th code { font-size: 0.85em; }
+  /* quiz */
+  .quiz-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .quiz-q {
+    font-weight: 700;
+    margin-bottom: 1rem;
+    font-size: 1.02rem;
+  }
+  .quiz-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
   .quiz-option {
     text-align: left;
-    background: var(--panel-2);
-    border: 1px solid #3d4470;
-    color: var(--text);
+    background: var(--bg);
+    border: 1.5px solid var(--border);
     border-radius: 8px;
-    padding: 10px 14px;
+    padding: 0.65rem 0.9rem;
     cursor: pointer;
-    font-size: 0.92rem;
-    transition: background 0.15s, border-color 0.15s;
+    font-size: 0.94rem;
+    font-family: var(--sans);
+    color: var(--ink);
+    transition: border-color 0.15s, background 0.15s;
   }
-  .quiz-option:hover { border-color: var(--accent); }
-  .quiz-option.correct { background: #10331f; border-color: var(--good); color: var(--good); }
-  .quiz-option.incorrect { background: #331313; border-color: var(--bad); color: var(--bad); }
-  .quiz-option[disabled] { cursor: default; }
+  .quiz-option:hover:not(:disabled) {
+    border-color: var(--accent);
+  }
+  .quiz-option:disabled {
+    cursor: default;
+  }
+  .quiz-option.correct {
+    background: var(--good-bg);
+    border-color: var(--good);
+  }
+  .quiz-option.incorrect {
+    background: var(--bad-bg);
+    border-color: var(--bad);
+  }
   .quiz-feedback {
-    margin-top: 12px;
-    padding: 10px 14px;
+    margin-top: 0.9rem;
+    padding: 0.75rem 0.9rem;
     border-radius: 8px;
-    font-size: 0.88rem;
+    font-size: 0.9rem;
     display: none;
   }
   .quiz-feedback.show { display: block; }
-  .quiz-feedback.correct { background: #10331f; color: var(--good); }
-  .quiz-feedback.incorrect { background: #331313; color: var(--bad); }
-
-  footer {
-    max-width: var(--maxw);
-    margin: 0 auto;
-    padding: 30px 24px 60px;
-    color: var(--muted);
-    font-size: 0.82rem;
-    border-top: 1px solid var(--border);
+  .quiz-feedback.correct-fb {
+    background: var(--good-bg);
+    color: var(--good);
+    border: 1px solid var(--good);
   }
-
-  @media (max-width: 640px) {
-    nav.toc ol { columns: 1; }
-    header.hero h1 { font-size: 1.5rem; }
-    .phone { max-width: 100%; }
+  .quiz-feedback.incorrect-fb {
+    background: var(--bad-bg);
+    color: var(--bad);
+    border: 1px solid var(--bad);
+  }
+  footer {
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 0.85rem;
+    margin-top: 4rem;
+  }
+  @media (max-width: 600px) {
+    header.hero h1 { font-size: 1.6rem; }
+    section h2 { font-size: 1.3rem; }
+    .flow { flex-direction: column; }
+    .flow-arrow { transform: rotate(90deg); }
   }
 </style>
 </head>
 <body>
+<div class="wrap">
 
 <header class="hero">
-  <div class="kicker">Explain Diff</div>
-  <h1>Fix silent failure on unsupported language, detect language via LangGraph</h1>
-  <p class="sub">
-    Comparing <code>master</code> (<code>7d92ba8</code>) against the branch head
-    (<code>c041791</code>) in <code>tg-language-assistant</code>.
-  </p>
+  <h1>Fixing a silent failure: language detection gets an LLM safety net</h1>
+  <p class="subtitle">How <code>tg-language-assistant</code> stopped swallowing errors for unsupported languages, and taught its language detector to ask an LLM when it's unsure.</p>
+  <div class="badge-row">
+    <span class="badge">bot/language_detection.py (new)</span>
+    <span class="badge">bot/gateway.py</span>
+    <span class="badge">bot/llm_interface.py</span>
+    <span class="badge">bot/triggers/message.py</span>
+    <span class="badge">10 files changed</span>
+  </div>
 </header>
 
-<nav class="toc" id="toc">
+<nav class="toc">
   <h2>Contents</h2>
   <ol>
-    <li><a href="#background">1. Background</a></li>
-    <li><a href="#intuition">2. Intuition</a></li>
-    <li><a href="#code">3. Code walkthrough</a></li>
-    <li><a href="#quiz">4. Quiz</a></li>
+    <li><a href="#background">Background</a></li>
+    <li><a href="#intuition">Intuition</a></li>
+    <li><a href="#code">Code walkthrough</a></li>
+    <li><a href="#quiz">Quiz</a></li>
   </ol>
 </nav>
 
-<main>
-
 <section id="background">
-  <h2>1. Background</h2>
+  <h2>Background</h2>
 
-  <h3>1.1 The system, for newcomers</h3>
-  <p>
-    This is a Telegram bot that helps someone learning a new language — say, an English
-    speaker learning French — while they're mid-conversation with a native speaker. The user
-    configures a <strong>Language Pair</strong>: a <strong>base language</strong> (always
-    English, the language they're comfortable in) and a <strong>target language</strong>
-    (French, Malay, or Chinese — the one they're learning). Every message they forward to the
-    bot gets classified against that pair and then acted on — translated, corrected, explained,
-    and so on.
-  </p>
-  <p>
-    The component responsible for that classification is the <strong>Message Gateway</strong>
-    (<code>bot/gateway.py</code>) — the single entry point for every incoming Telegram
-    <code>Update</code>. Before this PR, its job was:
-  </p>
-  <ol>
-    <li>Ask the <code>Authorizer</code> whether this user is allowed to use the bot.</li>
-    <li>Pull the raw text out of the Telegram message, reject if empty, too long, or emoji-only.</li>
-    <li>Run a <strong>language detector</strong> over the text to get an ISO code (<code>"en"</code>, <code>"fr"</code>, …).</li>
-    <li>Compare that ISO code against the user's Language Pair to assign a <strong>Language Role</strong>: <code>TARGET</code> if it matches the target language, <code>BASE</code> if it matches the base language.</li>
-    <li>If it matches neither, raise <code>UnsupportedLanguageError</code>.</li>
-  </ol>
-  <p>
-    The language detector itself was <a href="https://github.com/pemistahl/lingua-py"><code>lingua</code></a>,
-    a fast, purely statistical, offline library — no network call, no LLM. Good for speed, but
-    it can misfire on short or ambiguous text (a two-word message doesn't give a statistical
-    model much to work with).
-  </p>
-  <p>
-    Separately, the bot already had an <code>LLMClient</code> abstraction
-    (<code>bot/llm_interface.py</code>) wrapped in a small <a href="https://www.langchain.com/langgraph">LangGraph</a>
-    graph purely so that calls could be traced in LangSmith — a single node, <code>call_llm</code>,
-    that reads a <code>system_prompt</code>/<code>user_prompt</code> pair out of graph state and
-    writes the completion back as <code>output</code>. That graph had nothing to do with language
-    detection; it existed only as a tracing seam around whichever LLM call needed it (translation,
-    correction, etc.).
-  </p>
-  <p>
-    Finally, every error the bot can show a user is a small typed exception
-    (<code>UserFacingError</code> subclasses in <code>bot/errors.py</code>) resolved to display text
-    through a <code>Localizer</code>, which looks the exception's <em>class</em> up in a
-    per-locale string catalog (<code>bot/config/messages.py</code>). This indirection is what
-    lets the same crash type read differently depending on the user's locale, and it's also
-    where this PR's bug was hiding.
-  </p>
+  <p class="lede">This bot sits on top of Telegram and helps a user practise a "target" language against a "base" language they already know &mdash; think an English speaker (base = <code>en</code>) drilling French (target = <code>fr</code>). Skip ahead to <a href="#background-narrow">the narrow background</a> if you already know how a message becomes a translation.</p>
 
-  <h3>1.2 What was actually broken</h3>
-  <p>
-    Before this PR, <code>UnsupportedLanguageError</code> was <em>not registered</em> in the
-    message catalog at all — only <code>MsgUnknownLanguage</code>, a separate,
-    unused <code>MsgKey</code> with a hardcoded "French or English" message, existed nearby. So
-    when the exception fired, <code>MessageTrigger</code> caught it and tried to render it:
-  </p>
-  <pre>self._localizer.t(type(exc), session.base_language)</pre>
-  <p>
-    <code>Localizer.t()</code> looks the key up with
-    <code>catalog.get(key, CATALOGS[DEFAULT_LOCALE][key])</code> — and since
-    <code>UnsupportedLanguageError</code> wasn't a key in <em>either</em> the requested locale's
-    catalog or the English fallback catalog, that fallback lookup itself raised
-    <code>KeyError</code>. That <code>KeyError</code> happened <em>inside</em> the
-    <code>except UserFacingError</code> block that was supposed to be sending the user a
-    friendly reply — so it propagated straight out of <code>MessageTrigger.handle</code>,
-    unhandled. The user sent a message in an unsupported language and got nothing back at all:
-    a silent failure, diagnosable only by grepping the bot's logs for a stack trace.
-  </p>
+  <h3>Deep background: how a message becomes a reply</h3>
+  <p>Every incoming Telegram message flows through the same short pipeline, and each stage has one job:</p>
+
+  <div class="diagram">
+    <div class="flow">
+      <div class="flow-box">Telegram<br>Update</div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-box node-accent">MessageTrigger</div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-box node-accent">MessageGateway</div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-box node-end">AnchorMessage</div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-box">ActionRunner<br>(translate)</div>
+    </div>
+    <p class="caption">MessageTrigger is the entry point registered with python-telegram-bot; MessageGateway does the validation and classification that turns a raw <code>Update</code> into a typed, trustworthy <code>AnchorMessage</code>.</p>
+  </div>
+
+  <p><code>MessageGateway.process()</code> runs a chain of checks, each of which can bail out with its own exception type: is the user authorized (<code>UnauthorizedError</code>)? Does the update actually contain text (<code>MessageHasNoTextError</code>)? Is it under 500 characters (<code>TextTooLongError</code>)? Does it contain actual letters, as opposed to only emoji (<code>TextHasNoWrittenContentError</code>)? And finally: what language is it in, and does that language belong to the user's chosen pair (<code>UnsupportedLanguageError</code>)?</p>
+
+  <p>All of these exceptions share a common base, <code>UserFacingError</code>, defined in <code>bot/errors.py</code>:</p>
+
+  <pre><code>class UserFacingError(Exception):
+    def __init__(self, *args, **format_kwargs):
+        super().__init__(*args)
+        self.format_kwargs = format_kwargs</code></pre>
+
+  <p>The idea is elegant: an error class doubles as a lookup key into a message catalog (<code>bot/config/messages.py</code>), and any keyword arguments passed when the error is raised are stashed away so they can later be substituted into the message template &mdash; a small, homegrown i18n system. <code>MessageTrigger.handle()</code> catches any <code>UserFacingError</code> and asks the <code>Localizer</code> to render the matching string in the user's base language.</p>
+
+  <h3 id="background-narrow">Narrow background: detecting the language, before this change</h3>
+  <p>Before this PR, language detection was a single synchronous call embedded directly inside <code>MessageGateway.process()</code>. A <code>LanguageDetector</code> protocol had one method, <code>detect(text) -&gt; str</code> (an ISO code), implemented by <code>LinguaLanguageDetector</code> &mdash; a wrapper around the <a href="https://github.com/pemistahl/lingua-py">Lingua</a> statistical language-detection library. The gateway then compared that ISO code against the user's <code>base</code>/<code>target</code> pair inline:</p>
+
+  <pre><code>detected_iso = self._language_detector.detect(text)
+
+if detected_iso == language_pair.target:
+    role = LanguageRole.TARGET
+elif detected_iso == language_pair.base:
+    role = LanguageRole.BASE
+else:
+    raise UnsupportedLanguageError()</code></pre>
+
+  <p>Two things about this code turn out to matter a great deal. First, statistical detectors like Lingua are unreliable on very short strings &mdash; a two-word message like "Bonjour" doesn't give it much signal, and it can easily guess Spanish or Italian instead of French. Second, look closely at that final line: <code>raise UnsupportedLanguageError()</code> is called with <em>no keyword arguments at all</em>. Whatever ISO codes were involved are lost the instant the exception is raised.</p>
 
   <div class="callout warn">
-    <span class="label">Worth noting</span>
-    This is the classic "the error handler has its own bug" trap: the exception path is the
-    one path that's hardest to exercise in manual testing, because triggering it usually means
-    the feature is already broken in some other way too.
+    <strong class="label">The bug hiding here</strong>
+    Even though <code>UserFacingError</code> supports <code>format_kwargs</code>, and <code>messages.py</code> supports templated strings like <code>"...in {base} or {target}"</code>, <code>UnsupportedLanguageError</code> wasn't in the message catalog at all before this PR, and <code>MessageTrigger</code> never forwarded <code>exc.format_kwargs</code> into the render call anyway. Two missing pieces, one silent failure &mdash; explained fully in <a href="#intuition">Intuition</a> below.
   </div>
 </section>
 
 <section id="intuition">
-  <h2>2. Intuition</h2>
-  <p>
-    This PR fixes two things, and they turn out to be entangled: the crash above, and the
-    accuracy of the underlying detection that was triggering it more often than it should.
-  </p>
+  <h2>Intuition</h2>
+  <p>This PR fixes two problems that turn out to share a root cause: the bot gave up too easily when it wasn't sure what language a message was in. One bug is about what happens <em>after</em> giving up (the user hears nothing); the other is about <em>how quickly</em> the bot gives up in the first place (before even asking an LLM to double-check). Let's take them in order.</p>
 
-  <h3>2.1 Fix #1 — give <code>UnsupportedLanguageError</code> a real message</h3>
-  <p>
-    The straightforward half of the fix: register the exception in the catalog, with a template
-    that takes the base and target language codes as placeholders, and thread those codes
-    through when the exception is constructed and when it's rendered.
-  </p>
-  <div class="diagram">
-    <div class="phone">
-      <div class="bubble user">Hola mundo</div>
-      <div class="bubble crash">✂ connection interrupted — no reply, nothing in the chat</div>
-    </div>
-    <div class="caption">Before: an unsupported-language message in the EN/FR pair vanished.</div>
-  </div>
-  <div class="diagram">
-    <div class="phone">
-      <div class="bubble user">Hola mundo</div>
-      <div class="bubble bot">Sorry, I couldn't tell if that was written in en or fr. Please send text in one of those languages.</div>
-    </div>
-    <div class="caption">After: the same message now gets an actual reply, with the pair's two languages filled in.</div>
-  </div>
-  <div class="callout gotcha">
-    <span class="label">A subtlety</span>
-    The final error message interpolates the raw ISO codes (<code>en</code>, <code>fr</code>) rather
-    than display names ("English", "French") — that's what the new catalog template
-    (<code>bot/config/messages.py</code>) literally does. Contrast this with the LLM fallback
-    prompt below, which <em>does</em> use <code>LANGUAGE_NAMES</code> to build a human-readable
-    prompt. Two different call sites, two different choices about which language label to use.
+  <h3>Bug #1: the silent failure</h3>
+  <p>Picture a user with the pair <code>en</code>/<code>fr</code> who, by mistake, sends "Hola mundo" (Spanish). The detector correctly reports <code>es</code>, which matches neither <code>en</code> nor <code>fr</code>, so the gateway raises <code>UnsupportedLanguageError()</code>. <code>MessageTrigger</code> catches it and tries to look up a friendly message:</p>
+
+  <pre><code>self._localizer.t(type(exc), session.base_language)</code></pre>
+
+  <p>Under the hood, <code>Localizer.t()</code> does <code>CATALOGS[locale][key]</code>, falling back to the English catalog. But <code>UnsupportedLanguageError</code> was never added as a key to that catalog &mdash; so this lookup itself raises a plain <code>KeyError</code>, <em>inside the exception handler that was supposed to apologize to the user</em>. That <code>KeyError</code> isn't a <code>UserFacingError</code>, so nothing catches it gracefully; python-telegram-bot's own error handling swallows it, and the user simply... never gets a reply.</p>
+
+  <div class="phone">
+    <div class="titlebar">Before the fix</div>
+    <div class="bubble user">Hola mundo</div>
+    <div class="bubble bot silence">(the bot never replies &mdash; a KeyError was thrown while trying to apologize)</div>
   </div>
 
-  <h3>2.2 Fix #2 — don't give up after one detector's guess</h3>
-  <p>
-    The second half addresses <em>why</em> the error fires in the first place. <code>lingua</code>
-    is a fast, offline, statistical detector — reliable on longer text, but it can misclassify
-    short or ambiguous messages. Previously, one wrong guess from <code>lingua</code> was final:
-    if it didn't match the base or target language, the user got rejected outright (crash aside).
-  </p>
-  <p>
-    Now there's a second opinion. The gateway no longer talks to a raw
-    <code>LanguageDetector</code> directly — it talks to a new <code>LanguageClassifier</code>
-    abstraction, whose one concrete implementation, <code>GraphLanguageClassifier</code>, runs a
-    two-node LangGraph graph: try the deterministic detector first, and only if that guess lands
-    outside the user's language pair, ask the LLM to break the tie before finally giving up.
-  </p>
+  <p>The fix is two small, precise additions. First, register the error in the catalog with a template that actually uses the <code>base</code>/<code>target</code> placeholders:</p>
+
+  <pre><code>UnsupportedLanguageError: (
+    "Sorry, I couldn't tell if that was written in {base} or {target}."
+    " Please send text in one of those languages."
+),</code></pre>
+
+  <p>Second, make sure those placeholders actually get filled in, by forwarding <code>exc.format_kwargs</code> from wherever the error is caught:</p>
+
+  <pre><code>self._localizer.t(type(exc), session.base_language, **exc.format_kwargs)</code></pre>
+
+  <p>Which means <code>UnsupportedLanguageError</code> now needs to be raised <em>with</em> <code>base=</code> and <code>target=</code> keyword arguments wherever it's thrown &mdash; which brings us to the second half of this PR.</p>
+
+  <div class="phone">
+    <div class="titlebar">After the fix</div>
+    <div class="bubble user">Hola mundo</div>
+    <div class="bubble bot fixed">Sorry, I couldn't tell if that was written in en or fr. Please send text in one of those languages.</div>
+  </div>
+
+  <h3>Bug #2: giving up too early</h3>
+  <p>Now picture a trickier case: the same <code>en</code>/<code>fr</code> user sends "Bonjour" &mdash; genuinely French, and genuinely a member of their language pair. But "Bonjour" is a single short word, and Lingua's statistical model, starved of signal, might report <code>es</code> anyway. Under the old code, that's an immediate <code>UnsupportedLanguageError</code> &mdash; a real French sentence gets rejected because a fast, cheap, offline detector had a bad guess.</p>
+
+  <p>The PR's answer: don't treat the deterministic detector's answer as final if it doesn't match either language in the pair. Instead, ask the LLM to arbitrate, since the LLM is far better at classifying short, ambiguous text than a purely statistical model &mdash; it just costs a network round-trip, so it's worth reserving for the ambiguous cases only.</p>
 
   <div class="diagram">
-    <div class="branch">
-      <div class="node start">
-        <span class="tag">entry</span>
-        detect_deterministic<br><span class="muted" style="font-size:0.78rem">runs <code>lingua</code> on the text</span>
-      </div>
-      <div class="arrow">↓</div>
-      <div class="branch-label">role matches base or target?</div>
-      <div class="branch-row">
-        <div class="branch-col">
-          <div class="arrow">yes ↓</div>
-          <div class="node end">END<br><span class="muted" style="font-size:0.78rem">return detector's ISO + role</span></div>
-        </div>
-        <div class="branch-col">
-          <div class="arrow">no ↓</div>
-          <div class="node">
-            call_llm<br><span class="muted" style="font-size:0.78rem">shared node from <code>llm_interface.py</code></span>
-          </div>
-          <div class="arrow">↓</div>
-          <div class="node end">END<br><span class="muted" style="font-size:0.78rem">parse LLM's reply, or raise</span></div>
-        </div>
-      </div>
+    <div class="flow">
+      <div class="flow-box">text: "Bonjour"</div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-box node-accent">detect_deterministic<br>(Lingua)</div>
     </div>
-    <div class="caption">The two-node graph inside <code>GraphLanguageClassifier</code>. The conditional edge only fires the LLM node when the cheap deterministic path fails.</div>
+    <div style="text-align:center; margin: 0.75rem 0;">
+      <div class="flow-label">iso = "es" &mdash; matches neither en nor fr</div>
+      <div class="flow-arrow" style="display:inline-block; transform: rotate(90deg);">&rarr;</div>
+    </div>
+    <div class="flow">
+      <div class="flow-box node-accent">call_llm<br>"is this en or fr, or neither?"</div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-box node-end">"fr" &rarr; role = TARGET</div>
+    </div>
+    <p class="caption">The new <code>GraphLanguageClassifier</code>: a deterministic first pass, with a conditional edge to an LLM fallback only when the first pass is inconclusive for this user's language pair.</p>
   </div>
 
-  <p>Walking through the exact example from this PR's own test suite, for the pair <code>base=en, target=fr</code>:</p>
-  <table>
-    <tr><th>Step</th><th>What happens</th></tr>
-    <tr><td>User sends</td><td><code>"Bonjour"</code></td></tr>
-    <tr><td><code>detect_deterministic</code></td><td><code>lingua</code> misfires and returns <code>"es"</code> (Spanish) — matches neither <code>en</code> nor <code>fr</code></td></tr>
-    <tr><td>Routing decision</td><td><code>role is None</code> → build a fallback prompt and route to <code>call_llm</code></td></tr>
-    <tr><td>Fallback prompt (built from <code>LANGUAGE_NAMES</code>)</td><td><em>"Is the following text written in English or French? Reply with only the ISO code 'en' or 'fr', or the word 'none' if it is neither."</em></td></tr>
-    <tr><td>LLM replies</td><td><code>"fr"</code></td></tr>
-    <tr><td>Result</td><td><code>("fr", LanguageRole.TARGET)</code> — message is correctly classified after all</td></tr>
-  </table>
-  <p>
-    And the failure case — same pair, user sends <code>"Hola"</code>, detector again says
-    <code>"es"</code>, but this time the LLM also replies <code>"none"</code>. Now
-    <code>GraphLanguageClassifier.classify()</code> raises
-    <code>UnsupportedLanguageError(base="en", target="fr")</code> — which, thanks to Fix #1, now
-    renders as a real reply instead of vanishing.
-  </p>
+  <p>And if the LLM <em>also</em> can't place the text in either language &mdash; e.g. the user really did send Spanish &mdash; <em>that's</em> when <code>UnsupportedLanguageError</code> is finally raised, and now it's raised with the actual codes attached:</p>
 
-  <div class="callout definition">
-    <span class="label">Why reuse <code>call_llm</code> instead of writing a new node?</span>
-    The completion graph in <code>llm_interface.py</code> was already a single node that reads
-    <code>system_prompt</code>/<code>user_prompt</code> from state and writes <code>output</code>
-    back. That shape is generic enough to drop into <em>any</em> graph with matching state keys —
-    so this PR pulls the node-building logic out into <code>build_call_llm_node()</code> and reuses
-    it verbatim as the second node of the new language-detection graph. One function, two graphs.
+  <pre><code>raise UnsupportedLanguageError(base=language_pair.base, target=language_pair.target)</code></pre>
+
+  <p>This closes the loop with Bug #1: the error is now always raised with the <code>base</code>/<code>target</code> keyword arguments the catalog template expects, so the "sorry, couldn't tell" message renders correctly no matter which stage of detection triggered it.</p>
+
+  <div class="callout">
+    <strong class="label">Why a graph, and not just an if/else?</strong>
+    The bot already used <a href="https://langchain-ai.github.io/langgraph/">LangGraph</a> to wrap its LLM calls for tracing (via LangSmith) in <code>llm_interface.py</code>. Modelling detection as a two-node graph (<code>detect_deterministic</code> &rarr; conditional edge &rarr; <code>call_llm</code>) means the LLM fallback call gets the same tracing/observability treatment as every other LLM call in the system, essentially for free &mdash; it reuses the exact node-building function the completion graph already relies on.
   </div>
 </section>
 
 <section id="code">
-  <h2>3. Code walkthrough</h2>
+  <h2>Code walkthrough</h2>
 
-  <h3>3.1 <code>bot/errors.py</code> and <code>bot/config/messages.py</code> — giving the error a voice</h3>
-  <p>
-    <code>UserFacingError</code> itself is untouched — it already stored arbitrary
-    <code>**format_kwargs</code> on construction (that plumbing pre-dates this PR and was simply
-    unused for this exception). What's new is the catalog entry that actually consumes those kwargs:
-  </p>
-  <div class="filename">bot/config/messages.py</div>
-  <pre>UnsupportedLanguageError: (
-    "Sorry, I couldn't tell if that was written in {base} or {target}."
-    " Please send text in one of those languages."
-),</pre>
-  <p>
-    <code>Localizer.t(key, locale, **kwargs)</code> does a plain <code>str.format(**kwargs)</code>
-    against that template, so <code>base</code> and <code>target</code> need to be supplied
-    wherever this error is raised.
-  </p>
+  <p>The change touches five production files. Rather than walk them in diff order, it's clearer to follow the shape of the new abstraction: a new module is introduced, an old collaborator is replaced with it, a small piece of shared plumbing is extracted to support it, and then the wiring and tests catch up.</p>
 
-  <h3>3.2 <code>bot/triggers/message.py</code> — actually passing those kwargs through</h3>
-  <p>
-    The other half of Fix #1. <code>MessageTrigger.handle()</code> used to call
-    <code>t(type(exc), session.base_language)</code> with no kwargs at all; now it forwards
-    whatever the exception was constructed with:
-  </p>
-  <pre>self._localizer.t(type(exc), session.base_language, **exc.format_kwargs)</pre>
-  <p>
-    This is a generic fix, not one special-cased to <code>UnsupportedLanguageError</code> — any
-    future <code>UserFacingError</code> subclass that's raised with keyword arguments and has a
-    matching <code>{placeholder}</code> in its catalog template will now render correctly too.
-  </p>
+  <h3>1. The new classifier: <code>bot/language_detection.py</code></h3>
+  <p>This is the heart of the PR: a brand-new module defining the two-node LangGraph graph described above, wrapped in a class that matches a small protocol.</p>
 
-  <h3>3.3 <code>bot/gateway.py</code> — the classification step becomes pluggable and async</h3>
-  <p>
-    <code>MessageGateway</code> no longer owns the base/target comparison logic inline. It
-    delegates to a new <code>LanguageClassifier</code> protocol:
-  </p>
-  <pre>@runtime_checkable
-class LanguageClassifier(Protocol):
-    async def classify(self, text: str, language_pair: LanguagePair) -> tuple[str, LanguageRole]: ...</pre>
-  <p>
-    and its constructor swaps a <code>language_detector: LanguageDetector</code> dependency for
-    <code>language_classifier: LanguageClassifier</code>. Because classification may now involve
-    an LLM call, <code>MessageGateway.process()</code> itself becomes <code>async def</code> — a
-    ripple that touches every caller and every test (see 3.6). The old
-    <code>LanguageDetector</code> protocol and the <code>lingua</code>-backed
-    <code>LinguaLanguageDetector</code> stick around unchanged; they're just wrapped now instead
-    of called directly.
-  </p>
+  <span class="file-tag">bot/language_detection.py</span>
+  <pre><code>class LanguageDetectionState(TypedDict):
+    text: str
+    base: str
+    target: str
+    detected_language: str
+    role: str | None
+    system_prompt: str
+    user_prompt: str
+    output: str</code></pre>
+  <p>This is the graph's shared state &mdash; every node reads and writes a slice of it. Note it's a superset of the <code>AgentState</code> used by the existing completion graph in <code>llm_interface.py</code> (which only needs <code>system_prompt</code>/<code>user_prompt</code>/<code>output</code>); that overlap is exactly what lets the two graphs share a node implementation.</p>
 
-  <h3>3.4 <code>bot/llm_interface.py</code> — extracting a reusable graph node</h3>
-  <p>
-    The single-node completion graph's node function is pulled out of its closure and exposed
-    as a standalone factory:
-  </p>
-  <pre>def build_call_llm_node(inner: LLMClient):
-    async def call_llm(state: dict) -> dict:
-        completion = await inner.complete(state["system_prompt"], state["user_prompt"])
-        return {**state, "output": completion.text}
-    return call_llm
-
-def _build_completion_graph(inner: LLMClient):
-    graph = StateGraph(AgentState)
-    graph.add_node("call_llm", build_call_llm_node(inner))
-    ...</pre>
-  <p>
-    The node only reads/writes <code>system_prompt</code>, <code>user_prompt</code>, and
-    <code>output</code> — it doesn't care what else lives in the state dict — which is precisely
-    what makes it safe to reuse inside <code>LanguageDetectionState</code>, a differently-shaped
-    <code>TypedDict</code>, in the next file.
-  </p>
-
-  <h3>3.5 <code>bot/language_detection.py</code> — the new module, in full</h3>
-  <p>This is the new file that ties the deterministic detector and the LLM together. Its pieces, in the order they execute:</p>
+  <p>The helper functions are small and purposeful:</p>
   <ul>
-    <li><code>LanguageDetectionState</code> — the graph's state shape: input (<code>text</code>, <code>base</code>, <code>target</code>), scratch fields for the LLM path (<code>system_prompt</code>, <code>user_prompt</code>, <code>output</code>), and the result (<code>detected_language</code>, <code>role</code>).</li>
-    <li><code>_classify(iso_code, base, target)</code> — the exact comparison that used to live inline in <code>MessageGateway.process()</code>, now shared by both the deterministic node and the LLM-fallback parsing step.</li>
-    <li><code>_build_fallback_prompt()</code> — builds the system prompt shown in the walkthrough above, using <code>LANGUAGE_NAMES</code> for human-readable names.</li>
-    <li><code>_build_graph()</code> — wires the two nodes and the conditional edge described in Intuition §2.2.</li>
-    <li><code>GraphLanguageClassifier</code> — the public class, implementing <code>LanguageClassifier.classify()</code> by invoking the compiled graph and interpreting its final state.</li>
-    <li><code>FakeLanguageClassifier</code> — a test double that always returns a fixed <code>(iso_code, role)</code> pair, replacing the old <code>FakeLanguageDetector</code> at most call sites.</li>
+    <li><code>_classify(iso_code, base, target)</code> &mdash; the exact same three-way comparison that used to live inline in <code>MessageGateway.process()</code>, now extracted so both the deterministic node and the LLM-fallback path can reuse it.</li>
+    <li><code>_build_fallback_prompt(text, base, target)</code> &mdash; builds the system prompt sent to the LLM, e.g. <em>"Is the following text written in English or French? Reply with only the ISO code 'en' or 'fr', or the word 'none' if it is neither."</em> using the friendly names from <code>LANGUAGE_NAMES</code> rather than raw ISO codes.</li>
   </ul>
-  <p>The raise site for the "still unsupported after asking the LLM" case is where the two fixes finally meet:</p>
-  <pre>fallback_iso = result["output"].strip().lower()
-fallback_role = _classify(fallback_iso, language_pair.base, language_pair.target)
-if fallback_role is None:
-    raise UnsupportedLanguageError(base=language_pair.base, target=language_pair.target)</pre>
 
-  <h3>3.6 <code>bot/main.py</code> — wiring it together</h3>
-  <pre>llm = LangGraphLLMClient(inner=OpenAILLMClient(api_key=OPENAI_API_KEY, model=MODEL_NAME))
+  <p><code>_build_graph()</code> wires the two nodes together:</p>
+  <pre><code>graph = StateGraph(LanguageDetectionState)
+graph.add_node("detect_deterministic", detect_deterministic)
+graph.add_node("call_llm", build_call_llm_node(llm_client))
+graph.set_entry_point("detect_deterministic")
+graph.add_conditional_edges(
+    "detect_deterministic", route_after_deterministic, {END: END, "call_llm": "call_llm"}
+)
+graph.set_finish_point("call_llm")</code></pre>
+  <p><code>route_after_deterministic</code> is the routing function: it returns <code>END</code> if <code>detect_deterministic</code> already found a matching role, or <code>"call_llm"</code> to fall through to the LLM node otherwise.</p>
+
+  <p>Finally, <code>GraphLanguageClassifier</code> is the public-facing class that <code>MessageGateway</code> now depends on. It invokes the graph and interprets the final state: if <code>role</code> was already set by the deterministic node, return it directly; otherwise parse the LLM's raw text output (lowercased, stripped) through <code>_classify</code> again, and raise <code>UnsupportedLanguageError(base=..., target=...)</code> if even the LLM came back empty-handed.</p>
+
+  <p>The module also defines <code>FakeLanguageClassifier</code> &mdash; a trivial test double that always returns a fixed <code>(iso_code, role)</code> pair, used throughout the test suite wherever a real classifier isn't the point of the test.</p>
+
+  <h3>2. Shared plumbing: <code>bot/llm_interface.py</code></h3>
+  <p>The new graph needs an LLM-calling node, and <code>llm_interface.py</code> already had one &mdash; just not in reusable form. It lived as a closure inside <code>_build_completion_graph()</code>. This PR lifts it out into its own factory function:</p>
+
+  <table>
+    <tr><th>Before</th><th>After</th></tr>
+    <tr>
+      <td><code>call_llm</code> was defined inline inside <code>_build_completion_graph(inner)</code>, private to that one graph.</td>
+      <td><code>build_call_llm_node(inner)</code> is a standalone function returning the same node closure; <code>_build_completion_graph</code> now just calls it.</td>
+    </tr>
+  </table>
+  <p>This is a pure extraction &mdash; behavior is identical for the existing completion graph &mdash; but it means <code>language_detection.py</code> can call <code>build_call_llm_node(llm_client)</code> to get an LLM node for its own graph without duplicating the "call the client, stash the text in <code>output</code>" logic.</p>
+
+  <h3>3. Replacing the old dependency: <code>bot/gateway.py</code></h3>
+  <p><code>MessageGateway</code> used to depend on a bare <code>LanguageDetector</code> (just <code>detect(text) -&gt; str</code>) and did the base/target comparison itself. It now depends on the higher-level <code>LanguageClassifier</code> protocol:</p>
+  <pre><code>@runtime_checkable
+class LanguageClassifier(Protocol):
+    async def classify(self, text: str, language_pair: LanguagePair) -> tuple[str, LanguageRole]: ...</code></pre>
+  <p>The inline three-way comparison and the direct <code>raise UnsupportedLanguageError()</code> both disappear from <code>gateway.py</code> &mdash; that responsibility now belongs entirely to whatever <code>LanguageClassifier</code> is injected. <code>MessageGateway.process()</code> becomes:</p>
+  <pre><code>detected_iso, role = await self._language_classifier.classify(text, language_pair)
+
+return AnchorMessage(
+    text=text,
+    detected_language=detected_iso,
+    language_role=role,
+)</code></pre>
+  <p>Because <code>classify()</code> is <code>async</code> (it may need to await an LLM call), <code>process()</code> itself had to become <code>async def process(...)</code> &mdash; a ripple that reaches all the way out to <code>MessageTrigger</code>.</p>
+
+  <h3>4. Wiring: <code>bot/main.py</code> and <code>bot/triggers/message.py</code></h3>
+  <p>In <code>main.py</code>, construction order matters now: the LLM client has to exist before the classifier can be built, because the classifier needs it for its fallback node.</p>
+  <pre><code>llm = LangGraphLLMClient(inner=OpenAILLMClient(api_key=OPENAI_API_KEY, model=MODEL_NAME))
 language_classifier = GraphLanguageClassifier(
     language_detector=LinguaLanguageDetector(), llm_client=llm
 )
-gateway = MessageGateway(authorizer=authorizer, language_classifier=language_classifier)</pre>
-  <p>
-    Note that <code>llm</code> — the same <code>LangGraphLLMClient</code> used for translations
-    and corrections elsewhere — is handed straight to <code>GraphLanguageClassifier</code> too.
-    There's no separate model or client for language detection; it's the same completion path,
-    just invoked with a different prompt.
-  </p>
+gateway = MessageGateway(authorizer=authorizer, language_classifier=language_classifier)</code></pre>
+  <p>In <code>message.py</code>, the trigger now awaits the now-async <code>process()</code> call, and forwards the error's <code>format_kwargs</code> as discussed above:</p>
+  <pre><code>anchor = await self._gateway.process(update, language_pair)
+...
+except UserFacingError as exc:
+    await update.message.reply_text(
+        self._localizer.t(type(exc), session.base_language, **exc.format_kwargs)
+    )</code></pre>
 
-  <h3>3.7 Tests — following the ripple</h3>
-  <p>
-    Because <code>MessageGateway.process()</code> is now a coroutine, every existing test in
-    <code>bot/test_gateway.py</code> and <code>bot/triggers/test_message.py</code> gained
-    <code>async def</code> / <code>await</code>. <code>FakeLanguageDetector</code> is replaced by
-    <code>FakeLanguageClassifier(iso_code, role)</code> at gateway/trigger call sites (the raw
-    detector fake still exists and is reused directly inside the new
-    <code>bot/test_language_detection.py</code>, since <code>GraphLanguageClassifier</code> still
-    needs one to plug into its graph).
-  </p>
-  <p>
-    The new <code>bot/test_language_detection.py</code> is where the LangGraph routing itself is
-    pinned down — including a deliberately hostile <code>_ExplodingLLMClient</code> whose
-    <code>complete()</code> always raises <code>AssertionError</code>, used to prove the LLM node
-    is <em>never</em> reached when the deterministic detector already matched:
-  </p>
-  <pre>class _ExplodingLLMClient:
-    """An LLMClient that fails the test if it's ever called."""
-    async def complete(self, system_prompt, user_prompt, *, metadata=None):
-        raise AssertionError("LLM fallback should not be called when the deterministic detector already matched")</pre>
-  <p>
-    And <code>bot/triggers/test_message.py</code> gets the regression test for the original bug
-    report, using a <code>_RaisingClassifier</code> that always raises
-    <code>UnsupportedLanguageError</code>, asserting the user gets a real reply mentioning both
-    language codes instead of the handler silently dying:
-  </p>
-  <pre>async def test_user_receives_a_reply_instead_of_a_silent_failure(self):
-    trigger, runner, _ = _make_trigger(language_classifier=_RaisingClassifier())
-    update = make_update(text="Hola mundo", user_id=1)
-    context = make_context()
-
-    await trigger.handle(update, context)
-
-    update.message.reply_text.assert_awaited_once()
-    reply_text = update.message.reply_text.await_args.args[0]
-    assert "en" in reply_text
-    assert "fr" in reply_text
-    assert runner.last_action is None</pre>
-
-  <a class="back-to-top" href="#toc">↑ Back to contents</a>
+  <h3>5. Tests</h3>
+  <p>The test suite follows the production code closely. <code>test_gateway.py</code> swaps every <code>FakeLanguageDetector</code> for a <code>FakeLanguageClassifier</code> and adds <code>await</code> to every call to <code>gw.process(...)</code>; a new <code>_RaisingClassifier</code> test double stands in for "the classifier gave up," letting the gateway-rejection tests assert <code>UnsupportedLanguageError</code> is still propagated correctly. <code>test_message.py</code> adds a whole new test class, <code>TestMessageTriggerUnsupportedLanguage</code>, which is really the regression test for Bug #1 &mdash; it asserts the user actually receives a reply (rather than silence) containing both the base and target codes, and that no translation action runs. And the brand-new <code>test_language_detection.py</code> tests the graph directly: deterministic matches never touch the LLM (enforced via an <code>_ExplodingLLMClient</code> that fails the test if <code>complete()</code> is ever called), while a deterministic miss correctly routes to and is rescued by a <code>FakeLLMClient</code>.</p>
 </section>
 
 <section id="quiz">
-  <h2>4. Quiz</h2>
-  <p class="muted">Five questions to check your understanding. Click an option to see feedback.</p>
+  <h2>Quiz</h2>
+  <p>Five questions to check your understanding. Click an answer to see if you're right.</p>
 
-  <div class="quiz-item" data-answer="1">
-    <h4>1. Before this PR, what actually caused the "silent failure" when a message was in an unsupported language?</h4>
+  <div class="quiz-card" data-answer="1">
+    <div class="quiz-q">1. Before this PR, why did a user sending text in an unsupported language get no reply at all, rather than an error message?</div>
     <div class="quiz-options">
-      <button class="quiz-option" data-correct="false">The Telegram API rejected the reply because it was empty.</button>
-      <button class="quiz-option" data-correct="true">Looking up <code>UnsupportedLanguageError</code> in the message catalog raised a <code>KeyError</code>, inside the exact except-block meant to send the user a reply.</button>
-      <button class="quiz-option" data-correct="false"><code>lingua</code> threw an unhandled exception when it couldn't detect a language.</button>
-      <button class="quiz-option" data-correct="false"><code>MessageGateway.process()</code> deadlocked waiting on the LLM.</button>
+      <button class="quiz-option">A. <code>MessageTrigger</code> didn't catch <code>UnsupportedLanguageError</code> at all.</button>
+      <button class="quiz-option">B. <code>UnsupportedLanguageError</code> wasn't registered in the <code>messages.py</code> catalog, so looking up its message raised a <code>KeyError</code> inside the exception handler itself.</button>
+      <button class="quiz-option">C. Telegram silently rejects replies longer than 500 characters.</button>
+      <button class="quiz-option">D. <code>MessageGateway.process</code> was synchronous, so the reply was dropped by the event loop.</button>
     </div>
     <div class="quiz-feedback"></div>
   </div>
 
-  <div class="quiz-item">
-    <h4>2. In <code>GraphLanguageClassifier</code>'s graph, when does the <code>call_llm</code> node actually run?</h4>
+  <div class="quiz-card" data-answer="1">
+    <div class="quiz-q">2. What condition causes the new detection graph to fall through to the LLM fallback node?</div>
     <div class="quiz-options">
-      <button class="quiz-option" data-correct="false">On every message, in parallel with the deterministic detector, to cross-check its answer.</button>
-      <button class="quiz-option" data-correct="true">Only when the deterministic detector's ISO code matches neither the base nor the target language of the pair.</button>
-      <button class="quiz-option" data-correct="false">Only when the message text is longer than a configured threshold.</button>
-      <button class="quiz-option" data-correct="false">Only on the first message of a new Conversation Turn.</button>
+      <button class="quiz-option">A. The LLM fallback runs on every message, unconditionally.</button>
+      <button class="quiz-option">B. The deterministic detector's ISO code matches neither the base nor the target language of the user's pair.</button>
+      <button class="quiz-option">C. The message text is longer than 500 characters.</button>
+      <button class="quiz-option">D. It runs only when <code>OPENAI_API_KEY</code> is unset, as a fallback provider.</button>
     </div>
     <div class="quiz-feedback"></div>
   </div>
 
-  <div class="quiz-item">
-    <h4>3. What is <code>build_call_llm_node()</code>, and why was it pulled out of <code>_build_completion_graph()</code>?</h4>
+  <div class="quiz-card" data-answer="1">
+    <div class="quiz-q">3. What does the newly extracted <code>build_call_llm_node()</code> function in <code>llm_interface.py</code> actually do?</div>
     <div class="quiz-options">
-      <button class="quiz-option" data-correct="false">A new LangSmith tracing wrapper added specifically for the language-detection graph.</button>
-      <button class="quiz-option" data-correct="true">A factory for the existing generic <code>call_llm</code> node (reads <code>system_prompt</code>/<code>user_prompt</code>, writes <code>output</code>), extracted so <code>language_detection.py</code>'s graph could reuse it as its second node.</button>
-      <button class="quiz-option" data-correct="false">A helper that batches multiple LLM calls into one request for efficiency.</button>
-      <button class="quiz-option" data-correct="false">A retry wrapper added around <code>OpenAILLMClient.complete()</code>.</button>
+      <button class="quiz-option">A. It adds a brand-new LLM provider alongside OpenAI.</button>
+      <button class="quiz-option">B. It's a factory that returns a LangGraph node closure calling an <code>LLMClient</code> and storing its text as <code>output</code> &mdash; reused by both the completion graph and the new language-detection graph.</button>
+      <button class="quiz-option">C. It adds response caching so repeated prompts don't hit the API twice.</button>
+      <button class="quiz-option">D. It retries failed OpenAI calls with exponential backoff.</button>
     </div>
     <div class="quiz-feedback"></div>
   </div>
 
-  <div class="quiz-item">
-    <h4>4. If the deterministic detector guesses wrong <em>and</em> the LLM fallback also can't place the text in the base or target language, what happens?</h4>
+  <div class="quiz-card" data-answer="1">
+    <div class="quiz-q">4. In the LLM fallback prompt built by <code>_build_fallback_prompt()</code>, what is the LLM instructed to respond with?</div>
     <div class="quiz-options">
-      <button class="quiz-option" data-correct="false">The gateway silently defaults to <code>LanguageRole.BASE</code>.</button>
-      <button class="quiz-option" data-correct="false">The graph retries the deterministic detector a second time before giving up.</button>
-      <button class="quiz-option" data-correct="true"><code>GraphLanguageClassifier.classify()</code> raises <code>UnsupportedLanguageError(base=..., target=...)</code>, which now renders as a real reply naming both languages.</button>
-      <button class="quiz-option" data-correct="false">The message is queued and retried on the user's next message.</button>
+      <button class="quiz-option">A. A full sentence explaining its reasoning.</button>
+      <button class="quiz-option">B. Only the ISO code of the base language, the ISO code of the target language, or the word "none".</button>
+      <button class="quiz-option">C. A confidence score between 0.0 and 1.0.</button>
+      <button class="quiz-option">D. A JSON array of every language it considered.</button>
     </div>
     <div class="quiz-feedback"></div>
   </div>
 
-  <div class="quiz-item">
-    <h4>5. What changed about <code>MessageGateway.process()</code>'s signature, and why was that necessary?</h4>
+  <div class="quiz-card" data-answer="1">
+    <div class="quiz-q">5. Why did <code>MessageGateway.process()</code> have to change from a regular method into an <code>async def</code> in this PR?</div>
     <div class="quiz-options">
-      <button class="quiz-option" data-correct="false">It gained a new <code>timeout</code> parameter to bound the LLM fallback call.</button>
-      <button class="quiz-option" data-correct="false">It now takes the raw <code>LanguageDetector</code> directly instead of a wrapping classifier.</button>
-      <button class="quiz-option" data-correct="true">It became <code>async def</code>, because classification can now involve an awaited LLM call via <code>LanguageClassifier.classify()</code> — which rippled into every caller and test needing <code>await</code>.</button>
-      <button class="quiz-option" data-correct="false">It now returns an <code>Optional[AnchorMessage]</code> instead of raising on failure.</button>
+      <button class="quiz-option">A. Telegram's API requires all update handlers to be async.</button>
+      <button class="quiz-option">B. Because it now calls <code>await self._language_classifier.classify(...)</code>, and <code>classify()</code> is async since it may need to await an LLM call inside the graph.</button>
+      <button class="quiz-option">C. To let multiple users' messages be validated concurrently within one call.</button>
+      <button class="quiz-option">D. The <code>unicodedata.category()</code> check was moved onto a background thread for performance.</button>
     </div>
     <div class="quiz-feedback"></div>
   </div>
 </section>
 
-</main>
-
 <footer>
-  Generated by the <code>explain-diff-html</code> skill · diff <code>7d92ba8..c041791</code>
+  Generated explanation for the diff between <code>master</code> and this branch (bot/language_detection.py and friends).
 </footer>
 
+</div>
+
 <script>
-document.querySelectorAll('.quiz-item').forEach(function (item) {
-  var feedback = item.querySelector('.quiz-feedback');
-  var options = item.querySelectorAll('.quiz-option');
-  options.forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      if (btn.disabled) return;
-      var isCorrect = btn.getAttribute('data-correct') === 'true';
-      options.forEach(function (b) {
-        b.disabled = true;
-        if (b.getAttribute('data-correct') === 'true') {
-          b.classList.add('correct');
-        } else if (b === btn) {
-          b.classList.add('incorrect');
+  document.querySelectorAll('.quiz-card').forEach(card => {
+    const correctIndex = parseInt(card.dataset.answer, 10);
+    const buttons = card.querySelectorAll('.quiz-option');
+    const feedback = card.querySelector('.quiz-feedback');
+    buttons.forEach((btn, i) => {
+      btn.addEventListener('click', () => {
+        if (btn.disabled || card.classList.contains('answered')) return;
+        card.classList.add('answered');
+        buttons.forEach((b, j) => {
+          b.disabled = true;
+          if (j === correctIndex) b.classList.add('correct');
+          else if (j === i) b.classList.add('incorrect');
+        });
+        feedback.classList.add('show');
+        if (i === correctIndex) {
+          feedback.classList.add('correct-fb');
+          feedback.textContent = 'Correct!';
+        } else {
+          feedback.classList.add('incorrect-fb');
+          feedback.textContent = 'Not quite — the highlighted answer is the correct one. Have another look at the section above if you want the full reasoning.';
         }
       });
-      feedback.classList.remove('correct', 'incorrect');
-      feedback.classList.add('show', isCorrect ? 'correct' : 'incorrect');
-      feedback.textContent = isCorrect
-        ? '✓ Correct.'
-        : '✗ Not quite — the highlighted option above is the right one.';
     });
   });
-});
 </script>
-
 </body>
 </html>
