@@ -1,4 +1,10 @@
-from bot.config.messages import MsgRateThisResponse, MsgSave, MsgSaved, MsgSkipFeedback, t
+from bot.config.messages import (
+    MsgRateThisResponse,
+    MsgSave,
+    MsgSaved,
+    MsgSkipFeedback,
+    t,
+)
 from bot.keyboard import (
     RATE_DOWN,
     RATE_LABEL,

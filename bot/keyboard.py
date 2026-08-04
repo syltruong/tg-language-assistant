@@ -2,7 +2,13 @@
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
-from bot.config.messages import MsgRateThisResponse, MsgSave, MsgSaved, MsgSkipFeedback, t
+from bot.config.messages import (
+    MsgRateThisResponse,
+    MsgSave,
+    MsgSaved,
+    MsgSkipFeedback,
+    t,
+)
 from bot.types import KeyboardActionType, Suggestion
 
 BUTTON_TITLES: dict[KeyboardActionType, str] = {
