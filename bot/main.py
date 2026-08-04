@@ -15,7 +15,8 @@ from bot.auth import AllowlistAuthorizer
 from bot.config import ALLOWED_USERS, DB_PATH, MODEL_NAME, OPENAI_API_KEY, TOKEN
 from bot.feedback import LangSmithFeedbackClient
 from bot.gateway import LinguaLanguageDetector, MessageGateway
-from bot.keyboard import LANG_TARGET_PREFIX, RATE_PREFIX
+from bot.insights import SqliteInsightRepository
+from bot.keyboard import LANG_TARGET_PREFIX, RATE_PREFIX, SAVE_PREFIX
 from bot.llm_interface import LangGraphLLMClient, OpenAILLMClient
 from bot.localizer import Localizer
 from bot.publisher import ResponsePublisher
@@ -24,6 +25,7 @@ from bot.storage.db import Database
 from bot.triggers.feedback import FeedbackTrigger
 from bot.triggers.keyboard import KeyboardTrigger
 from bot.triggers.message import MessageTrigger
+from bot.triggers.save import SaveTrigger
 from bot.triggers.settings import SettingsTrigger
 
 
@@ -94,6 +96,7 @@ def main() -> None:
     )
     settings_trigger = SettingsTrigger(localizer=localizer)
     feedback_trigger = FeedbackTrigger(feedback_client=LangSmithFeedbackClient())
+    save_trigger = SaveTrigger(repository=SqliteInsightRepository(database=database))
 
     app.add_handler(CommandHandler("start", settings_trigger.handle))
     app.add_handler(CommandHandler("settings", settings_trigger.handle))
@@ -113,6 +116,9 @@ def main() -> None:
     # rate:* callback data reaches KeyboardTrigger and raises a KeyError.
     app.add_handler(
         CallbackQueryHandler(feedback_trigger.handle, pattern=f"^{RATE_PREFIX}")
+    )
+    app.add_handler(
+        CallbackQueryHandler(save_trigger.handle, pattern=f"^{SAVE_PREFIX}")
     )
     app.add_handler(CallbackQueryHandler(keyboard_trigger.handle))
     webhook_url = os.getenv("WEBHOOK_URL")

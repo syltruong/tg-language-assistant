@@ -5,7 +5,11 @@ from telegram.ext import ContextTypes
 
 from bot.actions.registry import ActionRegistry
 from bot.gateway import AnchorMessage, LanguageRole
-from bot.keyboard import KEYBOARD, SELECT_PREFIX, build_suggestions_keyboard
+from bot.keyboard import (
+    SELECT_PREFIX,
+    build_action_keyboard,
+    build_suggestions_keyboard,
+)
 from bot.publisher import ResponsePublisherProtocol
 from bot.runner import ActionRunner
 from bot.session import UserSession
@@ -67,8 +71,9 @@ class KeyboardTrigger:
             session.store_suggestions(msg_id, result.suggestions)
             reply_markup = build_suggestions_keyboard(result.suggestions)
         else:
-            reply_markup = KEYBOARD
+            reply_markup = build_action_keyboard()
 
+        session.store_slot_action(msg_id, action_type)
         if result.run_id:
             session.store_run_id(msg_id, result.run_id)
 
@@ -95,6 +100,6 @@ class KeyboardTrigger:
             chat_id=query.message.chat.id,
             slot_id=msg_id,
             session=session,
-            reply_markup=KEYBOARD,
+            reply_markup=build_action_keyboard(),
             user_id=query.from_user.id,
         )

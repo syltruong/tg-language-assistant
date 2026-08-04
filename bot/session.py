@@ -42,6 +42,7 @@ class UserSession:
     _KEY_ACTIVE_MESSAGES = "active_message_ids"
     _KEY_ACTIVE_SLOT_ID = "active_slot_id"
     _KEY_RUN_IDS = "run_ids"
+    _KEY_SLOT_ACTIONS = "slot_actions"
 
     _DEFAULT_BASE_LANGUAGE = "en"
     _DEFAULT_TARGET_LANGUAGE = "fr"
@@ -120,6 +121,13 @@ class UserSession:
 
     def get_run_id(self, msg_id: int) -> str | None:
         return self._data.get(self._KEY_RUN_IDS, {}).get(msg_id)
+
+    def store_slot_action(self, msg_id: int, action_type: str) -> None:
+        """Record which Action produced what is currently rendered in a slot message."""
+        self._data.setdefault(self._KEY_SLOT_ACTIONS, {})[msg_id] = action_type
+
+    def get_slot_action(self, msg_id: int) -> str | None:
+        return self._data.get(self._KEY_SLOT_ACTIONS, {}).get(msg_id)
 
     def store_suggestions(self, msg_id: int, suggestions: list[Suggestion]) -> None:
         self._data.setdefault(self._KEY_SUGGESTIONS, {})[msg_id] = suggestions
