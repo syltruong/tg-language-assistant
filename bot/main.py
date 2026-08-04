@@ -26,6 +26,7 @@ from bot.triggers.feedback import FeedbackTrigger
 from bot.triggers.keyboard import KeyboardTrigger
 from bot.triggers.message import MessageTrigger
 from bot.triggers.save import SaveTrigger
+from bot.triggers.saved_list import SavedListTrigger
 from bot.triggers.settings import SettingsTrigger
 
 
@@ -96,10 +97,15 @@ def main() -> None:
     )
     settings_trigger = SettingsTrigger(localizer=localizer)
     feedback_trigger = FeedbackTrigger(feedback_client=LangSmithFeedbackClient())
-    save_trigger = SaveTrigger(repository=SqliteInsightRepository(database=database))
+    insight_repository = SqliteInsightRepository(database=database)
+    save_trigger = SaveTrigger(repository=insight_repository)
+    saved_list_trigger = SavedListTrigger(
+        repository=insight_repository, localizer=localizer
+    )
 
     app.add_handler(CommandHandler("start", settings_trigger.handle))
     app.add_handler(CommandHandler("settings", settings_trigger.handle))
+    app.add_handler(CommandHandler("saved", saved_list_trigger.handle))
     app.add_handler(
         CallbackQueryHandler(
             settings_trigger.handle_language_callback,
