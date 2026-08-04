@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Explained: Adding /saved — PR 4/4 of the explicit memory capability</title>
+<style>
+  :root {
+    --bg: #fbfaf7;
+    --panel: #ffffff;
+    --ink: #1f2430;
+    --muted: #5b6270;
+    --accent: #2f6f4f;
+    --accent-light: #e6f3ec;
+    --accent-dark: #1e4c34;
+    --line: #e3e1da;
+    --code-bg: #282c34;
+    --code-ink: #d9dde3;
+    --warn-bg: #fff6e0;
+    --warn-line: #e0b64a;
+    --tg-bubble: #eef4ff;
+    --tg-bubble-user: #dcf8c6;
+    --danger: #b3453a;
+    --good: #2f6f4f;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.65;
+  }
+  .layout {
+    display: flex;
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+  nav#toc {
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    width: 250px;
+    flex-shrink: 0;
+    padding: 32px 18px 32px 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+  nav#toc h2 {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--muted);
+    margin: 0 0 10px 4px;
+  }
+  nav#toc ul { list-style: none; margin: 0; padding: 0; }
+  nav#toc a {
+    display: block;
+    padding: 7px 10px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.88rem;
+  }
+  nav#toc a:hover { background: var(--accent-light); }
+  nav#toc ul ul { margin-left: 12px; margin-top: 2px; margin-bottom: 6px; }
+  nav#toc ul ul a { font-size: 0.8rem; color: var(--muted); padding: 5px 10px; }
+
+  main {
+    flex: 1;
+    min-width: 0;
+    padding: 40px 44px 90px 34px;
+  }
+  header.hero {
+    padding-bottom: 26px;
+    border-bottom: 3px solid var(--ink);
+    margin-bottom: 38px;
+  }
+  header.hero .kicker {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.78rem;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  header.hero h1 { font-size: 2.1rem; margin: 8px 0 10px; }
+  header.hero p.dek { color: var(--muted); font-size: 1.08rem; max-width: 68ch; }
+
+  section { margin-bottom: 56px; }
+  h2 {
+    font-size: 1.55rem;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 8px;
+    margin-top: 0;
+  }
+  h3 { font-size: 1.18rem; margin-top: 34px; color: var(--accent-dark); }
+  h4 { font-size: 1.02rem; margin-top: 22px; }
+  p { max-width: 74ch; }
+  a { color: var(--accent-dark); }
+
+  .badge {
+    display: inline-block;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: var(--accent-light);
+    color: var(--accent-dark);
+    margin-right: 6px;
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    padding: 16px 18px;
+    border-radius: 10px;
+    overflow-x: auto;
+    font-family: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 0.86rem;
+    white-space: pre;
+    line-height: 1.55;
+    max-width: 100%;
+  }
+  code {
+    font-family: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+    background: #eee9de;
+    padding: 1px 5px;
+    border-radius: 5px;
+    font-size: 0.88em;
+  }
+  pre code { background: none; padding: 0; }
+
+  .callout {
+    border-left: 4px solid var(--accent);
+    background: var(--accent-light);
+    padding: 14px 18px;
+    border-radius: 0 8px 8px 0;
+    margin: 22px 0;
+    max-width: 74ch;
+  }
+  .callout.warn { border-left-color: var(--warn-line); background: var(--warn-bg); }
+  .callout .label {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-weight: 700;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--accent-dark);
+    margin-bottom: 4px;
+  }
+  .callout.warn .label { color: #8a6512; }
+
+  .box-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin: 24px 0;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px 18px;
+    flex: 1 1 240px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .card h4 { margin-top: 0; }
+
+  /* Phone mockup */
+  .phone {
+    width: 300px;
+    border: 10px solid #24262b;
+    border-radius: 34px;
+    background: #fff;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .phone .statusbar {
+    background: #24262b;
+    color: #fff;
+    font-size: 0.72rem;
+    padding: 6px 14px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .phone .chatbar {
+    background: var(--accent-dark);
+    color: #fff;
+    padding: 10px 14px;
+    font-size: 0.92rem;
+    font-weight: 600;
+  }
+  .phone .chatbody {
+    background: #d8dde3;
+    padding: 12px;
+    min-height: 180px;
+  }
+  .bubble {
+    max-width: 85%;
+    border-radius: 12px;
+    padding: 8px 11px;
+    font-size: 0.82rem;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.08);
+  }
+  .bubble.user { background: var(--tg-bubble-user); margin-left: auto; }
+  .bubble.bot { background: var(--tg-bubble); margin-right: auto; }
+  .bubble .kb {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .kbbtn {
+    background: #f0f0f0;
+    border: 1px solid #cfcfcf;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.72rem;
+    color: #2266cc;
+  }
+  .kbbtn.save { color: var(--accent-dark); font-weight: 600; }
+  .kbbtn.saved { color: var(--good); font-weight: 700; }
+
+  .phones-row {
+    display: flex;
+    gap: 26px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    margin: 24px 0;
+  }
+  .phone-caption {
+    text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-top: 8px;
+    max-width: 300px;
+  }
+
+  /* System / data-flow diagram */
+  .flow {
+    display: flex;
+    align-items: stretch;
+    flex-wrap: wrap;
+    gap: 0;
+    margin: 26px 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .flow-node {
+    background: var(--panel);
+    border: 1.5px solid var(--accent-dark);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 0.84rem;
+    min-width: 150px;
+    max-width: 190px;
+    text-align: center;
+  }
+  .flow-node strong { display: block; margin-bottom: 4px; font-size: 0.88rem; }
+  .flow-node .sub { color: var(--muted); font-size: 0.76rem; }
+  .flow-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    color: var(--accent);
+    padding: 0 10px;
+    min-width: 34px;
+  }
+  @media (max-width: 700px) {
+    .flow { flex-direction: column; }
+    .flow-arrow { transform: rotate(90deg); padding: 4px 0; }
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 18px 0;
+    font-size: 0.86rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  th, td {
+    border: 1px solid var(--line);
+    padding: 7px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: #f1efe8; }
+  tr:nth-child(even) td { background: #fafaf7; }
+
+  ul, ol { max-width: 74ch; }
+
+  .diffline { display: block; }
+  .diffline.add { color: #6ede9a; }
+  .diffline.rem { color: #ef7e7e; }
+
+  .file-pill {
+    display: inline-block;
+    font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+    background: #f1efe8;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 0.82rem;
+    margin: 2px 4px 2px 0;
+  }
+
+  /* Quiz */
+  .quiz-q {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 20px 22px;
+    margin-bottom: 22px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .quiz-q h4 { margin-top: 0; font-size: 1.02rem; }
+  .quiz-options { list-style: none; padding: 0; margin: 14px 0 0; }
+  .quiz-options li { margin-bottom: 8px; }
+  .quiz-option-btn {
+    width: 100%;
+    text-align: left;
+    background: #f7f6f2;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.9rem;
+    color: var(--ink);
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .quiz-option-btn:hover { background: #efece2; }
+  .quiz-option-btn.correct { background: #d9f0e2; border-color: var(--good); }
+  .quiz-option-btn.incorrect { background: #f7dede; border-color: var(--danger); }
+  .quiz-option-btn:disabled { cursor: default; }
+  .quiz-feedback {
+    margin-top: 12px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.88rem;
+    display: none;
+  }
+  .quiz-feedback.show { display: block; }
+  .quiz-feedback.correct { background: var(--accent-light); color: var(--accent-dark); }
+  .quiz-feedback.incorrect { background: #fbe8e6; color: var(--danger); }
+  .quiz-score {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-weight: 700;
+    background: var(--ink);
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: 10px;
+    display: inline-block;
+    margin-top: 4px;
+  }
+
+  footer {
+    max-width: 74ch;
+    color: var(--muted);
+    font-size: 0.85rem;
+    border-top: 1px solid var(--line);
+    padding-top: 18px;
+  }
+
+  @media (max-width: 900px) {
+    .layout { display: block; }
+    nav#toc {
+      position: static;
+      width: auto;
+      height: auto;
+      padding: 20px 20px 0;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 20px;
+    }
+    main { padding: 10px 20px 60px; }
+    .phone { width: 100%; max-width: 300px; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav id="toc">
+    <h2>Contents</h2>
+    <ul>
+      <li><a href="#background">1. Background</a>
+        <ul>
+          <li><a href="#background-deep">The bot, from scratch</a></li>
+          <li><a href="#background-narrow">The three PRs before this one</a></li>
+        </ul>
+      </li>
+      <li><a href="#intuition">2. Intuition</a></li>
+      <li><a href="#code">3. Code walkthrough</a>
+        <ul>
+          <li><a href="#code-strings">New UI strings</a></li>
+          <li><a href="#code-trigger">SavedListTrigger</a></li>
+          <li><a href="#code-wiring">Wiring into main.py</a></li>
+          <li><a href="#code-tests">The tests</a></li>
+        </ul>
+      </li>
+      <li><a href="#quiz">4. Quiz</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <div class="kicker">Explain Diff · tg-language-assistant</div>
+      <h1>Reading your saved insights back: the /saved command</h1>
+      <p class="dek">
+        This is the fourth and final pull request in a short series that gives the
+        Telegram language bot an explicit memory: a way for the user to keep something
+        the bot said, and get it back later. The first three PRs built the storage and
+        the write path — a SQLite table and a Save button. This one adds the read path:
+        a single <code>/saved</code> command that lists everything the user has kept,
+        plus an end-to-end test that proves the whole round trip survives a bot restart.
+      </p>
+    </header>
+
+    <section id="background">
+      <h2>1. Background</h2>
+
+      <h3 id="background-deep">The bot, from scratch</h3>
+      <p>
+        If you're new to this codebase, here's the shape of it. tg-language-assistant is
+        a Telegram bot for people learning a second language. You send it a sentence, and
+        it offers a row of buttons — <em>Analyze</em>, <em>Correct</em>, <em>Rephrase</em>,
+        <em>Reply</em> — each of which asks an LLM to do something useful with what you
+        wrote: explain a grammar point, fix your mistakes, suggest a more natural phrasing,
+        or draft a reply you could send back.
+      </p>
+      <p>
+        Feel free to skip the rest of this subsection if you already know the bot's
+        Trigger/Action architecture and just want the diff.
+      </p>
+      <div class="callout">
+        <div class="label">Vocabulary</div>
+        A <strong>Trigger</strong> is a small class that handles one kind of Telegram
+        event — a slash command, a text message, a button tap — and knows nothing about
+        how the others work. A <strong>Conversation Turn</strong> is the unit the bot
+        thinks in: the user's message (the <em>anchor</em>), plus whichever Action's
+        result is currently rendered underneath it (the <em>slot</em>). Turns are
+        addressed by <code>slot_message_id</code>, the Telegram message ID of the bot's
+        reply.
+      </div>
+      <p>
+        Whatever the bot renders for an Action carries its own keyboard, built by
+        <code>build_action_keyboard()</code> in <code>bot/keyboard.py</code>: the four
+        action buttons, a Save button, and a thumbs-up/down row for feedback. Tapping any
+        button fires a <code>CallbackQueryHandler</code>, which <code>main.py</code>
+        routes to the right Trigger by matching the button's <code>callback_data</code>
+        prefix.
+      </p>
+      <p>
+        Two more pieces matter for this change. <code>UserSession</code> wraps
+        <code>context.user_data</code> — Telegram's per-user scratch space, which lives
+        only as long as the process does — and tracks things like which language pair the
+        user picked and which Action rendered which slot. And <code>Localizer</code> is
+        the bot's translation layer: every user-facing string is a small class (a
+        <code>MsgKey</code>) registered in <code>bot/config/messages.py</code>'s
+        catalog, and handlers call <code>localizer.t(SomeMsgKey, locale)</code> instead
+        of writing English text inline. That's a project rule, not an accident — it
+        means adding a second language later is a matter of filling in a new catalog
+        dict, not hunting through every trigger for hardcoded strings.
+      </p>
+
+      <h3 id="background-narrow">The three PRs before this one</h3>
+      <p>
+        <code>context.user_data</code> is convenient but volatile: restart the bot process
+        (a deploy, a crash, a routine redeploy) and every user's session — and with it,
+        anything they thought they'd "kept" — is gone. The <a href="https://en.wikipedia.org/wiki/Architecture_decision_record">architecture decision record</a>
+        for this feature, ADR-0006, calls the fix <strong>explicit memory</strong>: a
+        deliberate, durable "keep this" action, backed by real storage, independent of
+        the ephemeral session. Three PRs led up to this one:
+      </p>
+      <div class="box-grid">
+        <div class="card">
+          <h4>PR 1 — SQLite foundation</h4>
+          A <code>Database</code> wrapper and a migration runner, giving the bot a
+          <code>saved_insights</code> table on a mounted volume.
+        </div>
+        <div class="card">
+          <h4>PR 2 — SavedInsight &amp; Repository</h4>
+          <code>bot/insights.py</code>: the <code>SavedInsight</code> dataclass, an
+          <code>InsightRepositoryProtocol</code>, an in-memory fake for tests, and
+          <code>SqliteInsightRepository</code> for production.
+        </div>
+        <div class="card">
+          <h4>PR 3 — the Save button</h4>
+          A sixth row on the action keyboard and <code>SaveTrigger</code>, which turns a
+          button tap into one <code>INSERT</code> — the write path.
+        </div>
+      </div>
+      <p>
+        Notice the shape of what got built: a write path that never touches the LLM and
+        never depends on <code>UserSession</code> for the essentials, because — per
+        ADR-0006 — a Save that silently fails because the session expired is far worse
+        than a lost button tap elsewhere in the bot. Everything needed to reconstruct a
+        <code>SavedInsight</code> is recovered straight off the Telegram callback: the
+        anchor text from <code>query.message.reply_to_message</code>, the rendered result
+        from <code>query.message.text_html</code>. Here's <code>SaveTrigger.handle</code>
+        from PR 3, since this PR's trigger will mirror its style closely:
+      </p>
+      <pre><code>async def handle(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    session = UserSession.from_context(context)
+    slot_id = query.message.message_id
+    ...
+    insight = SavedInsight(
+        user_id=update.effective_user.id,
+        chat_id=query.message.chat.id,
+        slot_message_id=slot_id,
+        anchor_text=(getattr(anchor, "text", "") or "").strip(),
+        ...
+        action_type=session.get_slot_action(slot_id) or UNKNOWN_ACTION,
+        result_text=query.message.text_html or query.message.text or "",
+        parse_mode="HTML" if query.message.text_html else None,
+        run_id=session.get_run_id(slot_id),
+    )
+    await self._repository.save(insight)
+    await query.answer(t(MsgSaved, session.base_language))
+    await query.edit_message_reply_markup(reply_markup=build_action_keyboard(saved=True))</code></pre>
+      <p>
+        So after three PRs, the bot could <em>write</em> a Saved Insight — but there was
+        still no way for the user to see what they'd kept. Tap Save ten times over a
+        week, and you'd have ten rows quietly accumulating in SQLite with absolutely no
+        surface to view them. That's the gap this PR closes.
+      </p>
+    </section>
+
+    <section id="intuition">
+      <h2>2. Intuition</h2>
+      <p>
+        The core idea of this PR is almost embarrassingly simple, which is exactly the
+        point: <strong>the write path already stores everything needed for display, so
+        the read path is just "fetch the rows and print them."</strong> No new tables,
+        no new columns, no LLM call, no background job. One command, one query, one
+        formatted reply.
+      </p>
+      <p>
+        Concretely: the user sends <code>/saved</code>. The bot looks up their Telegram
+        user ID, asks the repository for their rows (most recent first — the repository
+        already sorted them that way in PR 2), and if there are any, prints a numbered
+        list. If there are none, it says so gently, with a nudge back toward the Save
+        button.
+      </p>
+      <div class="phones-row">
+        <div>
+          <div class="phone">
+            <div class="statusbar"><span>●●●</span><span>9:41</span><span>🔋</span></div>
+            <div class="chatbar">Language Assistant</div>
+            <div class="chatbody">
+              <div class="bubble user">/saved</div>
+              <div class="bubble bot">
+                What you've kept:<br>
+                1. Je suis allé au marché — correct, 2026-08-03<br>
+                2. bonjour — analyze, 2026-08-01
+              </div>
+            </div>
+          </div>
+          <div class="phone-caption">Two things kept earlier this week, newest first. Each line names
+            the original text, which button produced the result, and the date.</div>
+        </div>
+        <div>
+          <div class="phone">
+            <div class="statusbar"><span>●●●</span><span>9:41</span><span>🔋</span></div>
+            <div class="chatbar">Language Assistant</div>
+            <div class="chatbody">
+              <div class="bubble user">/saved</div>
+              <div class="bubble bot">
+                Nothing kept yet. Tap 💾 Save on a reply to keep it for later.
+              </div>
+            </div>
+          </div>
+          <div class="phone-caption">A brand-new user, or one who's never tapped Save. The empty
+            state is a nudge, not a dead end.</div>
+        </div>
+      </div>
+
+      <p>
+        Here's the trick worth noticing: <strong>the trigger does no interpretation of
+        its own.</strong> It doesn't re-run the Action, doesn't ask the LLM to summarize,
+        doesn't reformat the stored HTML. It takes the plain fields already sitting in
+        each <code>SavedInsight</code> row — <code>anchor_text</code>, <code>action_type</code>,
+        <code>created_at</code> — and slots them into a template string. This is
+        ADR-0006's "raw snapshot, distillation deferred" principle showing up concretely:
+        the write path in PR 3 chose to store more than a minimal UI needs, precisely so
+        that a read surface like this one could be built in an afternoon without touching
+        the schema.
+      </p>
+
+      <div class="callout">
+        <div class="label">Worked example</div>
+        Say the user's <code>saved_insights</code> table holds these two rows (trimmed to
+        the columns this trigger actually reads):
+        <table>
+          <tr><th>id</th><th>anchor_text</th><th>action_type</th><th>created_at</th></tr>
+          <tr><td>1</td><td>bonjour</td><td>analyze</td><td>2026-08-01T10:02:00+00:00</td></tr>
+          <tr><td>2</td><td>Je suis allé au marché</td><td>correct</td><td>2026-08-03T14:47:11+00:00</td></tr>
+        </table>
+        The repository's <code>list_for_user</code> returns them ordered
+        <code>created_at DESC</code>, so row 2 comes first. The trigger enumerates them
+        starting at 1 and formats each with <code>MsgSavedListEntry</code>:
+        <code>"{index}. {anchor} — {action}, {date}"</code>. The date is just the first ten
+        characters of the ISO timestamp — a cheap way to get <code>YYYY-MM-DD</code>
+        without pulling in a date-parsing dependency. Result:
+        <pre>What you've kept:
+1. Je suis allé au marché — correct, 2026-08-03
+2. bonjour — analyze, 2026-08-01</pre>
+      </div>
+
+      <p>
+        One more piece of intuition, because it explains a design choice you'll see in
+        the code: this reply is sent as <strong>plain text</strong>, with no
+        <code>parse_mode</code>. Every other slot message in this bot is rendered as
+        HTML — that's how bold corrections and inline diffs show up. But
+        <code>anchor_text</code> is whatever the user originally typed, and
+        <code>result_text</code> stored on the row can itself contain HTML the LLM
+        produced. Stitching several of those into one list and asking Telegram to parse
+        it as markup would be an easy way to accidentally break rendering — or worse,
+        to let one saved insight's stray angle brackets corrupt how the rest of the list
+        displays. Plain text sidesteps that entirely.
+      </p>
+    </section>
+
+    <section id="code">
+      <h2>3. Code walkthrough</h2>
+      <p>
+        The change touches five files, three of them new. Here's the data flow it adds,
+        end to end:
+      </p>
+      <div class="flow">
+        <div class="flow-node"><strong>User</strong><span class="sub">sends /saved</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node"><strong>CommandHandler</strong><span class="sub">registered in main.py</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node"><strong>SavedListTrigger.handle</strong><span class="sub">bot/triggers/saved_list.py</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node"><strong>InsightRepository<br>.list_for_user()</strong><span class="sub">SQLite, ordered DESC</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node"><strong>Localizer.t()</strong><span class="sub">formats each row</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node"><strong>reply_text()</strong><span class="sub">plain text, no parse_mode</span></div>
+      </div>
+
+      <h3 id="code-strings">New UI strings</h3>
+      <p>
+        Following the project's rule that no user-facing text is ever hardcoded in a
+        trigger, three new <code>MsgKey</code> subclasses go into
+        <span class="file-pill">bot/config/messages.py</span>, alongside English entries
+        in the catalog:
+      </p>
+      <pre><code>class MsgSavedListHeader(MsgKey):
+    pass
+
+class MsgSavedListEmpty(MsgKey):
+    pass
+
+class MsgSavedListEntry(MsgKey):
+    pass
+
+# ...in CATALOGS["en"]:
+MsgSavedListHeader: "What you've kept:",
+MsgSavedListEmpty: (
+    "Nothing kept yet. Tap 💾 Save on a reply to keep it for later."
+),
+MsgSavedListEntry: "{index}. {anchor} — {action}, {date}",</code></pre>
+      <p>
+        That last one is the interesting one: it's a template with placeholders, and
+        <code>Localizer.t()</code> already supported <code>**kwargs</code> formatting
+        (via Python's <code>str.format</code>) before this PR — it just hadn't been
+        exercised with more than one placeholder yet. No changes were needed there; this
+        PR is simply the first caller to lean on that capability.
+      </p>
+
+      <h3 id="code-trigger">The new file: SavedListTrigger</h3>
+      <p>
+        <span class="file-pill">bot/triggers/saved_list.py</span> is the heart of the
+        PR. Structurally it's a sibling of <code>SaveTrigger</code>: a class with
+        constructor-injected dependencies (the repository and the localizer — the
+        project's house style is to inject collaborators rather than reach for
+        module-level singletons or <code>mock.patch</code>) and a single async
+        <code>handle</code> method.
+      </p>
+      <pre><code>class SavedListTrigger:
+    def __init__(
+        self,
+        repository: InsightRepositoryProtocol,
+        localizer: Localizer,
+    ) -> None:
+        self._repository = repository
+        self._localizer = localizer
+
+    async def handle(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        session = UserSession.from_context(context)
+        locale = session.base_language
+
+        kept = await self._repository.list_for_user(user_id=update.effective_user.id)
+        if not kept:
+            await update.message.reply_text(self._localizer.t(MsgSavedListEmpty, locale))
+            return
+
+        lines = [self._localizer.t(MsgSavedListHeader, locale)]
+        lines += [
+            self._localizer.t(
+                MsgSavedListEntry,
+                locale,
+                index=index,
+                anchor=_shorten(insight.anchor_text),
+                action=insight.action_type,
+                date=_date_of(insight),
+            )
+            for index, insight in enumerate(kept, start=1)
+        ]
+
+        await update.message.reply_text("\n".join(lines))</code></pre>
+      <p>
+        Worth calling out explicitly, because it's easy to skim past:
+      </p>
+      <ul>
+        <li>
+          <strong>Only <code>update.effective_user.id</code> feeds the query.</strong>
+          There's no cross-user leakage risk here — the repository's SQL filters on
+          <code>WHERE user_id = ?</code>, so one user can never see another's rows. The
+          test suite added in this PR checks this directly (more below).
+        </li>
+        <li>
+          <strong>Session supplies only the display locale.</strong> Unlike
+          <code>SaveTrigger</code>, which treats a missing session field as tolerable
+          (falling back to <code>UNKNOWN_ACTION</code>, a null <code>run_id</code>),
+          <code>SavedListTrigger</code> doesn't need session data to find the rows at
+          all — the repository query is keyed entirely on the Telegram user ID, which is
+          always available. Session here is a convenience for translation, not a
+          dependency for correctness.
+        </li>
+        <li>
+          Two small free functions, <code>_shorten</code> and <code>_date_of</code>,
+          handle presentation details: truncating a long anchor to 60 characters with an
+          ellipsis so one long sentence can't push a list entry off screen, and slicing
+          the first 10 characters off the ISO-8601 <code>created_at</code> string to get
+          a plain date. Both are private to the module — not part of any interface,
+          just formatting helpers.
+        </li>
+      </ul>
+      <div class="callout warn">
+        <div class="label">Edge case</div>
+        The comment directly above the final <code>reply_text</code> call spells out why
+        there's no <code>parse_mode="HTML"</code> here, even though most of the bot's
+        replies use it: <em>"entries carry user-supplied anchor text and LLM output,
+        neither of which is safe to hand to Telegram as markup."</em> If a saved anchor
+        happened to contain something that looked like an unclosed HTML tag, Telegram's
+        HTML parser would reject the whole message. Plain text can't be broken that way.
+      </div>
+
+      <h3 id="code-wiring">Wiring it into main.py</h3>
+      <p>
+        <span class="file-pill">bot/main.py</span> gets a small, mechanical addition: the
+        new trigger is constructed and registered exactly the way every other trigger is.
+      </p>
+      <pre><code>insight_repository = SqliteInsightRepository(database=database)
+save_trigger = SaveTrigger(repository=insight_repository)
+saved_list_trigger = SavedListTrigger(
+    repository=insight_repository, localizer=localizer
+)
+
+app.add_handler(CommandHandler("start", settings_trigger.handle))
+app.add_handler(CommandHandler("settings", settings_trigger.handle))
+app.add_handler(CommandHandler("saved", saved_list_trigger.handle))</code></pre>
+      <p>
+        The only thing to notice is that <code>SqliteInsightRepository(database=database)</code>
+        used to be constructed inline as an argument to <code>SaveTrigger</code>; it's now
+        pulled out into an <code>insight_repository</code> local so that both triggers can
+        share the same instance. Since <code>SqliteInsightRepository</code> is a thin,
+        stateless wrapper around a shared <code>Database</code> connection, this is purely
+        a wiring convenience, not a behavior change — a fresh instance would have worked
+        identically.
+      </p>
+
+      <h3 id="code-tests">The tests</h3>
+      <p>
+        Two test files land with this PR, at different altitudes.
+      </p>
+      <p>
+        <span class="file-pill">bot/triggers/test_saved_list.py</span> is a unit-level
+        suite for <code>SavedListTrigger</code> alone, using the in-memory fake
+        repository from PR 2 (<code>InMemoryInsightRepository</code>) rather than real
+        SQLite — fast, and focused purely on the trigger's own logic:
+      </p>
+      <table>
+        <tr><th>Test</th><th>What it pins down</th></tr>
+        <tr><td><code>test_lists_kept_insights_most_recent_first</code></td>
+            <td>Ordering is newest-first end to end, not just at the repository layer.</td></tr>
+        <tr><td><code>test_shows_which_action_produced_each_insight</code></td>
+            <td>The action type (<code>analyze</code>, <code>correct</code>, ...) actually shows up in the reply text.</td></tr>
+        <tr><td><code>test_says_so_when_nothing_has_been_kept</code></td>
+            <td>The empty state matches <code>MsgSavedListEmpty</code> exactly, with no header prepended.</td></tr>
+        <tr><td><code>test_lists_only_the_requesting_users_insights</code></td>
+            <td>User isolation — someone else's saved insight never appears in your list.</td></tr>
+      </table>
+      <p>
+        <span class="file-pill">tests/test_explicit_memory.py</span> sits at a different
+        altitude entirely — it's the acceptance test for the whole four-PR feature, and
+        it's the reason this PR is titled "Add /saved <em>and an end-to-end restart
+        test</em>." Rather than mocking anything, it drives <code>SaveTrigger</code> and
+        <code>SavedListTrigger</code> against a real SQLite file on disk, with a deliberate
+        break in the middle:
+      </p>
+      <pre><code>async def test_a_kept_turn_survives_a_bot_restart(tmp_path):
+    db_path = tmp_path / "bot.db"
+
+    # First run — the user deep-dives a message and keeps the result.
+    database = Database(path=db_path)
+    await database.connect()
+    save = SaveTrigger(repository=SqliteInsightRepository(database=database))
+    tap = make_callback_update(
+        callback_data=SAVE, message_id=77,
+        reply_text="Je suis allé au marché",
+        slot_text="'allé' agrees with the subject",
+    )
+    tap.callback_query.message.reply_markup = build_action_keyboard()
+    await save.handle(tap, make_context(user_data={"slot_actions": {77: "correct"}}))
+    await database.close()
+
+    # Restart — a brand-new connection and an empty Session, as after a deploy.
+    database = Database(path=db_path)
+    await database.connect()
+    saved_list = SavedListTrigger(
+        repository=SqliteInsightRepository(database=database), localizer=Localizer()
+    )
+    request = make_update()
+    await saved_list.handle(request, make_context())
+    await database.close()
+
+    listed = request.message.reply_text.call_args.args[0]
+    assert "Je suis allé au marché" in listed
+    assert "correct" in listed</code></pre>
+      <p>
+        The comments in the test spell out exactly what's being simulated: the second
+        block opens a <em>brand-new</em> <code>Database</code> connection and a
+        <em>brand-new, empty</em> <code>context.user_data</code> — that's what actually
+        happens across a real deploy, where the process (and every in-memory
+        <code>UserSession</code>) is gone, but the SQLite file on the mounted volume
+        persists. If this test passes, it's real evidence — not just an inference from
+        unit tests — that the memory is <em>explicit</em> in the sense ADR-0006 intended:
+        durable independent of any particular running process.
+      </p>
+      <div class="callout">
+        <div class="label">Why this test matters more than it looks</div>
+        Nothing before this PR actually exercised the full loop. PR 2's tests covered the
+        repository against real SQLite; PR 3's tests covered <code>SaveTrigger</code>
+        with an in-memory fake. This is the first test that writes via one Trigger, closes
+        the database, reopens it, and reads via a different Trigger — which is the only
+        way to catch, say, a repository whose columns don't round-trip cleanly through
+        SQLite, or a Save that only appeared to work because the in-memory fake was
+        forgiving about something the real database is not.
+      </div>
+    </section>
+
+    <section id="quiz">
+      <h2>4. Quiz</h2>
+      <p>Five questions to check the change actually stuck. Click an answer to see if you're right.</p>
+
+      <div id="quiz-container"></div>
+      <p id="quiz-final-score"></p>
+    </section>
+
+    <footer>
+      Generated explanation comparing
+      <code>origin/claude/explicit-memory-save-button</code> (6eaf5a0) against
+      the current branch head (7caf3f0) of tg-language-assistant.
+    </footer>
+  </main>
+</div>
+
+<script>
+const QUIZ = [
+  {
+    q: "Why does SavedListTrigger send its reply as plain text instead of with parse_mode=\"HTML\", unlike most of the bot's other replies?",
+    options: [
+      "Telegram doesn't allow HTML in replies to slash commands.",
+      "Saved anchor text and stored result text come from the user or the LLM and aren't safe to treat as markup — malformed tags could break the whole list.",
+      "Plain text renders faster on older phones.",
+      "The Localizer only supports plain-text templates."
+    ],
+    correct: 1,
+    feedback: "Right — the code comment says it directly: entries carry user-supplied anchor text and LLM output, neither of which is safe to hand to Telegram as markup. HTML replies are used elsewhere in the bot (e.g. corrections), just not here."
+  },
+  {
+    q: "What determines which SavedInsight rows come back from /saved for a given user?",
+    options: [
+      "The user's current UserSession, which tracks which insights they've viewed.",
+      "A WHERE user_id = ? filter in SqliteInsightRepository.list_for_user, keyed on update.effective_user.id.",
+      "A cookie stored in context.user_data that lists the user's saved insight IDs.",
+      "The bot keeps a separate table per chat_id, and rows are scoped to the current chat."
+    ],
+    correct: 1,
+    feedback: "Right — SavedListTrigger passes update.effective_user.id straight to the repository, which filters by user_id in SQL. Session isn't involved in fetching the rows at all, only in picking a display locale."
+  },
+  {
+    q: "In the new acceptance test test_a_kept_turn_survives_a_bot_restart, what specifically is closed and reopened to simulate a deploy?",
+    options: [
+      "Only the Telegram bot token is rotated between the two halves of the test.",
+      "The Database connection is closed and reopened, and a fresh, empty context.user_data is used for the second half.",
+      "The SQLite file itself is deleted and recreated from a migration.",
+      "The InMemoryInsightRepository is swapped out for a mock."
+    ],
+    correct: 1,
+    feedback: "Right — the test opens a Database against a tmp_path file, saves through it, closes it, then opens a brand-new Database on the same file plus a brand-new empty user_data dict, mirroring what actually differs across a real restart."
+  },
+  {
+    q: "Which piece of information used to render a /saved list entry (\"1. bonjour — analyze, 2026-08-01\") required a new column or schema change to support?",
+    options: [
+      "The action_type column, since prior PRs never stored which button produced a result.",
+      "None — anchor_text, action_type, and created_at were all already stored by the write path from PR 2/3, per ADR-0006's raw-snapshot design.",
+      "A new display_title column, generated by an LLM call at save time.",
+      "The date required a new created_at column added specifically for this PR."
+    ],
+    correct: 1,
+    feedback: "Right — this is the intuition of the whole PR. ADR-0006 chose to store a full raw snapshot on write specifically so read-side features like this could be built with zero schema changes, just a new query and a new formatting template."
+  },
+  {
+    q: "What does the empty MsgSavedListEmpty state say when a user runs /saved having never tapped Save?",
+    options: [
+      "It silently sends nothing, since there's nothing to show.",
+      "\"Unknown action.\" — the generic fallback message.",
+      "\"Nothing kept yet. Tap 💾 Save on a reply to keep it for later.\" — a message that also nudges the user toward the feature.",
+      "It throws an error asking the user to contact support."
+    ],
+    correct: 2,
+    feedback: "Right — and note the header (MsgSavedListHeader, \"What you've kept:\") is deliberately NOT prepended in the empty case; the trigger returns right after sending the empty message, which the test_says_so_when_nothing_has_been_kept test pins down exactly."
+  }
+];
+
+const container = document.getElementById('quiz-container');
+let score = 0;
+let answered = 0;
+
+QUIZ.forEach((item, qi) => {
+  const wrap = document.createElement('div');
+  wrap.className = 'quiz-q';
+
+  const h4 = document.createElement('h4');
+  h4.textContent = `Q${qi + 1}. ${item.q}`;
+  wrap.appendChild(h4);
+
+  const ul = document.createElement('ul');
+  ul.className = 'quiz-options';
+
+  const feedbackDiv = document.createElement('div');
+  feedbackDiv.className = 'quiz-feedback';
+
+  item.options.forEach((opt, oi) => {
+    const li = document.createElement('li');
+    const btn = document.createElement('button');
+    btn.className = 'quiz-option-btn';
+    btn.textContent = opt;
+    btn.addEventListener('click', () => {
+      if (wrap.dataset.answered === 'true') return;
+      wrap.dataset.answered = 'true';
+      answered++;
+
+      const buttons = ul.querySelectorAll('.quiz-option-btn');
+      buttons.forEach((b, bi) => {
+        b.disabled = true;
+        if (bi === item.correct) b.classList.add('correct');
+      });
+
+      if (oi === item.correct) {
+        score++;
+        feedbackDiv.classList.add('correct');
+        feedbackDiv.textContent = '✓ Correct. ' + item.feedback;
+      } else {
+        btn.classList.add('incorrect');
+        feedbackDiv.classList.add('incorrect');
+        feedbackDiv.textContent = '✗ Not quite. ' + item.feedback;
+      }
+      feedbackDiv.classList.add('show');
+
+      if (answered === QUIZ.length) {
+        document.getElementById('quiz-final-score').innerHTML =
+          `<span class="quiz-score">Final score: ${score} / ${QUIZ.length}</span>`;
+      }
+    });
+    li.appendChild(btn);
+    ul.appendChild(li);
+  });
+
+  wrap.appendChild(ul);
+  wrap.appendChild(feedbackDiv);
+  container.appendChild(wrap);
+});
+</script>
+</body>
+</html>
