@@ -12,7 +12,7 @@ from telegram.ext import (
 
 from bot.actions.registry import ActionRegistry
 from bot.auth import AllowlistAuthorizer
-from bot.config import ALLOWED_USERS, MODEL_NAME, OPENAI_API_KEY, TOKEN
+from bot.config import ALLOWED_USERS, DB_PATH, MODEL_NAME, OPENAI_API_KEY, TOKEN
 from bot.feedback import LangSmithFeedbackClient
 from bot.gateway import LinguaLanguageDetector, MessageGateway
 from bot.keyboard import LANG_TARGET_PREFIX, RATE_PREFIX
@@ -20,6 +20,7 @@ from bot.llm_interface import LangGraphLLMClient, OpenAILLMClient
 from bot.localizer import Localizer
 from bot.publisher import ResponsePublisher
 from bot.runner import ActionRunner
+from bot.storage.db import Database
 from bot.triggers.feedback import FeedbackTrigger
 from bot.triggers.keyboard import KeyboardTrigger
 from bot.triggers.message import MessageTrigger
@@ -52,7 +53,23 @@ class _InterceptHandler(logging.Handler):
 def main() -> None:
     logging.basicConfig(handlers=[_InterceptHandler()], level=logging.INFO, force=True)
 
-    app = ApplicationBuilder().token(TOKEN).concurrent_updates(True).build()
+    database = Database(path=DB_PATH)
+
+    async def connect_database(_app) -> None:
+        await database.connect()
+        logger.info("Database ready at {}", DB_PATH)
+
+    async def close_database(_app) -> None:
+        await database.close()
+
+    app = (
+        ApplicationBuilder()
+        .token(TOKEN)
+        .concurrent_updates(True)
+        .post_init(connect_database)
+        .post_shutdown(close_database)
+        .build()
+    )
 
     localizer = Localizer()
     authorizer = AllowlistAuthorizer(allowlist=ALLOWED_USERS)

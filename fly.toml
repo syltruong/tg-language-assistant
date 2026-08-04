@@ -20,3 +20,11 @@ primary_region = 'fra'
   memory = '1gb'
   cpu_kind = 'shared'
   cpus = 1
+
+# The SQLite file lives here (ADR-0001). Without this mount the database is
+# wiped on every deploy. The volume must exist before the first deploy that
+# carries this block, or the machine fails to boot:
+#   flyctl volumes create data --region fra --size 1
+[mounts]
+  source = 'data'
+  destination = '/app/data'
