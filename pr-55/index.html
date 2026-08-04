@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Explaining the PR: SQLite Foundation with Migration Runner</title>
+<style>
+  :root {
+    --bg: #fbfaf7;
+    --panel: #ffffff;
+    --ink: #262220;
+    --ink-soft: #55504c;
+    --accent: #8a4f2f;
+    --accent-soft: #e9dccc;
+    --accent-bright: #c76a3b;
+    --line: #e3dccf;
+    --good: #2f6b45;
+    --good-bg: #e7f2ea;
+    --bad: #a13a3a;
+    --bad-bg: #fbe9e7;
+    --code-bg: #2b2622;
+    --code-ink: #f1ece3;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.65;
+  }
+  .wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 0 20px 80px;
+  }
+  header.hero {
+    padding: 56px 20px 40px;
+    background: linear-gradient(160deg, #3c2a1e 0%, #6b3f26 55%, #8a4f2f 100%);
+    color: #fbf4ea;
+    text-align: left;
+  }
+  header.hero .wrap { padding: 0; }
+  header.hero h1 {
+    font-size: 2.1rem;
+    margin: 0 0 10px;
+    line-height: 1.25;
+  }
+  header.hero p.sub {
+    font-size: 1.05rem;
+    color: #eaddc9;
+    max-width: 640px;
+    margin: 0;
+  }
+  header.hero .meta {
+    margin-top: 22px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  header.hero .pill {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 999px;
+    padding: 5px 14px;
+    font-size: 0.82rem;
+    font-family: "SF Mono", "Menlo", Consolas, monospace;
+    color: #f6ead9;
+  }
+
+  nav.toc {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px 26px;
+    margin: -34px auto 44px;
+    max-width: 840px;
+    box-shadow: 0 6px 20px rgba(60, 42, 30, 0.08);
+  }
+  nav.toc h2 {
+    margin: 0 0 12px;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+  }
+  nav.toc ol {
+    margin: 0;
+    padding-left: 1.2em;
+    columns: 2;
+    column-gap: 30px;
+  }
+  nav.toc li { margin-bottom: 6px; break-inside: avoid; }
+  nav.toc a { color: var(--ink); text-decoration: none; border-bottom: 1px dotted var(--accent-soft); }
+  nav.toc a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+  section { margin: 56px 0; }
+  h2.section-title {
+    font-size: 1.6rem;
+    color: #3c2a1e;
+    border-bottom: 3px solid var(--accent-soft);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+  }
+  h3 { font-size: 1.2rem; color: #4a3527; margin-top: 34px; }
+  p { margin: 14px 0; }
+  a { color: var(--accent-bright); }
+
+  .callout {
+    border-left: 4px solid var(--accent);
+    background: var(--accent-soft);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 18px;
+    margin: 20px 0;
+    font-size: 0.97rem;
+  }
+  .callout .label {
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 6px;
+  }
+  .callout.edge { border-left-color: var(--bad); background: var(--bad-bg); }
+  .callout.edge .label { color: var(--bad); }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    padding: 16px 18px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 0.86rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: "SF Mono", "Menlo", Consolas, monospace;
+  }
+  code {
+    font-family: "SF Mono", "Menlo", Consolas, monospace;
+    background: #efe6d8;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  pre code { background: none; padding: 0; }
+
+  .filebadge {
+    display: inline-block;
+    font-family: "SF Mono", Consolas, monospace;
+    font-size: 0.78rem;
+    background: #3c2a1e;
+    color: #f6ead9;
+    padding: 3px 10px;
+    border-radius: 5px 5px 0 0;
+    margin-bottom: -2px;
+  }
+  .codecard { margin: 22px 0 30px; }
+
+  table.diff-summary {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 0.92rem;
+  }
+  table.diff-summary th, table.diff-summary td {
+    border: 1px solid var(--line);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  table.diff-summary th { background: var(--accent-soft); color: #4a3527; }
+  table.diff-summary td.num { text-align: right; font-family: monospace; }
+
+  /* diagram styling */
+  .diagram {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin: 24px 0;
+  }
+  .diagram .caption {
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    text-align: center;
+    margin-top: 14px;
+    font-style: italic;
+  }
+  .flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    justify-content: center;
+    gap: 0;
+  }
+  .flow .step {
+    background: #fff8ee;
+    border: 1.5px solid var(--accent-soft);
+    border-radius: 8px;
+    padding: 12px 14px;
+    min-width: 150px;
+    max-width: 190px;
+    font-size: 0.85rem;
+    text-align: center;
+  }
+  .flow .step .t { font-weight: 700; color: var(--accent); display:block; margin-bottom:4px; font-size:0.78rem; text-transform: uppercase; letter-spacing: .04em;}
+  .flow .arrow {
+    align-self: center;
+    padding: 0 8px;
+    color: var(--accent);
+    font-size: 1.3rem;
+  }
+  @media (max-width: 700px) {
+    .flow { flex-direction: column; }
+    .flow .arrow { transform: rotate(90deg); padding: 6px 0; }
+    .flow .step { max-width: 100%; }
+  }
+
+  .timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 20px 0;
+  }
+  .timeline .row {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    border-left: 3px solid var(--accent-soft);
+    padding: 10px 0 10px 18px;
+    position: relative;
+  }
+  .timeline .row::before {
+    content: "";
+    position: absolute;
+    left: -8px;
+    top: 18px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid #fff;
+  }
+  .timeline .when {
+    font-family: monospace;
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 0.85rem;
+  }
+  .timeline .what { font-size: 0.92rem; }
+
+  .ui-mock {
+    background: #dfe9f0;
+    border-radius: 14px;
+    padding: 18px;
+    max-width: 340px;
+    margin: 16px auto;
+    font-family: -apple-system, sans-serif;
+  }
+  .ui-bubble {
+    background: #fff;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin: 8px 0;
+    font-size: 0.88rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  }
+  .ui-bubble.mine { background: #d4f0d0; margin-left: 30px; }
+  .ui-note {
+    font-size: 0.75rem;
+    color: #555;
+    text-align: center;
+    margin-top: 4px;
+  }
+
+  /* Quiz */
+  .quiz-q {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    margin: 22px 0;
+  }
+  .quiz-q h4 { margin: 0 0 14px; font-size: 1.02rem; color: #3c2a1e; }
+  .quiz-options { display: flex; flex-direction: column; gap: 8px; }
+  .quiz-opt {
+    text-align: left;
+    background: #fff;
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.95rem;
+    color: var(--ink);
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .quiz-opt:hover { border-color: var(--accent); background: #fff8ee; }
+  .quiz-opt.correct { background: var(--good-bg); border-color: var(--good); }
+  .quiz-opt.incorrect { background: var(--bad-bg); border-color: var(--bad); }
+  .quiz-opt:disabled { cursor: default; }
+  .quiz-feedback {
+    margin-top: 12px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    display: none;
+  }
+  .quiz-feedback.show { display: block; }
+  .quiz-feedback.correct { background: var(--good-bg); color: var(--good); border: 1px solid var(--good); }
+  .quiz-feedback.incorrect { background: var(--bad-bg); color: var(--bad); border: 1px solid var(--bad); }
+  .quiz-score {
+    text-align: center;
+    font-size: 1.1rem;
+    margin-top: 20px;
+    padding: 16px;
+    border-radius: var(--radius);
+    background: var(--accent-soft);
+    color: #3c2a1e;
+    font-weight: 700;
+  }
+
+  footer {
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 0.85rem;
+    margin-top: 60px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <h1>SQLite Foundation with Migration Runner</h1>
+    <p class="sub">How the language-learning bot got its first real database — and why it took a migration
+    runner, a Fly volume, and a repository-shaped seam to lay just seventy lines of connection code.</p>
+    <div class="meta">
+      <span class="pill">bot/storage/db.py</span>
+      <span class="pill">bot/storage/migrations/0001_saved_insights.sql</span>
+      <span class="pill">bot/main.py</span>
+      <span class="pill">fly.toml</span>
+      <span class="pill">PR 1/4 — Explicit Memory</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<nav class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#background">1. Background</a></li>
+    <li><a href="#bg-deep">&nbsp;&nbsp;1.1 For beginners: why this bot needs a database at all</a></li>
+    <li><a href="#bg-narrow">&nbsp;&nbsp;1.2 Just before this PR</a></li>
+    <li><a href="#intuition">2. Intuition</a></li>
+    <li><a href="#intuition-migrations">&nbsp;&nbsp;2.1 A migration runner, minimally</a></li>
+    <li><a href="#intuition-lifecycle">&nbsp;&nbsp;2.2 Wiring it into the bot's lifecycle</a></li>
+    <li><a href="#intuition-fly">&nbsp;&nbsp;2.3 Why Fly needs a volume too</a></li>
+    <li><a href="#code">3. Code walkthrough</a></li>
+    <li><a href="#code-db">&nbsp;&nbsp;3.1 <code>bot/storage/db.py</code></a></li>
+    <li><a href="#code-schema">&nbsp;&nbsp;3.2 The first migration</a></li>
+    <li><a href="#code-wiring">&nbsp;&nbsp;3.3 Wiring: config, main.py, fly.toml</a></li>
+    <li><a href="#code-tests">&nbsp;&nbsp;3.4 The tests</a></li>
+    <li><a href="#quiz">4. Quiz</a></li>
+  </ol>
+</nav>
+
+<section id="background">
+  <h2 class="section-title">1. Background</h2>
+
+  <h3 id="bg-deep">1.1 For beginners: why this bot needs a database at all</h3>
+  <p>
+    The tg-language-assistant bot sits inside a Telegram chat and helps someone who's mid-conversation with a
+    native speaker: it translates, corrects grammar, suggests replies, and generally acts as a fast, low-friction
+    aide. Everything about it, so far, has been built to be <em>ephemeral</em> — your language pair, your message
+    history, which action produced which reply — all of that lives in <code>context.user_data</code>, a plain
+    Python dictionary that python-telegram-bot (PTB) keeps in memory per user. The moment the process restarts,
+    it's gone. That has been fine, because nothing in the bot has needed to survive a restart yet.
+  </p>
+  <p>
+    This PR is the first brick in changing that. The team has decided to add an <strong>explicit memory</strong>
+    feature: when a Saved Insight — a whole snapshot of a conversation turn, not a lone vocabulary word — is
+    worth keeping, the user can tap Save and have the bot remember it across restarts, redeploys, weeks. That
+    requires an actual database, because "remember it" is precisely the one property in-memory dictionaries
+    don't have.
+  </p>
+  <p>
+    <a href="https://en.wikipedia.org/wiki/SQLite" target="_blank" rel="noopener">SQLite</a> is the storage
+    engine chosen for this (see <code>docs/adr/0001-sqlite-first-with-repository-abstraction.md</code>): a
+    database that lives entirely inside one file on disk, with no separate server process to run. That fits a
+    bot that runs as a single process with a modest number of users — you get durable storage without standing
+    up PostgreSQL. The trade-off, acknowledged directly in the ADR, is that SQLite has a single writer at a
+    time, so it will need to be swapped out if the bot ever scales to multiple concurrent instances. To make
+    that swap painless later, the ADR calls for a <em>repository abstraction</em>: application code should talk
+    to an interface like "Insight Repository" or "User Repository," never to raw SQL, so that only the
+    repository's internals need to change if the backend ever does.
+  </p>
+  <p>
+    This PR is <em>not</em> that repository layer. If you read the commit history, you'll see this project is
+    being built in explicit, small PRs: <code>PR 0/4</code> (already landed on the base branch) added the
+    <em>Saved Insight</em> concept to the domain vocabulary in <code>CONTEXT.md</code> and wrote
+    <code>ADR-0006</code> explaining why a Saved Insight is captured as a raw, unprocessed snapshot rather than
+    something an LLM has cleaned up. This PR, <code>PR 1/4</code>, is purely the plumbing underneath all of
+    that: a way to open a SQLite file, make sure its schema is up to date, and keep the connection alive for the
+    life of the bot process. The repository classes that will actually read and write Saved Insights come in a
+    later PR, sitting on top of what's built here.
+  </p>
+
+  <div class="callout">
+    <span class="label">Key concept — Saved Insight</span>
+    From <code>CONTEXT.md</code>: <em>"An immutable snapshot of one Conversation Turn that the user explicitly
+    chose to keep. Captures the Anchor Message, the Action that produced the result, the rendered result text,
+    and the Language Pair in force at the time."</em> No LLM call happens when you save — it's a verbatim copy,
+    because (per ADR-0006) a summary can always be recomputed from the raw material later, but material thrown
+    away at save time is gone for good.
+  </div>
+
+  <h3 id="bg-narrow">1.2 Just before this PR</h3>
+  <p>
+    Zoom in on <code>bot/main.py</code>, the process entry point. Before this change, its <code>main()</code>
+    function did one thing to get the bot running:
+  </p>
+  <div class="codecard">
+    <span class="filebadge">bot/main.py — before</span>
+    <pre>app = ApplicationBuilder().token(TOKEN).concurrent_updates(True).build()</pre>
+  </div>
+  <p>
+    <code>ApplicationBuilder</code> is PTB's fluent builder for the bot application: you chain configuration
+    calls onto it and finish with <code>.build()</code>. Nothing here touches disk. The bot's dependencies —
+    the language detector, the LLM client, the action registry — are all constructed as plain Python objects
+    with no persistent state, following this codebase's stated preference for constructor injection over global
+    state or <code>mock.patch</code>-able module functions.
+  </p>
+  <p>
+    There was also no <code>bot/storage/</code> package, no migrations directory, and no <code>aiosqlite</code>
+    dependency — this PR introduces all three from scratch. That's the gap this PR fills: give the bot
+    somewhere durable to write to, in a way that fits the repository-abstraction plan from ADR-0001 and is
+    ready for the Saved Insight schema that ADR-0006 already described in prose.
+  </p>
+</section>
+
+<section id="intuition">
+  <h2 class="section-title">2. Intuition</h2>
+  <p>
+    Strip away the file names and this PR does three things, in this order of importance:
+  </p>
+  <ol>
+    <li>Defines a <strong><code>Database</code> class</strong> that knows how to open a SQLite file and bring
+      its schema up to date by running any <code>.sql</code> migration files it hasn't applied yet.</li>
+    <li><strong>Wires that class into the bot's startup and shutdown</strong>, so the connection opens before
+      the bot starts handling Telegram updates and closes cleanly when the process stops.</li>
+    <li><strong>Makes sure the file survives a deploy</strong> in production, by mounting a persistent volume
+      on Fly.io at the path where the database lives.</li>
+  </ol>
+
+  <h3 id="intuition-migrations">2.1 A migration runner, minimally</h3>
+  <p>
+    The core problem a migration runner solves: your schema will change over time (new tables, new columns),
+    but you don't want to manually remember, for every environment, "did I already run the SQL that creates the
+    <code>saved_insights</code> table?" The classic answer is to number your migrations and track how far
+    you've gotten.
+  </p>
+  <p>
+    Most frameworks do this with a bookkeeping table — something like <code>schema_migrations</code> that
+    records one row per applied migration. This PR takes a shortcut that only works because SQLite happens to
+    give you a free integer to store exactly this: <code>PRAGMA user_version</code>, a 32-bit integer baked
+    into every SQLite file's header, that starts at 0 and is otherwise unused by SQLite itself. Instead of a
+    table, the <code>Database</code> class just asks "what's <code>user_version</code> right now?", then runs
+    every <code>.sql</code> file in <code>bot/storage/migrations/</code> whose leading number is higher than
+    that, in order, bumping <code>user_version</code> after each one.
+  </p>
+
+  <div class="diagram">
+    <div class="timeline">
+      <div class="row">
+        <div class="when">day 1</div>
+        <div class="what">Fresh deploy. File <code>bot.db</code> doesn't exist yet.
+          <code>connect()</code> creates it; <code>PRAGMA user_version</code> reads <code>0</code>.
+          Only <code>0001_saved_insights.sql</code> is pending &rarr; it runs, <code>user_version</code>
+          becomes <code>1</code>.</div>
+      </div>
+      <div class="row">
+        <div class="when">day 40</div>
+        <div class="what">Bot restarts (deploy of an unrelated change). <code>user_version</code> is already
+          <code>1</code>, and the only migration on disk is <code>0001</code> — nothing is pending. Startup is
+          a no-op on the schema.</div>
+      </div>
+      <div class="row">
+        <div class="when">day 90</div>
+        <div class="what">A future PR ships <code>0002_add_vocabulary_index.sql</code> alongside code changes.
+          On the next deploy, <code>user_version</code> is <code>1</code>, so <code>0002</code> — and only
+          <code>0002</code> — is pending. It runs once; <code>user_version</code> becomes <code>2</code>. Every
+          row inserted between day 1 and day 90 is untouched.</div>
+      </div>
+    </div>
+    <div class="caption">The database's whole "have I run this yet" memory is one integer per file — there is
+    nothing else to keep in sync.</div>
+  </div>
+
+  <p>
+    This is a deliberate simplification, not an oversight: because migrations are just numbered files on disk
+    and the number in the filename <em>is</em> the version, there's genuinely nothing else worth recording. A
+    bookkeeping table would only be duplicating information already implicit in the filenames.
+  </p>
+
+  <div class="callout">
+    <span class="label">Concrete example</span>
+    Say <code>bot/storage/migrations/</code> contains <code>0001_saved_insights.sql</code> only, and a fresh
+    bot boots against an empty <code>data/bot.db</code>. The runner reads <code>user_version = 0</code>, globs
+    the migrations directory, parses <code>"0001_saved_insights.sql".split("_")[0]</code> &rarr;
+    <code>1</code>, sees <code>1 &gt; 0</code>, and executes the whole file as one script — <code>CREATE
+    TABLE saved_insights (...)</code> plus its index — then sets <code>PRAGMA user_version = 1</code> and
+    commits. Restart the bot right now, with no schema changes: <code>user_version</code> reads back as
+    <code>1</code>, no migration has a number greater than that, and <code>connect()</code> does nothing beyond
+    opening the file.
+  </div>
+
+  <h3 id="intuition-lifecycle">2.2 Wiring it into the bot's lifecycle</h3>
+  <p>
+    Opening a SQLite connection is an <code>async</code> operation (<code>aiosqlite.connect(...)</code> is
+    awaited), but <code>main()</code> itself is a synchronous function — it builds the PTB application and then
+    calls a blocking method like <code>app.run_polling()</code>, which owns the event loop from that point on.
+    So the connection can't just be opened at the top of <code>main()</code> with a bare <code>await</code>.
+  </p>
+  <p>
+    PTB's <code>ApplicationBuilder</code> anticipates exactly this shape of problem: it accepts
+    <code>post_init</code> and <code>post_shutdown</code> callbacks, async functions that PTB itself awaits
+    inside its own event loop — one right after the application initializes (before it starts receiving
+    updates), one right after it stops. That is precisely "run this async setup/teardown code at the right
+    point in an async lifecycle I don't otherwise control," so this PR hangs <code>database.connect()</code> and
+    <code>database.close()</code> off those two hooks.
+  </p>
+
+  <div class="diagram">
+    <div class="flow">
+      <div class="step"><span class="t">1. build</span><code>ApplicationBuilder()</code><br>.token(TOKEN)<br>.post_init(...)<br>.post_shutdown(...)<br>.build()</div>
+      <div class="arrow">&rarr;</div>
+      <div class="step"><span class="t">2. post_init fires</span><code>connect_database(app)</code><br>&darr;<br><code>database.connect()</code></div>
+      <div class="arrow">&rarr;</div>
+      <div class="step"><span class="t">3. mkdir + open</span>create <code>data/</code> if missing<br>open <code>bot.db</code><br>run pending migrations</div>
+      <div class="arrow">&rarr;</div>
+      <div class="step"><span class="t">4. serving</span><code>run_polling()</code> /<br><code>run_webhook()</code><br>handlers can now assume the schema exists</div>
+      <div class="arrow">&rarr;</div>
+      <div class="step"><span class="t">5. shutdown</span><code>post_shutdown</code> fires<br><code>database.close()</code></div>
+    </div>
+    <div class="caption">Startup and shutdown of the SQLite connection are pinned to the same lifecycle PTB
+    already manages for the Telegram application — no separate event loop bookkeeping needed.</div>
+  </div>
+
+  <p>
+    Notice, too, that <code>database</code> is a single object created once in <code>main()</code> and closed
+    over by both callbacks — there's exactly one <code>Database</code> instance, and therefore one
+    <code>aiosqlite</code> connection, for the whole process lifetime. That single connection is what a future
+    PR's Insight Repository and User Repository classes will receive via constructor injection (following this
+    codebase's stated preference for injecting concrete implementations rather than reaching for globals) —
+    this PR just makes sure something is there to inject by the time handlers run.
+  </p>
+
+  <h3 id="intuition-fly">2.3 Why Fly needs a volume too</h3>
+  <p>
+    A SQLite database is "just a file," which is exactly what makes it fragile in a container-based deployment.
+    <a href="https://fly.io/" target="_blank" rel="noopener">Fly.io</a>, where this bot is hosted (see
+    <code>fly.toml</code>), runs the app as a container image on a virtual machine. By default, a container's
+    filesystem is <em>ephemeral</em>: every time you deploy, Fly builds a fresh machine from the image and the
+    old filesystem — including anything the running process wrote to disk, like <code>data/bot.db</code> — is
+    discarded.
+  </p>
+
+  <div class="diagram">
+    <div class="flow">
+      <div class="step"><span class="t">without a volume</span>deploy #1 writes<br><code>/app/data/bot.db</code><br>&darr;<br>deploy #2 boots a<br>fresh container<br>&darr;<br><strong>bot.db is gone</strong></div>
+      <div class="arrow">&rarr;</div>
+      <div class="step"><span class="t">with the [mounts] block</span>Fly volume <code>data</code><br>persists outside the container<br>&darr;<br>deploy #2 mounts the<br><em>same</em> volume at<br><code>/app/data</code><br>&darr;<br><strong>bot.db survives</strong></div>
+    </div>
+    <div class="caption">A Fly <a href="https://fly.io/docs/volumes/" target="_blank" rel="noopener">volume</a>
+    is storage that outlives any one machine — this PR's <code>[mounts]</code> block in <code>fly.toml</code>
+    tells Fly to attach it at <code>/app/data</code>, the directory <code>DB_PATH</code> points into.</div>
+  </div>
+
+  <div class="callout edge">
+    <span class="label">Edge case worth knowing</span>
+    The comment added above the <code>[mounts]</code> block spells out an operational gotcha this PR doesn't
+    (and can't) automate away: the named volume (<code>data</code>) has to be created once, out of band, via
+    <code>flyctl volumes create data --region fra --size 1</code>, <em>before</em> the first deploy that
+    includes this <code>fly.toml</code>. If that step is skipped, the machine fails to boot, because Fly can't
+    mount a volume that doesn't exist. This is exactly the kind of manual, one-time infrastructure step that
+    tends to bite whoever runs the next deploy — which is presumably why it's called out in a comment right
+    next to the block that depends on it.
+  </div>
+</section>
+
+<section id="code">
+  <h2 class="section-title">3. Code walkthrough</h2>
+
+  <table class="diff-summary">
+    <thead><tr><th>File</th><th>Change</th></tr></thead>
+    <tbody>
+      <tr><td><code>bot/storage/db.py</code></td><td>New. The <code>Database</code> class: connect, migrate, close.</td></tr>
+      <tr><td><code>bot/storage/migrations/0001_saved_insights.sql</code></td><td>New. First schema migration — the <code>saved_insights</code> table.</td></tr>
+      <tr><td><code>bot/storage/test_db.py</code></td><td>New. Tests for connection, persistence, and migration ordering.</td></tr>
+      <tr><td><code>bot/config/__init__.py</code></td><td><code>DB_PATH</code> env-driven setting added.</td></tr>
+      <tr><td><code>bot/main.py</code></td><td>Wires <code>Database</code> into <code>post_init</code>/<code>post_shutdown</code>.</td></tr>
+      <tr><td><code>fly.toml</code></td><td>Adds a <code>[mounts]</code> block for a persistent volume.</td></tr>
+      <tr><td><code>pyproject.toml</code>, <code>uv.lock</code></td><td>Adds the <code>aiosqlite</code> dependency.</td></tr>
+      <tr><td><code>.gitignore</code></td><td>Ignores the local <code>data/</code> directory (the dev-mode SQLite file).</td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="code-db">3.1 <code>bot/storage/db.py</code> — the <code>Database</code> class</h3>
+  <p>
+    This is the heart of the PR. It's a small class with exactly three public operations: connect, close, and
+    a <code>connection</code> property for callers to actually run queries against.
+  </p>
+  <div class="codecard">
+    <span class="filebadge">bot/storage/db.py</span>
+<pre>class Database:
+    def __init__(self, path, migrations_dir=_MIGRATIONS_DIR):
+        self._path = Path(path)
+        self._migrations_dir = migrations_dir
+        self._connection = None
+
+    @property
+    def connection(self):
+        if self._connection is None:
+            raise RuntimeError("Database is not connected. Call connect() first.")
+        return self._connection
+
+    async def connect(self):
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        self._connection = await aiosqlite.connect(self._path)
+        self._connection.row_factory = aiosqlite.Row
+        await self._migrate()
+
+    async def close(self):
+        if self._connection is not None:
+            await self._connection.close()
+            self._connection = None</pre>
+  </div>
+  <p>
+    A few choices worth calling out:
+  </p>
+  <ul>
+    <li><strong><code>migrations_dir</code> is a constructor parameter</strong>, defaulting to the real
+      <code>bot/storage/migrations/</code> directory but overridable. This is what lets the tests point a
+      <code>Database</code> at a scratch directory of fake migrations without touching the real schema files —
+      the same constructor-injection instinct the rest of the codebase applies to LLM clients and feedback
+      clients, applied here to "where do migrations live."</li>
+    <li><strong><code>connection</code> raises loudly if you use it before <code>connect()</code></strong>,
+      rather than silently returning <code>None</code> and letting a caller crash three frames deeper on
+      <code>NoneType has no attribute execute</code>.</li>
+    <li><strong><code>row_factory = aiosqlite.Row</code></strong> makes query results indexable by column name
+      (<code>row["anchor_text"]</code>) instead of only by position — you'll see this used directly in the
+      tests.</li>
+    <li><strong><code>mkdir(parents=True, exist_ok=True)</code></strong> before connecting means the first-ever
+      boot in a fresh environment (no <code>data/</code> directory yet) doesn't fail — SQLite will happily
+      create the <code>.db</code> file itself, but not the parent directory.</li>
+  </ul>
+
+  <p>The migration logic is the other half:</p>
+  <div class="codecard">
+    <span class="filebadge">bot/storage/db.py</span>
+<pre>async def _migrate(self):
+    current = await self._current_version()
+
+    for version, path in self._pending(current):
+        logger.info("Applying migration {}", path.name)
+        await self.connection.executescript(path.read_text(encoding="utf-8"))
+        await self.connection.execute(f"PRAGMA user_version = {version}")
+        await self.connection.commit()
+
+async def _current_version(self):
+    cursor = await self.connection.execute("PRAGMA user_version")
+    row = await cursor.fetchone()
+    return row[0]
+
+def _pending(self, current):
+    migrations = [
+        (int(path.name.split("_")[0]), path)
+        for path in self._migrations_dir.glob("*.sql")
+    ]
+    return sorted((m for m in migrations if m[0] > current), key=lambda m: m[0])</pre>
+  </div>
+  <p>
+    <code>_pending</code> is the whole "have I run this yet" logic: glob every <code>.sql</code> file, take the
+    numeric prefix before the first underscore as its version (<code>0001_saved_insights.sql</code>
+    &rarr; <code>1</code>), keep only the ones numbered higher than the currently-recorded version, sort
+    ascending. <code>_migrate</code> then applies each survivor in order, using
+    <code>executescript</code> (which runs a whole file of possibly-multiple SQL statements) and commits after
+    each one so that a later migration failing doesn't roll back an earlier one that already succeeded.
+  </p>
+  <p>
+    The one line that looks like it should make a security reviewer's eyebrow twitch is the f-string:
+    <code>f"PRAGMA user_version = {version}"</code>. Normally, interpolating a value into SQL instead of binding
+    it as a parameter is exactly how SQL injection happens. The code comment addresses this directly — SQLite's
+    <code>PRAGMA</code> statements don't accept bound parameters at all, and <code>version</code> is never
+    user-supplied: it's an integer the code itself parsed out of a filename that only a developer, committing
+    to the repository, can add. There's no path from a Telegram user's input to this string.
+  </p>
+
+  <h3 id="code-schema">3.2 The first migration</h3>
+  <p>
+    <code>0001_saved_insights.sql</code> is where the Saved Insight concept from <code>CONTEXT.md</code> and
+    ADR-0006 (both written in the prior, docs-only PR) finally becomes a real table:
+  </p>
+  <div class="codecard">
+    <span class="filebadge">bot/storage/migrations/0001_saved_insights.sql</span>
+<pre>CREATE TABLE saved_insights (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id           INTEGER NOT NULL,
+    chat_id           INTEGER NOT NULL,
+    slot_message_id   INTEGER NOT NULL,
+    anchor_text       TEXT    NOT NULL,
+    detected_language TEXT    NOT NULL,
+    base_language     TEXT    NOT NULL,
+    target_language   TEXT    NOT NULL,
+    action_type       TEXT    NOT NULL,
+    result_text       TEXT    NOT NULL,
+    parse_mode        TEXT,
+    run_id            TEXT,
+    created_at        TEXT    NOT NULL,
+    deleted_at        TEXT,
+
+    UNIQUE (user_id, chat_id, slot_message_id, action_type)
+);
+
+CREATE INDEX idx_saved_insights_user_created
+    ON saved_insights (user_id, created_at DESC);</pre>
+  </div>
+  <p>
+    Every column here has a direct justification in the domain docs from the earlier PR, which is a nice
+    example of documentation written <em>before</em> code paying off:
+  </p>
+  <ul>
+    <li><code>anchor_text</code>, <code>detected_language</code>, <code>action_type</code>,
+      <code>result_text</code>, <code>parse_mode</code> — the raw, rendered snapshot ADR-0006 insists on:
+      "the rendered result text ... exactly as displayed," stored with its <code>parse_mode</code> so it can be
+      redisplayed identically without re-running any formatter.</li>
+    <li><code>base_language</code> / <code>target_language</code> — the Language Pair "in force when it was
+      saved, not the user's current one" (<code>CONTEXT.md</code>'s Relationships section), because a user's
+      target language can change after the save.</li>
+    <li><code>run_id</code> is nullable — ADR-0006 is explicit that capture must never depend on Session, and
+      <code>run_id</code> is the one field that happens to live in Session, so it's allowed to be missing.</li>
+    <li><code>deleted_at</code> exists "from the first migration" per the ADR, even though no delete UI ships
+      yet — soft deletion, never a row removal, keeps the append-only guarantee intact if deletion is added
+      later.</li>
+    <li>The <code>UNIQUE (user_id, chat_id, slot_message_id, action_type)</code> constraint <em>is</em> the
+      idempotency rule from the ADR, enforced by the database rather than application logic: re-tapping Save on
+      the same slot message with the same action is a no-op (a duplicate insert), while running Analyze and
+      then Correct on the same turn produces two distinct rows, because <code>action_type</code> differs.</li>
+  </ul>
+
+  <div class="callout">
+    <span class="label">Note</span>
+    This migration only creates the table — no application code in this PR ever inserts into or reads from it.
+    That's intentional: this PR is the storage <em>foundation</em>, and the Insight Repository that will
+    actually implement "save" and "list my saved insights" against this table is scoped to a later PR in the
+    same four-part series.
+  </div>
+
+  <h3 id="code-wiring">3.3 Wiring: config, main.py, fly.toml</h3>
+  <p>
+    <code>bot/config/__init__.py</code> gains one new setting, following the existing pattern of every other
+    config value in that file (read from an environment variable, sensible default, one-line comment
+    explaining any non-obvious constraint):
+  </p>
+  <div class="codecard">
+    <span class="filebadge">bot/config/__init__.py</span>
+<pre># SQLite file backing the repositories (ADR-0001). In production this must sit
+# on the mounted Fly volume — see [mounts] in fly.toml — or it is wiped on deploy.
+DB_PATH = os.getenv("DB_PATH", "./data/bot.db")</pre>
+  </div>
+  <p>
+    <code>bot/main.py</code> then does the wiring described in <a href="#intuition-lifecycle">2.2</a> — construct
+    one <code>Database</code>, register two small async closures as PTB lifecycle hooks:
+  </p>
+  <div class="codecard">
+    <span class="filebadge">bot/main.py</span>
+<pre>database = Database(path=DB_PATH)
+
+async def connect_database(_app) -> None:
+    await database.connect()
+    logger.info("Database ready at {}", DB_PATH)
+
+async def close_database(_app) -> None:
+    await database.close()
+
+app = (
+    ApplicationBuilder()
+    .token(TOKEN)
+    .concurrent_updates(True)
+    .post_init(connect_database)
+    .post_shutdown(close_database)
+    .build()
+)</pre>
+  </div>
+  <p>
+    And <code>fly.toml</code> gets the volume mount discussed in <a href="#intuition-fly">2.3</a>, pinned to
+    <code>/app/data</code> — matching the container's working directory, so <code>DB_PATH</code>'s default of
+    <code>./data/bot.db</code> resolves onto the mounted volume without needing an environment-specific
+    override.
+  </p>
+  <p>
+    Rounding out the wiring: <code>aiosqlite</code> is added to <code>pyproject.toml</code>'s dependency list
+    (and <code>uv.lock</code> is regenerated to match), and <code>.gitignore</code> picks up a <code>data/</code>
+    entry so that a developer running the bot locally doesn't accidentally commit their own
+    <code>data/bot.db</code> scratch file.
+  </p>
+
+  <h3 id="code-tests">3.4 The tests</h3>
+  <p>
+    <code>bot/storage/test_db.py</code> has two test classes, and both are worth reading closely because each
+    one is pinned to a specific way this code could quietly misbehave.
+  </p>
+  <p>
+    <code>TestDatabaseSchema</code> checks the basics: connecting to a brand-new file creates the
+    <code>saved_insights</code> table, and — more importantly — <strong>reconnecting to an existing, populated
+    file does not disturb its data.</strong> That second test inserts a row, closes the connection, opens a
+    fresh <code>Database</code> instance against the same path, and asserts the row is still there. This is the
+    test that would catch a migration runner bug where migrations re-run every time regardless of
+    <code>user_version</code> (e.g. blindly running every file's <code>CREATE TABLE</code> on every boot, which
+    would raise "table already exists" at best or wipe data at worst).
+  </p>
+  <p>
+    <code>TestDatabaseMigrations</code> is more targeted, and constructs fake two-migration sequences in a
+    <code>tmp_path</code> rather than depending on the real <code>0001</code> migration:
+  </p>
+  <div class="codecard">
+    <span class="filebadge">bot/storage/test_db.py (abridged)</span>
+<pre>async def test_applies_migrations_in_filename_order(self, tmp_path):
+    """0002 alters a table 0001 creates — the wrong order raises 'no such table'."""
+    ...
+    (migrations / "0001_create.sql").write_text("CREATE TABLE widgets (id INTEGER);")
+    (migrations / "0002_alter.sql").write_text("ALTER TABLE widgets ADD COLUMN label TEXT;")
+    db = Database(path=tmp_path / "bot.db", migrations_dir=migrations)
+    await db.connect()
+    cursor = await db.connection.execute("SELECT id, label FROM widgets")
+    assert await cursor.fetchall() == []</pre>
+  </div>
+  <p>
+    This test doesn't just check that migrations ran — it checks they ran <em>in the right order</em>, by
+    making the second migration depend on a table the first one creates. If <code>_pending</code>'s sort were
+    wrong (say, sorting filenames lexicographically as strings instead of their parsed integer versions — which
+    would break the moment a tenth migration, <code>0010_...</code>, sorted before <code>0002_...</code>), this
+    test would fail with a SQLite error rather than a subtle wrong-order bug.
+  </p>
+  <p>
+    The second migration test, <code>test_applies_only_migrations_newer_than_the_current_version</code>,
+    connects once with only <code>0001</code> on disk, closes, <em>then</em> writes <code>0002</code> to the
+    same directory and reconnects — simulating exactly the "day 90" scenario from the timeline diagram in
+    <a href="#intuition-migrations">2.1</a>: a migration that ships after a database already has real data in
+    it. It asserts the previously-created table survives and gains the new column, i.e. that
+    <code>_pending</code> correctly filters out <code>0001</code> (already applied) and runs only
+    <code>0002</code>.
+  </p>
+</section>
+
+<section id="quiz">
+  <h2 class="section-title">4. Quiz</h2>
+  <p>Five questions to check the concepts stuck. Click an answer to see if you're right.</p>
+
+  <div class="quiz-container" id="quiz-container"></div>
+  <div class="quiz-score" id="quiz-score" style="display:none;"></div>
+</section>
+
+</div>
+
+<footer>
+  Generated explanation of the diff between <code>claude/explicit-memory-capability-3f8kbs</code> and this branch's head.
+</footer>
+
+<script>
+const QUIZ = [
+  {
+    q: "Why does the migration runner use PRAGMA user_version instead of a bookkeeping table listing applied migrations?",
+    options: [
+      "Bookkeeping tables aren't supported by aiosqlite.",
+      "Migrations are numbered files on disk, so the only fact worth recording is \"how far have we got\" — a single integer SQLite already stores for free in every file's header.",
+      "PRAGMA user_version is faster to query than a table.",
+      "A bookkeeping table would need its own migration to create it, causing a chicken-and-egg problem."
+    ],
+    correct: 1,
+    feedback: "The doc comment in db.py says it directly: numbered files on disk already encode which migrations exist and in what order, so there's nothing left to track except the current position — and user_version is exactly that, built into SQLite."
+  },
+  {
+    q: "A bot has been running in production for months with only 0001_saved_insights.sql ever having existed. A developer now adds 0002_add_vocabulary_index.sql and deploys. What happens to the rows already in saved_insights?",
+    options: [
+      "They're dropped, because SQLite reruns every migration file on every boot.",
+      "Nothing happens to them — _pending() filters to migrations numbered above the current user_version (1), so only 0002 runs, and it runs once.",
+      "The bot fails to start because migrations can't run against a non-empty database.",
+      "They're migrated to a backup table automatically before 0002 runs."
+    ],
+    correct: 1,
+    feedback: "This is exactly what test_applies_only_migrations_newer_than_the_current_version checks: existing data is untouched, and only the migration numbered above the stored user_version executes."
+  },
+  {
+    q: "The saved_insights table has UNIQUE (user_id, chat_id, slot_message_id, action_type). What real-world behavior does that constraint directly enforce, per ADR-0006?",
+    options: [
+      "A user can only ever save one insight in total.",
+      "Two different users can never save the same anchor text.",
+      "Re-tapping Save on the same slot message with the same action is a no-op, while running a different action (e.g. Correct after Analyze) on the same turn produces a second, separate row.",
+      "Deleted insights can be re-saved under a new id automatically."
+    ],
+    correct: 2,
+    feedback: "ADR-0006: \"the natural key is (user_id, chat_id, slot_message_id, action_type), so re-tapping the same view is a no-op\" — while a different action_type on the same turn is a genuinely distinct row, by design."
+  },
+  {
+    q: "Without the new [mounts] block in fly.toml, what would actually go wrong in production?",
+    options: [
+      "Nothing — Fly machines already have persistent disks by default.",
+      "The bot would run out of disk space after a few weeks.",
+      "SQLite would refuse to open the file without an explicit mount configured.",
+      "The container filesystem is ephemeral, so data/bot.db would be wiped every time a new deploy replaced the machine."
+    ],
+    correct: 3,
+    feedback: "Fly containers get a fresh filesystem on each deploy by default. The [mounts] block attaches a volume that persists independently of any one machine, so the SQLite file survives redeploys — but only if the named volume was created ahead of time with flyctl volumes create."
+  },
+  {
+    q: "Why is database.connect() called from a post_init hook passed to ApplicationBuilder, rather than just awaited at the top of main()?",
+    options: [
+      "post_init hooks run faster than top-level awaits.",
+      "main() is a synchronous function that hands control to PTB's own event loop (via run_polling()/run_webhook()); post_init is PTB's mechanism for running async setup inside that loop before it starts serving updates.",
+      "Telegram requires database connections to be established after the bot token is validated.",
+      "post_init hooks are retried automatically on failure, unlike code in main()."
+    ],
+    correct: 1,
+    feedback: "connect() is async because aiosqlite.connect() is async, but main() itself is a plain sync function — it can't just 'await' something outside of an event loop. post_init/post_shutdown are exactly PTB's hooks for async setup/teardown around its own managed lifecycle."
+  }
+];
+
+const container = document.getElementById('quiz-container');
+let score = 0;
+let answered = 0;
+
+QUIZ.forEach((item, qi) => {
+  const qDiv = document.createElement('div');
+  qDiv.className = 'quiz-q';
+
+  const h4 = document.createElement('h4');
+  h4.textContent = `${qi + 1}. ${item.q}`;
+  qDiv.appendChild(h4);
+
+  const optsDiv = document.createElement('div');
+  optsDiv.className = 'quiz-options';
+
+  const feedbackDiv = document.createElement('div');
+  feedbackDiv.className = 'quiz-feedback';
+
+  item.options.forEach((optText, oi) => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-opt';
+    btn.textContent = optText;
+    btn.addEventListener('click', () => {
+      const buttons = optsDiv.querySelectorAll('.quiz-opt');
+      if (qDiv.dataset.answered === 'true') return;
+      qDiv.dataset.answered = 'true';
+      answered++;
+
+      buttons.forEach((b, bi) => {
+        b.disabled = true;
+        if (bi === item.correct) b.classList.add('correct');
+        else if (bi === oi) b.classList.add('incorrect');
+      });
+
+      feedbackDiv.classList.add('show');
+      if (oi === item.correct) {
+        score++;
+        feedbackDiv.classList.add('correct');
+        feedbackDiv.textContent = 'Correct — ' + item.feedback;
+      } else {
+        feedbackDiv.classList.add('incorrect');
+        feedbackDiv.textContent = 'Not quite — ' + item.feedback;
+      }
+
+      if (answered === QUIZ.length) {
+        const scoreDiv = document.getElementById('quiz-score');
+        scoreDiv.style.display = 'block';
+        scoreDiv.textContent = `You scored ${score} / ${QUIZ.length}`;
+      }
+    });
+    optsDiv.appendChild(btn);
+  });
+
+  qDiv.appendChild(optsDiv);
+  qDiv.appendChild(feedbackDiv);
+  container.appendChild(qDiv);
+});
+</script>
+
+</body>
+</html>
