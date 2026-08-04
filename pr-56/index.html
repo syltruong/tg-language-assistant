@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Explaining the diff: SavedInsight and the Insight Repository</title>
+<style>
+  :root {
+    --bg: #fbfaf7;
+    --panel: #ffffff;
+    --ink: #1f2430;
+    --ink-soft: #4a5062;
+    --accent: #6a4fc0;
+    --accent-soft: #efe9fb;
+    --accent-dark: #4b3591;
+    --green: #1f8a52;
+    --green-soft: #e6f6ee;
+    --red: #b8442f;
+    --red-soft: #fbeae6;
+    --border: #e4e0d8;
+    --code-bg: #292d3e;
+    --code-ink: #e6e6f0;
+    --amber: #a97417;
+    --amber-soft: #fbf1de;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    line-height: 1.65;
+    font-size: 17px;
+  }
+
+  .wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 6rem;
+  }
+
+  header.hero {
+    padding: 2.5rem 0 1.5rem;
+    border-bottom: 3px solid var(--accent);
+    margin-bottom: 2rem;
+  }
+
+  header.hero .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.8rem;
+    color: var(--accent-dark);
+    font-weight: 700;
+    margin-bottom: 0.6rem;
+  }
+
+  header.hero h1 {
+    font-size: 2.1rem;
+    margin: 0 0 0.75rem;
+    line-height: 1.25;
+  }
+
+  header.hero p.subtitle {
+    color: var(--ink-soft);
+    font-size: 1.1rem;
+    margin: 0;
+  }
+
+  h2 {
+    font-size: 1.6rem;
+    margin-top: 3rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border);
+    scroll-margin-top: 1rem;
+  }
+
+  h3 {
+    font-size: 1.2rem;
+    margin-top: 2rem;
+    color: var(--accent-dark);
+    scroll-margin-top: 1rem;
+  }
+
+  p { margin: 1rem 0; }
+
+  a { color: var(--accent-dark); }
+
+  nav.toc {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin: 2rem 0;
+  }
+
+  nav.toc h2 {
+    margin-top: 0;
+    border-top: none;
+    padding-top: 0;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--accent-dark);
+  }
+
+  nav.toc ol {
+    margin: 0;
+    padding-left: 1.3rem;
+  }
+
+  nav.toc li { margin: 0.35rem 0; }
+  nav.toc ul { margin: 0.3rem 0 0.6rem; }
+
+  .callout {
+    border-left: 4px solid var(--accent);
+    background: var(--accent-soft);
+    border-radius: 0 10px 10px 0;
+    padding: 1rem 1.3rem;
+    margin: 1.5rem 0;
+  }
+  .callout .label {
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    color: var(--accent-dark);
+    margin-bottom: 0.4rem;
+  }
+
+  .callout.warn {
+    border-left-color: var(--amber);
+    background: var(--amber-soft);
+  }
+  .callout.warn .label { color: var(--amber); }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    padding: 1rem 1.2rem;
+    border-radius: 10px;
+    overflow-x: auto;
+    font-size: 0.88rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.5;
+  }
+
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    background: rgba(106, 79, 192, 0.1);
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  pre code { background: none; padding: 0; }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+  }
+
+  .file-badge {
+    display: inline-block;
+    font-family: monospace;
+    font-size: 0.82rem;
+    background: var(--accent-dark);
+    color: white;
+    padding: 0.15rem 0.6rem;
+    border-radius: 6px;
+    margin-bottom: 0.75rem;
+  }
+
+  /* ---- diagrams ---- */
+
+  .diagram {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+  }
+  .diagram .caption {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    margin-top: 0.75rem;
+    font-style: italic;
+  }
+
+  /* telegram mock */
+  .phone {
+    max-width: 380px;
+    margin: 0 auto;
+    background: #e9eef5;
+    border-radius: 18px;
+    padding: 1rem;
+    border: 1px solid #d3dceb;
+  }
+  .bubble {
+    border-radius: 14px;
+    padding: 0.7rem 1rem;
+    margin: 0.5rem 0;
+    max-width: 85%;
+    font-size: 0.92rem;
+  }
+  .bubble.user {
+    background: #d4f0ff;
+    margin-left: auto;
+    border-bottom-right-radius: 4px;
+  }
+  .bubble.bot {
+    background: #ffffff;
+    border: 1px solid #dbe3ee;
+    border-bottom-left-radius: 4px;
+  }
+  .kb {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.6rem;
+  }
+  .kb button {
+    font-family: inherit;
+    background: #f2f6fb;
+    border: 1px solid #c9d6e8;
+    color: #2a4a70;
+    border-radius: 8px;
+    padding: 0.35rem 0.7rem;
+    font-size: 0.82rem;
+    cursor: default;
+  }
+  .kb button.save {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent-dark);
+    font-weight: 600;
+  }
+
+  /* flow diagram */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  .flow-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+  }
+  .box {
+    border: 2px solid var(--accent);
+    background: var(--accent-soft);
+    border-radius: 10px;
+    padding: 0.6rem 1rem;
+    font-size: 0.87rem;
+    text-align: center;
+    min-width: 140px;
+  }
+  .box.alt {
+    border-color: var(--green);
+    background: var(--green-soft);
+  }
+  .box.alt2 {
+    border-color: var(--amber);
+    background: var(--amber-soft);
+  }
+  .box code { background: none; padding: 0; }
+  .arrow-down {
+    text-align: center;
+    font-size: 1.3rem;
+    color: var(--ink-soft);
+    margin: -0.1rem 0;
+  }
+  .arrow-right {
+    font-size: 1.3rem;
+    color: var(--ink-soft);
+  }
+  .split {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-top: 0.5rem;
+  }
+  .split-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  /* table diagram */
+  table.schema {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+  }
+  table.schema th, table.schema td {
+    border: 1px solid var(--border);
+    padding: 0.45rem 0.6rem;
+    text-align: left;
+  }
+  table.schema th {
+    background: var(--accent-soft);
+    color: var(--accent-dark);
+  }
+  table.schema tr.highlight td {
+    background: var(--green-soft);
+  }
+
+  /* quiz */
+  .quiz-q {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.4rem 1.5rem;
+    margin: 1.5rem 0;
+  }
+  .quiz-q h4 {
+    margin-top: 0;
+    font-size: 1.05rem;
+  }
+  .quiz-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+  .quiz-options button {
+    text-align: left;
+    font-family: inherit;
+    font-size: 0.95rem;
+    padding: 0.65rem 0.9rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #fdfcfa;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .quiz-options button:hover {
+    border-color: var(--accent);
+  }
+  .quiz-options button.correct {
+    background: var(--green-soft);
+    border-color: var(--green);
+  }
+  .quiz-options button.incorrect {
+    background: var(--red-soft);
+    border-color: var(--red);
+  }
+  .quiz-options button:disabled {
+    cursor: default;
+  }
+  .quiz-feedback {
+    margin-top: 0.9rem;
+    padding: 0.8rem 1rem;
+    border-radius: 8px;
+    font-size: 0.92rem;
+    display: none;
+  }
+  .quiz-feedback.show { display: block; }
+  .quiz-feedback.correct-fb {
+    background: var(--green-soft);
+    color: #145c37;
+    border: 1px solid var(--green);
+  }
+  .quiz-feedback.incorrect-fb {
+    background: var(--red-soft);
+    color: #7d2c1c;
+    border: 1px solid var(--red);
+  }
+
+  .pr-timeline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin: 1rem 0;
+  }
+  .pr-step {
+    flex: 1 1 150px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.7rem 0.9rem;
+    font-size: 0.83rem;
+    background: var(--panel);
+  }
+  .pr-step.current {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    box-shadow: 0 0 0 2px rgba(106,79,192,0.15);
+  }
+  .pr-step .num {
+    font-weight: 700;
+    color: var(--accent-dark);
+    display: block;
+    margin-bottom: 0.2rem;
+  }
+
+  footer {
+    margin-top: 4rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    color: var(--ink-soft);
+    font-size: 0.85rem;
+    text-align: center;
+  }
+
+  @media (max-width: 600px) {
+    body { font-size: 16px; }
+    header.hero h1 { font-size: 1.6rem; }
+    .split { flex-direction: column; align-items: center; }
+    .flow-row { flex-direction: column; }
+    .arrow-right { transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="eyebrow">Explain this diff</div>
+    <h1>SavedInsight and the Insight Repository</h1>
+    <p class="subtitle">
+      How a Telegram language-learning bot gets its first piece of durable,
+      user-facing memory — and why the code that writes it is deliberately boring.
+    </p>
+  </header>
+
+  <nav class="toc">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#background">Background</a>
+        <ul>
+          <li><a href="#background-bot">What this bot does, for newcomers</a></li>
+          <li><a href="#background-repo">The repository pattern already in place</a></li>
+          <li><a href="#background-sqlite">The SQLite foundation this PR builds on</a></li>
+        </ul>
+      </li>
+      <li><a href="#intuition">Intuition</a></li>
+      <li><a href="#code">Code walkthrough</a>
+        <ul>
+          <li><a href="#code-dataclass">The <code>SavedInsight</code> dataclass</a></li>
+          <li><a href="#code-protocol">The protocol</a></li>
+          <li><a href="#code-inmemory">The in-memory fake</a></li>
+          <li><a href="#code-sqlite">The SQLite implementation</a></li>
+          <li><a href="#code-tests">The shared test suite</a></li>
+        </ul>
+      </li>
+      <li><a href="#quiz">Quiz</a></li>
+    </ol>
+  </nav>
+
+  <h2 id="background">Background</h2>
+
+  <h3 id="background-bot">What this bot does, for newcomers</h3>
+  <p>
+    <em>Skip this bit if you already know the bot.</em> The project is a Telegram bot
+    that sits next to a language learner mid-conversation. The learner is chatting
+    with a native speaker in, say, French, and doesn't quite understand a sentence,
+    or wants help composing a reply. They forward the message to the bot (that's
+    called the <strong>Anchor Message</strong>) and the bot writes back with a
+    translation, a correction, or a set of reply suggestions — whichever
+    <strong>Action</strong> the situation calls for.
+  </p>
+  <p>
+    Everything the bot says about one Anchor Message lives in a single message,
+    the <strong>Slot Message</strong>, which carries an inline keyboard of buttons:
+    <em>Analyze</em>, <em>Correct</em>, <em>Reply</em>, and so on. Tapping a button
+    doesn't post a new message — it edits the Slot Message in place. The whole
+    unit of interaction, from the Anchor Message through however many keyboard
+    taps the user makes, is called a <strong>Conversation Turn</strong>.
+  </p>
+
+  <div class="diagram">
+    <div class="phone">
+      <div class="bubble user">Je suis allé au marché hier.</div>
+      <div class="bubble bot">
+        "I went to the market yesterday." — a simple past-tense sentence.
+        <div class="kb">
+          <button>Analyze</button>
+          <button>Correct</button>
+          <button>Reply</button>
+          <button class="save">💾 Save</button>
+        </div>
+      </div>
+    </div>
+    <div class="caption">
+      One Conversation Turn: the anchor message on the right, the Slot Message
+      (with its keyboard) on the left. Tapping <strong>Save</strong> is what this
+      PR's code makes durable.
+    </div>
+  </div>
+
+  <p>
+    Until now, whatever the bot showed the user was ephemeral — it lived in the
+    chat history, and in an in-memory <strong>Session</strong> object that
+    evaporates on restart. This PR is part of a small arc of work (branch name:
+    <em>explicit-memory</em>) that gives the user a way to explicitly keep a
+    result forever: the <strong>Saved Insight</strong>. It's an immutable
+    snapshot of one Conversation Turn's outcome, and it's the foundation for a
+    future <code>/saved</code> command and a vocabulary review feature.
+  </p>
+
+  <div class="callout">
+    <div class="label">Where this PR sits in the plan</div>
+    The team is building this capability as a sequence of small, reviewable PRs.
+    This diff is <strong>PR 2 of 4</strong>.
+  </div>
+
+  <div class="pr-timeline">
+    <div class="pr-step">
+      <span class="num">PR 0</span>
+      Domain model &amp; ADR — <code>CONTEXT.md</code> gets the "Saved Insight" and
+      "Insight Repository" terms; ADR-0006 records the write-path decisions.
+      Already merged into the base branch.
+    </div>
+    <div class="pr-step">
+      <span class="num">PR 1</span>
+      SQLite foundation — the <code>Database</code> class, the migration runner,
+      and the <code>saved_insights</code> table. Already merged into the base branch.
+    </div>
+    <div class="pr-step current">
+      <span class="num">PR 2 — this diff</span>
+      <code>SavedInsight</code> the dataclass, the repository protocol, an
+      in-memory fake, and the real SQLite-backed repository.
+    </div>
+    <div class="pr-step">
+      <span class="num">PR 3 / 4</span>
+      Wiring up the Save button trigger and the <code>/saved</code> list view
+      (not part of this diff).
+    </div>
+  </div>
+
+  <h3 id="background-repo">The repository pattern already in place</h3>
+  <p>
+    This codebase leans hard on constructor injection: rather than a module
+    reaching out and calling a database library directly, behaviour is defined
+    behind a <code>Protocol</code>, and a concrete implementation — real or
+    fake — is handed in when the object is constructed. You can already see
+    this pattern in <code>bot/feedback.py</code>, which the new code's own
+    docstring points to as precedent:
+  </p>
+  <pre><code>@runtime_checkable
+class FeedbackClient(Protocol):
+    async def record_feedback(
+        self, run_id: str, is_good: bool, comment: str | None = None
+    ) -> None: ...
+
+class FakeFeedbackClient:
+    ...
+
+class LangSmithFeedbackClient:
+    ...</code></pre>
+  <p>
+    One protocol, one fake for tests, one real implementation talking to an
+    external system — all three defined together in a single file. This diff
+    follows exactly that shape for <code>SavedInsight</code>, just with SQLite
+    instead of LangSmith as the "real" backend.
+  </p>
+
+  <h3 id="background-sqlite">The SQLite foundation this PR builds on</h3>
+  <p>
+    The base branch this diff is compared against — <code>claude/explicit-memory-sqlite</code>
+    — already contains PR 0 and PR 1: the domain-language write-up, and a small
+    <code>Database</code> class (<code>bot/storage/db.py</code>) that opens a
+    single SQLite file and brings its schema up to date using
+    <code>PRAGMA user_version</code> as a version counter, applying any
+    <code>bot/storage/migrations/*.sql</code> file numbered higher than the
+    current version.
+  </p>
+  <p>
+    The first migration, <code>0001_saved_insights.sql</code>, already creates
+    the table this PR's code reads and writes:
+  </p>
+  <div class="diagram">
+    <table class="schema">
+      <tr><th>column</th><th>type</th><th>notes</th></tr>
+      <tr><td>id</td><td>INTEGER PK</td><td>autoincrement</td></tr>
+      <tr><td>user_id, chat_id, slot_message_id</td><td>INTEGER</td><td>identify the Telegram turn</td></tr>
+      <tr><td>anchor_text, detected_language</td><td>TEXT</td><td>the original message, verbatim</td></tr>
+      <tr><td>base_language, target_language</td><td>TEXT</td><td>the Language Pair at save time</td></tr>
+      <tr><td>action_type</td><td>TEXT</td><td>e.g. "analyze", "correct"</td></tr>
+      <tr><td>result_text, parse_mode</td><td>TEXT / TEXT?</td><td>the rendered bot reply, as displayed</td></tr>
+      <tr><td>run_id</td><td>TEXT?</td><td>optional link back to the LangSmith trace</td></tr>
+      <tr><td>created_at</td><td>TEXT</td><td>ISO timestamp</td></tr>
+      <tr><td>deleted_at</td><td>TEXT?</td><td>soft-delete marker, unused by any UI yet</td></tr>
+      <tr class="highlight"><td colspan="3">UNIQUE (user_id, chat_id, slot_message_id, action_type)</td></tr>
+    </table>
+    <div class="caption">
+      The <code>saved_insights</code> table, created by migration <code>0001</code>
+      (already on the base branch). The highlighted row is the constraint this
+      PR's code leans on for idempotent saving.
+    </div>
+  </div>
+  <p>
+    In other words: by the time this diff starts, the table exists and the
+    connection machinery exists. What's missing — and what this PR adds — is
+    the Python-side object that turns a <code>SavedInsight</code> value into a
+    row in that table, and back again.
+  </p>
+
+  <h2 id="intuition">Intuition</h2>
+  <p>
+    The core idea of this PR is small enough to say in one sentence: <strong>a
+    <code>SavedInsight</code> is a plain data value, and an
+    <code>InsightRepositoryProtocol</code> is the only door through which it
+    enters or leaves storage</strong> — with two interchangeable rooms behind
+    that door, one real (SQLite) and one fake (an in-memory list), so that
+    every other part of the bot can be tested without touching a database file.
+  </p>
+
+  <div class="diagram">
+    <div class="flow">
+      <div class="flow-row">
+        <div class="box alt2">User taps <strong>Save</strong> on the Slot Message</div>
+      </div>
+      <div class="arrow-down">↓</div>
+      <div class="flow-row">
+        <div class="box">Trigger builds a <code>SavedInsight(...)</code><br>from the callback data</div>
+      </div>
+      <div class="arrow-down">↓</div>
+      <div class="flow-row">
+        <div class="box">calls <code>repository.save(insight)</code><br>— an <code>InsightRepositoryProtocol</code></div>
+      </div>
+      <div class="arrow-down">↓</div>
+      <div class="split">
+        <div class="split-col">
+          <div class="box alt">InMemoryInsightRepository<br><span style="font-size:0.8em">a Python list — used in tests</span></div>
+        </div>
+        <div class="split-col">
+          <div class="box alt">SqliteInsightRepository<br><span style="font-size:0.8em">an INSERT into <code>saved_insights</code></span></div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">
+      The Trigger that will call this code (arriving in PR 3) never needs to
+      know which implementation it's holding — only that it satisfies the protocol.
+    </div>
+  </div>
+
+  <p>
+    Concretely, imagine the user runs <em>Analyze</em> on the French sentence
+    "bonjour" and taps Save. The trigger (not part of this diff yet) will
+    construct something like:
+  </p>
+  <pre><code>SavedInsight(
+    user_id=1, chat_id=2, slot_message_id=3,
+    anchor_text="bonjour", detected_language="fr",
+    base_language="en", target_language="fr",
+    action_type="analyze", result_text="a casual greeting",
+)</code></pre>
+  <p>
+    and hand it to <code>repository.save(...)</code>. Whether that repository is
+    the in-memory fake or the real SQLite one, the same thing happens: the
+    value is stamped with an <code>id</code> and a <code>created_at</code>, and
+    stored.
+  </p>
+
+  <h3>Idempotent by construction, not by an <code>if</code> statement</h3>
+  <p>
+    ADR-0006 (already agreed before this PR) says re-tapping Save on the same
+    view should be a no-op, not a duplicate row. This diff implements that not
+    with application-level "have I seen this before?" logic, but by leaning on
+    the database's own <strong>UNIQUE constraint</strong> on
+    <code>(user_id, chat_id, slot_message_id, action_type)</code> — the four
+    columns that together identify "this particular result, for this
+    particular turn". The in-memory fake mirrors the same rule in plain Python
+    so that it behaves identically in tests.
+  </p>
+
+  <div class="diagram">
+    <div class="flow">
+      <div class="flow-row">
+        <div class="box">1st tap: save(user=1, chat=2, slot=3, action="analyze")</div>
+      </div>
+      <div class="arrow-down">↓</div>
+      <div class="flow-row">
+        <div class="box alt">Row inserted. Returns <code>id = 7</code></div>
+      </div>
+      <div class="arrow-down">↓</div>
+      <div class="flow-row">
+        <div class="box">2nd tap: save(user=1, chat=2, slot=3, action="analyze")</div>
+      </div>
+      <div class="arrow-down">↓</div>
+      <div class="flow-row">
+        <div class="box alt2">UNIQUE constraint violated. Caught. Returns <code>None</code> — no second row.</div>
+      </div>
+    </div>
+    <div class="caption">
+      Double-tapping Save on the same slot message and the same action is
+      silently absorbed. Running <em>Correct</em> on the same turn afterwards
+      is a <em>different</em> <code>action_type</code>, so it inserts a second,
+      separate row.
+    </div>
+  </div>
+
+  <div class="callout">
+    <div class="label">Why no LLM call here</div>
+    ADR-0006, already decided before this code was written, insists the write
+    path is verbatim: no distillation, no LLM call, nothing that could time out
+    or fail. That's why <code>save()</code> and <code>list_for_user()</code>
+    are the entire surface area — there's no "generate a title" step to see in
+    this diff, because that's explicitly a read-side concern for later.
+  </div>
+
+  <h2 id="code">Code walkthrough</h2>
+  <p>
+    The whole diff is two new files: <code>bot/insights.py</code> (143 lines)
+    and its test suite <code>bot/test_insights.py</code> (157 lines). Nothing
+    else changes — no existing file is touched, no migration is added (that
+    already happened in PR 1). Let's go through <code>bot/insights.py</code>
+    top to bottom.
+  </p>
+
+  <h3 id="code-dataclass">The <code>SavedInsight</code> dataclass</h3>
+  <div class="card">
+    <span class="file-badge">bot/insights.py</span>
+    <pre><code>@dataclass(frozen=True, slots=True)
+class SavedInsight:
+    user_id: int
+    chat_id: int
+    slot_message_id: int
+    anchor_text: str
+    detected_language: str
+    base_language: str
+    target_language: str
+    action_type: str
+    result_text: str
+    parse_mode: str | None = None
+    run_id: str | None = None
+    created_at: str | None = None
+    id: int | None = None</code></pre>
+  </div>
+  <p>
+    This is a plain, frozen value object — it carries no behaviour and knows
+    nothing about SQL or Telegram. Notice the split between required fields
+    (everything the caller must supply about the turn) and the three fields
+    that default to <code>None</code>: <code>parse_mode</code> and
+    <code>run_id</code> are genuinely optional (a Saved Insight can exist
+    without a LangSmith trace behind it), while <code>id</code> and
+    <code>created_at</code> are <em>assigned by the repository</em> — a caller
+    constructs a <code>SavedInsight</code> without them and gets one back with
+    them filled in from <code>save()</code>'s return value (or, in this repo's
+    case, from a subsequent <code>list_for_user()</code> read).
+  </p>
+  <p>
+    <code>frozen=True</code> means the dataclass is immutable — matching the
+    domain rule that a Saved Insight, once written, is never edited. Making a
+    <em>stamped copy</em> (with an id and timestamp) uses
+    <code>dataclasses.replace</code> rather than mutation, which you'll see
+    in the in-memory fake below.
+  </p>
+
+  <h3 id="code-protocol">The protocol</h3>
+  <div class="card">
+    <span class="file-badge">bot/insights.py</span>
+    <pre><code>@runtime_checkable
+class InsightRepositoryProtocol(Protocol):
+    async def save(self, insight: SavedInsight) -> int | None:
+        """Store an insight. Returns its id, or None if this turn+action is already kept."""
+        ...
+
+    async def list_for_user(
+        self, user_id: int, limit: int = _DEFAULT_LIMIT
+    ) -> list[SavedInsight]: ...</code></pre>
+  </div>
+  <p>
+    Two methods, both <code>async</code> (the whole bot is built on
+    <code>asyncio</code>, and <code>aiosqlite</code> is the async SQLite
+    driver in use elsewhere in the project). <code>save</code>'s return type,
+    <code>int | None</code>, directly encodes the idempotency rule from the
+    intuition section: a fresh save returns the new row's id, a duplicate
+    returns <code>None</code>. Anything downstream (a future trigger) can use
+    that to decide whether to show "Saved!" or "Already saved" feedback,
+    without needing to catch an exception itself.
+  </p>
+
+  <h3 id="code-inmemory">The in-memory fake</h3>
+  <div class="card">
+    <span class="file-badge">bot/insights.py</span>
+    <pre><code>class InMemoryInsightRepository:
+    """Fake for tests and local development."""
+
+    def __init__(self) -> None:
+        self._insights: list[SavedInsight] = []
+        self._next_id = 1
+
+    async def save(self, insight: SavedInsight) -> int | None:
+        if any(_turn_key(stored) == _turn_key(insight) for stored in self._insights):
+            return None
+
+        stored = replace(insight, id=self._next_id, created_at=_now())
+        self._insights.append(stored)
+        self._next_id += 1
+        return stored.id
+
+    async def list_for_user(
+        self, user_id: int, limit: int = _DEFAULT_LIMIT
+    ) -> list[SavedInsight]:
+        matching = [i for i in self._insights if i.user_id == user_id]
+        return sorted(matching, key=lambda i: i.id, reverse=True)[:limit]</code></pre>
+  </div>
+  <p>
+    This is a genuine fake, not a mock — a real (if simplified) working
+    implementation backed by a Python list, matching the codebase's stated
+    preference for fakes-behind-a-protocol over <code>mock.patch</code>. It
+    duplicates the uniqueness rule by hand via a small helper,
+    <code>_turn_key</code>, defined near the bottom of the file:
+  </p>
+  <pre><code>def _turn_key(insight: SavedInsight) -> tuple[int, int, int, str]:
+    """The natural key mirroring the table's UNIQUE constraint."""
+    return (insight.user_id, insight.chat_id, insight.slot_message_id, insight.action_type)</code></pre>
+  <p>
+    That comment is important, and worth calling out: the tuple
+    <code>(user_id, chat_id, slot_message_id, action_type)</code> here has to
+    stay in lockstep with the <code>UNIQUE (...)</code> clause in the SQL
+    migration from PR 1. They're two independent expressions of the same
+    business rule, in two different implementations — a small but real
+    maintenance hazard if one is ever changed without the other, since nothing
+    enforces they stay in sync except this comment and the shared test suite
+    (more on that below).
+  </p>
+
+  <h3 id="code-sqlite">The SQLite implementation</h3>
+  <div class="card">
+    <span class="file-badge">bot/insights.py</span>
+    <pre><code>class SqliteInsightRepository:
+    def __init__(self, database: Database) -> None:
+        self._database = database
+
+    async def save(self, insight: SavedInsight) -> int | None:
+        try:
+            cursor = await self._database.connection.execute(
+                f"""
+                INSERT INTO saved_insights ({_COLUMNS})
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (insight.user_id, insight.chat_id, ... , _now()),
+            )
+        except aiosqlite.IntegrityError:
+            # The UNIQUE constraint — this turn and action are already kept.
+            return None
+
+        await self._database.connection.commit()
+        return cursor.lastrowid</code></pre>
+  </div>
+  <p>
+    This is where the idempotency intuition becomes concrete: rather than
+    querying "does this already exist?" before inserting (a check-then-act
+    that would race under concurrent taps), the code just <em>attempts</em>
+    the insert and catches <code>aiosqlite.IntegrityError</code> if the
+    database's own UNIQUE constraint rejects it. The database is the single
+    source of truth for "has this been saved already", which is a nice
+    illustration of pushing an invariant down to the layer that can actually
+    enforce it atomically.
+  </p>
+  <p>
+    The class takes a <code>Database</code> (from <code>bot/storage/db.py</code>,
+    PR 1) via constructor injection — again, no reaching out to a global
+    connection or module-level function. Column names are centralised in a
+    module-level constant so the <code>INSERT</code> and <code>SELECT</code>
+    statements can't silently drift apart:
+  </p>
+  <pre><code>_COLUMNS = """
+    user_id, chat_id, slot_message_id, anchor_text, detected_language,
+    base_language, target_language, action_type, result_text, parse_mode,
+    run_id, created_at
+"""</code></pre>
+  <p>
+    Reading back is a straightforward <code>SELECT</code>, scoped to one user,
+    filtered to exclude soft-deleted rows, and converted row-by-row back into
+    <code>SavedInsight</code> values:
+  </p>
+  <pre><code>async def list_for_user(
+    self, user_id: int, limit: int = _DEFAULT_LIMIT
+) -> list[SavedInsight]:
+    cursor = await self._database.connection.execute(
+        f"""
+        SELECT id, {_COLUMNS} FROM saved_insights
+        WHERE user_id = ? AND deleted_at IS NULL
+        ORDER BY created_at DESC, id DESC
+        LIMIT ?
+        """,
+        (user_id, limit),
+    )
+    return [_from_row(row) for row in await cursor.fetchall()]
+
+def _from_row(row: aiosqlite.Row) -> SavedInsight:
+    return SavedInsight(**dict(row))</code></pre>
+  <p>
+    Two small things are worth noticing here. First, ordering is
+    <code>created_at DESC, id DESC</code> rather than just
+    <code>created_at</code> — a tie-breaker on <code>id</code> guards against
+    two saves landing in the same timestamp (ISO strings from
+    <code>datetime.now(UTC)</code> have microsecond resolution, but ties are
+    still cheap insurance). Second, <code>_from_row</code> works because
+    <code>Database.connect()</code> (in PR 1) sets
+    <code>connection.row_factory = aiosqlite.Row</code>, which makes each row
+    behave like a mapping — <code>dict(row)</code> turns it directly into the
+    dataclass's keyword arguments. That only works because the
+    <code>SELECT</code>'s column list, order aside, matches the dataclass
+    fields by name; the <code>deleted_at</code> column itself is deliberately
+    <em>not</em> selected, since <code>SavedInsight</code> has no field for it
+    — soft-deletion is a storage-layer concern the domain object doesn't need
+    to know about.
+  </p>
+
+  <h3 id="code-tests">The shared test suite</h3>
+  <p>
+    The most structurally interesting part of <code>bot/test_insights.py</code>
+    is not any individual test, but the fixture that parametrizes every test
+    in the file over <em>both</em> implementations:
+  </p>
+  <div class="card">
+    <span class="file-badge">bot/test_insights.py</span>
+    <pre><code>@pytest.fixture(params=["sqlite", "in_memory"])
+async def repository(request, tmp_path):
+    if request.param == "in_memory":
+        yield InMemoryInsightRepository()
+        return
+
+    database = Database(path=tmp_path / "bot.db")
+    await database.connect()
+    yield SqliteInsightRepository(database=database)
+    await database.close()</code></pre>
+  </div>
+  <p>
+    Every test that asks for the <code>repository</code> fixture — saving,
+    idempotency, listing, ordering, user-scoping, round-tripping every field —
+    runs twice, once per backend. That's the payoff of the protocol-plus-fake
+    pattern: it's not just that the fake makes <em>other modules'</em> tests
+    fast and dependency-free (the trigger tests that PR 3 will add), it's that
+    this file's own module docstring says so explicitly —
+  </p>
+  <div class="callout">
+    <div class="label">from the module docstring</div>
+    "Every test runs against both implementations. The fake is what PR 3's
+    trigger tests depend on, so it has to behave like the real one or those
+    tests lie."
+  </div>
+  <p>
+    That's the guard against the "two implementations of the same uniqueness
+    rule" hazard mentioned earlier: if someone changes the SQL migration's
+    <code>UNIQUE</code> clause without updating <code>_turn_key</code>, the
+    <code>test_keeping_the_same_turn_and_action_twice_stores_one_insight</code>
+    test (or its siblings) will fail for one parametrization and pass for the
+    other, immediately surfacing the drift.
+  </p>
+  <p>
+    A couple of individual tests are worth calling out for what they lock in
+    about behaviour that isn't obvious from the schema alone:
+  </p>
+  <pre><code>async def test_a_run_id_is_optional(self, repository):
+    """Session may be gone by the time Save is tapped — capture must not depend on it."""
+    await repository.save(an_insight(run_id=None))
+
+    kept = (await repository.list_for_user(user_id=1))[0]
+
+    assert kept.run_id is None</code></pre>
+  <p>
+    This directly encodes an ADR-0006 consequence: unlike other features in
+    this bot, capturing a Saved Insight must not silently fail just because
+    the in-memory Session has been lost (say, after a bot restart). And the
+    last class in the file, <code>TestSoftDeletion</code>, exercises a code
+    path with no UI yet — it reaches directly into the database to set
+    <code>deleted_at</code> and confirms <code>list_for_user</code> honours it
+    — a deliberate "the plumbing works even though nothing calls it yet" test,
+    consistent with the schema shipping the column ahead of any delete button.
+  </p>
+
+  <h2 id="quiz">Quiz</h2>
+  <p>Five questions to check the concepts stuck. Click an answer to see if you're right.</p>
+
+  <div class="quiz-q" data-answer="1">
+    <h4>1. A user taps <em>Analyze</em>, then taps <em>Save</em>, on the same Slot Message twice in a row without tapping anything else in between. What happens?</h4>
+    <div class="quiz-options">
+      <button data-idx="0">A new row is inserted each time — two identical Saved Insights.</button>
+      <button data-idx="1">The first tap inserts a row and returns its id; the second tap returns <code>None</code> and no new row is created.</button>
+      <button data-idx="2">The second tap raises an unhandled exception and the bot crashes.</button>
+      <button data-idx="3">The second tap overwrites the first row's <code>result_text</code>.</button>
+    </div>
+    <div class="quiz-feedback"></div>
+  </div>
+
+  <div class="quiz-q" data-answer="2">
+    <h4>2. Why does <code>SqliteInsightRepository.save()</code> attempt the <code>INSERT</code> directly and catch <code>aiosqlite.IntegrityError</code>, rather than first running a <code>SELECT</code> to check whether the row already exists?</h4>
+    <div class="quiz-options">
+      <button data-idx="0">Catching exceptions is always faster than running an extra query.</button>
+      <button data-idx="1">A check-then-insert has a race condition; letting the database's UNIQUE constraint enforce the rule atomically avoids it.</button>
+      <button data-idx="2"><code>aiosqlite</code> doesn't support <code>SELECT</code> statements with a <code>WHERE</code> clause.</button>
+      <button data-idx="3">It's required so the in-memory fake can mirror the exact same code path.</button>
+    </div>
+    <div class="quiz-feedback"></div>
+  </div>
+
+  <div class="quiz-q" data-answer="1">
+    <h4>3. Which fields of <code>SavedInsight</code> are <em>not</em> supplied by the caller, but assigned by the repository itself?</h4>
+    <div class="quiz-options">
+      <button data-idx="0"><code>parse_mode</code> and <code>run_id</code></button>
+      <button data-idx="1"><code>id</code> and <code>created_at</code></button>
+      <button data-idx="2"><code>user_id</code> and <code>chat_id</code></button>
+      <button data-idx="3"><code>action_type</code> and <code>result_text</code></button>
+    </div>
+    <div class="quiz-feedback"></div>
+  </div>
+
+  <div class="quiz-q" data-answer="3">
+    <h4>4. Per ADR-0006 and this PR's test suite, what should happen if the user taps Save when the in-memory <strong>Session</strong> has been lost (e.g. after a bot restart)?</h4>
+    <div class="quiz-options">
+      <button data-idx="0">The Save silently no-ops, exactly like a lost Suggestion selection or Rating.</button>
+      <button data-idx="1">The bot asks the user to re-run the Action first.</button>
+      <button data-idx="2"><code>run_id</code> falls back to a placeholder string like <code>"unknown"</code>.</button>
+      <button data-idx="3">The insight is still saved, with <code>run_id</code> left as <code>None</code>, since capture doesn't depend on Session.</button>
+    </div>
+    <div class="quiz-feedback"></div>
+  </div>
+
+  <div class="quiz-q" data-answer="2">
+    <h4>5. Why does <code>bot/test_insights.py</code> run almost every test against both <code>InMemoryInsightRepository</code> and <code>SqliteInsightRepository</code> via one parametrized fixture, instead of writing the tests once against just the SQLite implementation?</h4>
+    <div class="quiz-options">
+      <button data-idx="0">It's a pytest requirement — fixtures must always be parametrized.</button>
+      <button data-idx="1">SQLite alone isn't reliable enough in CI, so the in-memory version is treated as the source of truth.</button>
+      <button data-idx="2">The in-memory fake is what later trigger tests (PR 3) will depend on, so this suite has to prove the fake actually behaves like the real repository.</button>
+      <button data-idx="3">It doubles the reported test coverage percentage for the module.</button>
+    </div>
+    <div class="quiz-feedback"></div>
+  </div>
+
+  <footer>
+    Generated from a diff between <code>claude/explicit-memory-sqlite</code> and the current branch head.
+  </footer>
+</div>
+
+<script>
+  const explanations = {
+    q0: {
+      correct: "Right — the natural key (user_id, chat_id, slot_message_id, action_type) is UNIQUE. The second save() attempt hits that constraint, the repository catches it, and returns None instead of raising or duplicating.",
+    },
+  };
+
+  document.querySelectorAll('.quiz-q').forEach((q) => {
+    const correctIdx = parseInt(q.dataset.answer, 10);
+    const buttons = q.querySelectorAll('.quiz-options button');
+    const feedback = q.querySelector('.quiz-feedback');
+
+    const explanationsByQuestion = [
+      "Correct — the UNIQUE constraint (user_id, chat_id, slot_message_id, action_type) means the second identical save() call fails on insert, is caught, and returns None. No second row, no crash, no overwrite.",
+      "Correct — a SELECT-then-INSERT has a window where two concurrent taps could both pass the check before either inserts. Letting the database enforce the UNIQUE constraint and catching the resulting IntegrityError makes the check atomic.",
+      "Correct — id and created_at are stamped by the repository at save time (dataclasses.replace(insight, id=..., created_at=...) in the fake; the DB's AUTOINCREMENT and a fresh _now() call in the SQLite version). Everything else is supplied by the caller.",
+      "Correct — ADR-0006 explicitly makes Saved Insight capture independent of Session, unlike Suggestion selection or Rating which silently no-op when Session is lost. The test test_a_run_id_is_optional locks this in: the insight is saved with run_id=None.",
+      "Correct — the module docstring says it outright: 'The fake is what PR 3's trigger tests depend on, so it has to behave like the real one or those tests lie.' Running every behavioural test against both implementations is what guarantees that.",
+    ];
+
+    buttons.forEach((btn, idx) => {
+      btn.addEventListener('click', () => {
+        if (btn.disabled) return;
+        buttons.forEach((b) => (b.disabled = true));
+
+        if (idx === correctIdx) {
+          btn.classList.add('correct');
+          feedback.textContent = "✓ Correct. " + explanationsByQuestion[Array.from(q.parentElement.querySelectorAll('.quiz-q')).indexOf(q)];
+          feedback.classList.remove('incorrect-fb');
+          feedback.classList.add('correct-fb', 'show');
+        } else {
+          btn.classList.add('incorrect');
+          buttons[correctIdx].classList.add('correct');
+          feedback.textContent = "✗ Not quite. " + explanationsByQuestion[Array.from(q.parentElement.querySelectorAll('.quiz-q')).indexOf(q)];
+          feedback.classList.remove('correct-fb');
+          feedback.classList.add('incorrect-fb', 'show');
+        }
+      });
+    });
+  });
+</script>
+
+</body>
+</html>
