@@ -1,7 +1,14 @@
-from bot.config.messages import MsgRateThisResponse, MsgSave, MsgSaved, t
+from bot.config.messages import (
+    MsgRateThisResponse,
+    MsgSave,
+    MsgSaved,
+    MsgSkipFeedback,
+    t,
+)
 from bot.keyboard import (
     RATE_DOWN,
     RATE_LABEL,
+    RATE_SKIP,
     RATE_UP,
     SAVE,
     build_action_keyboard,
@@ -43,7 +50,7 @@ class TestSaveRow:
 class TestRatingRow:
     def test_standard_keyboard_has_a_thumbs_row_last(self):
         last_row = KEYBOARD.inline_keyboard[-1]
-        assert [btn.callback_data for btn in last_row] == [RATE_UP, RATE_DOWN]
+        assert [btn.callback_data for btn in last_row] == [RATE_UP, RATE_DOWN, RATE_SKIP]
 
     def test_standard_keyboard_has_a_label_row_above_the_thumbs(self):
         label_row = KEYBOARD.inline_keyboard[-2]
@@ -52,7 +59,7 @@ class TestRatingRow:
     def test_suggestions_keyboard_has_a_thumbs_row_last(self):
         kb = build_suggestions_keyboard(_SUGGESTIONS)
         last_row = kb.inline_keyboard[-1]
-        assert [btn.callback_data for btn in last_row] == [RATE_UP, RATE_DOWN]
+        assert [btn.callback_data for btn in last_row] == [RATE_UP, RATE_DOWN, RATE_SKIP]
 
     def test_suggestions_keyboard_has_a_label_row_above_the_thumbs(self):
         kb = build_suggestions_keyboard(_SUGGESTIONS)
@@ -62,6 +69,10 @@ class TestRatingRow:
     def test_label_row_text_comes_from_the_message_catalog(self):
         label_row = KEYBOARD.inline_keyboard[-2]
         assert label_row[0].text == t(MsgRateThisResponse)
+
+    def test_skip_button_text_comes_from_the_message_catalog(self):
+        thumbs_row = KEYBOARD.inline_keyboard[-1]
+        assert thumbs_row[2].text == t(MsgSkipFeedback)
 
 
 class TestStripRatingRows:

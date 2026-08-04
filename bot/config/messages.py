@@ -91,6 +91,10 @@ class MsgRateThisResponse(MsgKey):
     pass
 
 
+class MsgSkipFeedback(MsgKey):
+    pass
+
+
 class MsgSave(MsgKey):
     pass
 
@@ -150,6 +154,7 @@ CATALOGS: dict[str, dict[type, str]] = {
         MsgChooseLanguage: "Which language would you like to learn?",
         MsgLanguageSelected: "You're learning {language}. Send me a message to get started.",
         MsgRateThisResponse: "Rate this response:",
+        MsgSkipFeedback: "Skip",
         MsgSave: "💾 Save",
         MsgSaved: "✅ Saved",
         MsgSaveFailed: "Couldn't save that one. Please try again.",
