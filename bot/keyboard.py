@@ -2,7 +2,7 @@
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
-from bot.config.messages import MsgRateThisResponse, t
+from bot.config.messages import MsgRateThisResponse, MsgSkipFeedback, t
 from bot.types import KeyboardActionType, Suggestion
 
 BUTTON_TITLES: dict[KeyboardActionType, str] = {
@@ -18,6 +18,7 @@ RATE_PREFIX = "rate:"
 RATE_UP = f"{RATE_PREFIX}up"
 RATE_DOWN = f"{RATE_PREFIX}down"
 RATE_LABEL = f"{RATE_PREFIX}label"
+RATE_SKIP = f"{RATE_PREFIX}skip"
 
 
 def _rating_rows() -> list[list[InlineKeyboardButton]]:
@@ -27,6 +28,7 @@ def _rating_rows() -> list[list[InlineKeyboardButton]]:
         [
             InlineKeyboardButton("👍", callback_data=RATE_UP),
             InlineKeyboardButton("👎", callback_data=RATE_DOWN),
+            InlineKeyboardButton(t(MsgSkipFeedback), callback_data=RATE_SKIP),
         ],
     ]
 

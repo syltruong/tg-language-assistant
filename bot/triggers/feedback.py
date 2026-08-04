@@ -4,7 +4,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from bot.feedback import FeedbackClient
-from bot.keyboard import RATE_DOWN, RATE_UP, strip_rating_rows
+from bot.keyboard import RATE_DOWN, RATE_SKIP, RATE_UP, strip_rating_rows
 from bot.session import UserSession
 
 _IS_GOOD = {RATE_UP: True, RATE_DOWN: False}
@@ -16,6 +16,14 @@ class FeedbackTrigger:
 
     async def handle(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         query = update.callback_query
+
+        if query.data == RATE_SKIP:
+            await query.edit_message_reply_markup(
+                reply_markup=strip_rating_rows(query.message.reply_markup)
+            )
+            await query.answer()
+            return
+
         session = UserSession.from_context(context)
         msg_id = query.message.message_id
         run_id = session.get_run_id(msg_id)
