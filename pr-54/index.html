@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Saved Insight: A Domain Model Change</title>
+<style>
+  :root {
+    --bg: #fbfaf7;
+    --ink: #23241f;
+    --ink-soft: #55564d;
+    --accent: #a8380d;
+    --accent-soft: #f1e3d3;
+    --line: #e2ddd0;
+    --card: #ffffff;
+    --good: #1f6f43;
+    --bad: #a8320d;
+    --code-bg: #2b2a26;
+    --code-ink: #f1eee6;
+    --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    --serif: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--serif);
+    line-height: 1.65;
+    font-size: 18px;
+  }
+
+  .wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 6rem;
+  }
+
+  header.title {
+    text-align: center;
+    padding: 2rem 1rem 2.5rem;
+    border-bottom: 3px solid var(--ink);
+    margin-bottom: 2rem;
+  }
+
+  header.title .kicker {
+    font-family: var(--sans);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.78rem;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 0.8rem;
+  }
+
+  header.title h1 {
+    font-size: 2.3rem;
+    margin: 0 0 0.6rem;
+    line-height: 1.2;
+  }
+
+  header.title p.sub {
+    font-family: var(--sans);
+    color: var(--ink-soft);
+    font-size: 1.05rem;
+    max-width: 620px;
+    margin: 0 auto;
+  }
+
+  h2 {
+    font-size: 1.65rem;
+    margin-top: 3.2rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--line);
+    scroll-margin-top: 1rem;
+  }
+
+  h2 .num {
+    color: var(--accent);
+    font-family: var(--sans);
+    font-weight: 700;
+    margin-right: 0.4rem;
+  }
+
+  h3 {
+    font-size: 1.25rem;
+    margin-top: 2.2rem;
+    color: var(--ink);
+    scroll-margin-top: 1rem;
+  }
+
+  p { margin: 1rem 0; }
+
+  a { color: var(--accent); }
+
+  .toc {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1.4rem 1.6rem;
+    font-family: var(--sans);
+  }
+
+  .toc h2 {
+    margin-top: 0;
+    border: none;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-soft);
+  }
+
+  .toc ol {
+    margin: 0.5rem 0 0;
+    padding-left: 1.3rem;
+  }
+
+  .toc li { margin: 0.35rem 0; }
+
+  .toc ol ol {
+    margin-top: 0.3rem;
+    padding-left: 1.2rem;
+    font-size: 0.93rem;
+  }
+
+  .toc a { text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* Callouts */
+  .callout {
+    border-left: 4px solid var(--accent);
+    background: var(--accent-soft);
+    padding: 1rem 1.3rem;
+    margin: 1.6rem 0;
+    border-radius: 0 8px 8px 0;
+    font-family: var(--sans);
+    font-size: 0.97rem;
+  }
+  .callout .label {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.72rem;
+    color: var(--accent);
+    margin-bottom: 0.4rem;
+    display: block;
+  }
+
+  .callout.info { border-left-color: #2b5ea8; background: #e6eef8; }
+  .callout.info .label { color: #2b5ea8; }
+
+  /* Code blocks */
+  pre {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    padding: 1rem 1.2rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  code {
+    font-family: var(--mono);
+    background: #efe9db;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    font-size: 0.87em;
+  }
+
+  pre code {
+    background: none;
+    padding: 0;
+  }
+
+  .diff-add { color: #8fe0a0; }
+  .diff-del { color: #f0a0a0; text-decoration: line-through; opacity: 0.75; }
+
+  /* diagrams */
+  .diagram {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 1.6rem;
+    margin: 1.8rem 0;
+    font-family: var(--sans);
+  }
+
+  .diagram .caption {
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    text-align: center;
+    margin-top: 1rem;
+    font-style: italic;
+  }
+
+  .flow-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  .flow-box {
+    background: #fff;
+    border: 2px solid var(--ink);
+    border-radius: 8px;
+    padding: 0.7rem 1rem;
+    font-size: 0.88rem;
+    text-align: center;
+    min-width: 120px;
+  }
+
+  .flow-box.accent { border-color: var(--accent); background: var(--accent-soft); }
+  .flow-box.dim { border-style: dashed; color: var(--ink-soft); border-color: var(--line); }
+
+  .flow-arrow {
+    font-size: 1.4rem;
+    color: var(--ink-soft);
+  }
+
+  .flow-data {
+    font-family: var(--mono);
+    background: #fffef9;
+    border: 1px dashed var(--accent);
+    border-radius: 6px;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.78rem;
+    margin-top: 0.4rem;
+    max-width: 260px;
+    white-space: pre-wrap;
+  }
+
+  .stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  /* Comparison cards */
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  @media (max-width: 640px) {
+    .compare { grid-template-columns: 1fr; }
+    body { font-size: 16.5px; }
+    .wrap { padding: 1.5rem 1rem 4rem; }
+  }
+
+  .compare-card {
+    border-radius: 10px;
+    padding: 1.1rem 1.2rem;
+    font-family: var(--sans);
+    font-size: 0.9rem;
+  }
+
+  .compare-card.before {
+    background: #f5eee6;
+    border: 1px solid #ddccb5;
+  }
+
+  .compare-card.after {
+    background: #e9f3ec;
+    border: 1px solid #b9d9c4;
+  }
+
+  .compare-card h4 {
+    margin-top: 0;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ink-soft);
+  }
+
+  /* Telegram-ish mock UI */
+  .tg-mock {
+    background: #e5ddd0;
+    border-radius: 12px;
+    padding: 1rem;
+    font-family: var(--sans);
+    max-width: 380px;
+    margin: 1.2rem auto;
+  }
+
+  .tg-bubble {
+    background: #fff;
+    border-radius: 10px;
+    padding: 0.6rem 0.9rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.08);
+  }
+
+  .tg-bubble.mine {
+    background: #d9fdd3;
+    margin-left: 2rem;
+  }
+
+  .tg-kb {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+  }
+
+  .tg-btn {
+    background: #f0f2f5;
+    border: 1px solid #d0d5db;
+    border-radius: 6px;
+    padding: 0.35rem 0.7rem;
+    font-size: 0.78rem;
+    color: #2b5ea8;
+  }
+
+  .tg-btn.save { color: var(--good); font-weight: 700; border-color: #b9d9c4; }
+
+  /* Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--sans);
+    font-size: 0.85rem;
+    margin: 1.2rem 0;
+  }
+  th, td {
+    border: 1px solid var(--line);
+    padding: 0.5rem 0.7rem;
+    text-align: left;
+  }
+  th {
+    background: #f2ede2;
+    font-weight: 700;
+  }
+  td code { white-space: nowrap; }
+
+  /* Quiz */
+  .quiz-item {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 1.4rem 1.5rem;
+    margin: 1.5rem 0;
+    font-family: var(--sans);
+  }
+
+  .quiz-item h4 {
+    margin-top: 0;
+    font-size: 1.02rem;
+  }
+
+  .quiz-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.9rem;
+  }
+
+  .quiz-option {
+    text-align: left;
+    background: #fff;
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    padding: 0.6rem 0.9rem;
+    font-family: var(--sans);
+    font-size: 0.92rem;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .quiz-option:hover:not(.locked) {
+    border-color: var(--accent);
+    background: #fdf6ef;
+  }
+
+  .quiz-option.correct {
+    background: #e4f4e9;
+    border-color: var(--good);
+    color: var(--good);
+    font-weight: 700;
+  }
+
+  .quiz-option.incorrect {
+    background: #fbe9e5;
+    border-color: var(--bad);
+    color: var(--bad);
+    font-weight: 700;
+  }
+
+  .quiz-option.locked {
+    cursor: default;
+  }
+
+  .quiz-feedback {
+    margin-top: 0.9rem;
+    padding: 0.8rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    display: none;
+  }
+
+  .quiz-feedback.show { display: block; }
+  .quiz-feedback.good { background: #e4f4e9; color: #17512f; }
+  .quiz-feedback.bad { background: #fbe9e5; color: #7d2409; }
+
+  footer {
+    text-align: center;
+    font-family: var(--sans);
+    color: var(--ink-soft);
+    font-size: 0.85rem;
+    margin-top: 4rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .badge {
+    display: inline-block;
+    font-family: var(--sans);
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.15rem 0.55rem;
+    border-radius: 20px;
+    background: var(--ink);
+    color: #fff;
+    letter-spacing: 0.03em;
+  }
+
+  .file-tag {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    background: #efe9db;
+    border-radius: 5px;
+    padding: 0.15rem 0.5rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="title">
+    <div class="kicker">Pull Request Walkthrough</div>
+    <h1>Saved Insight: Teaching the Domain Model a New Noun</h1>
+    <p class="sub">
+      A documentation-only change that redraws one corner of this Telegram bot's
+      domain model — before a single line of implementation code gets written.
+    </p>
+  </header>
+
+  <nav class="toc">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#background">Background</a>
+        <ol>
+          <li><a href="#bg-docs">How this project keeps its two brains in sync</a></li>
+          <li><a href="#bg-save">Where "Save" stood before this change</a></li>
+        </ol>
+      </li>
+      <li><a href="#intuition">Intuition</a>
+        <ol>
+          <li><a href="#in-shift">The core shift: a turn, not a word</a></li>
+          <li><a href="#in-raw">Why raw snapshots, not distilled cards</a></li>
+          <li><a href="#in-independent">Append-only, and independent of Session</a></li>
+        </ol>
+      </li>
+      <li><a href="#code">Code Walkthrough</a>
+        <ol>
+          <li><a href="#code-glossary">Two new glossary entries</a></li>
+          <li><a href="#code-vocab">Vocabulary List, redefined as a view</a></li>
+          <li><a href="#code-relationships">Relationships and flagged ambiguities</a></li>
+          <li><a href="#code-adr">ADR-0006: capture raw turns</a></li>
+        </ol>
+      </li>
+      <li><a href="#quiz">Quiz</a></li>
+    </ol>
+  </nav>
+
+  <!-- ============================================================ -->
+  <h2 id="background"><span class="num">1</span>Background</h2>
+
+  <h3 id="bg-docs">1.1 How this project keeps its two brains in sync</h3>
+
+  <p>
+    Every non-trivial codebase accumulates two kinds of knowledge. There is the code
+    itself — precise, executable, and forever up to date because it has to be, or
+    nothing runs. And there is the <em>vocabulary</em> the team uses to talk about the
+    code: the names for the concepts, the reasons certain designs were chosen over
+    others, the boundaries between one module's job and the next one's. That second
+    kind of knowledge is just as real, but nothing forces it to stay accurate. It
+    lives in people's heads, in old Slack threads, in the memory of whoever wrote the
+    original pull request — and it decays the moment that person moves on to
+    something else.
+  </p>
+
+  <p>
+    This repository fights that decay with two files that skip if you're already
+    familiar with the pattern: <span class="file-tag">CONTEXT.md</span> at the repo
+    root, and a numbered sequence of decision records under
+    <span class="file-tag">docs/adr/</span>. <span class="file-tag">CONTEXT.md</span>
+    is a living glossary — it defines every domain term the codebase uses ("Anchor
+    Message", "Slot Message", "Action Runner", and so on) in one place, so that when
+    someone writes a docstring or names a variable, there's a single source of truth
+    for what that word is supposed to mean. Each entry can also carry an
+    <code>_Avoid_</code> line: near-synonyms that are deliberately rejected, so that
+    "message handler" and "callback handler" don't both creep in for the same concept
+    over time.
+  </p>
+
+  <p>
+    The <abbr title="Architecture Decision Record">ADR</abbr> folder complements this
+    by recording <em>why</em>, not just <em>what</em>. An ADR is a short, permanent
+    note: here's the decision, here are the options we considered and rejected, here
+    are the consequences we accepted going in. Once written, an ADR is not usually
+    edited to reflect new decisions — a change of mind gets a new ADR that
+    supersedes the old one. That way the history of "why is it built this way?" stays
+    intact even as the answer evolves.
+  </p>
+
+  <div class="callout info">
+    <span class="label">Why this matters for this PR</span>
+    The change you're about to read touches neither of these files' surrounding
+    application code. It is a pure edit to the glossary and a pure addition to the
+    ADR log. Nothing runs differently after this PR merges — but the vocabulary the
+    team will use to build the next four PRs on top of it has just been locked in.
+  </div>
+
+  <h3 id="bg-save">1.2 Where "Save" stood before this change</h3>
+
+  <p>
+    To see what changed, it helps to know what the glossary said <em>before</em>.
+    Scattered through <span class="file-tag">CONTEXT.md</span>, a few entries
+    described a feature that had been designed in prose but never built in code —
+    there is, today, no <code>Save</code> button and no persistence layer for it
+    anywhere in <span class="file-tag">bot/</span>. The glossary described the
+    intended shape of a not-yet-existing feature, and that description is exactly
+    what this PR revises.
+  </p>
+
+  <div class="compare">
+    <div class="compare-card before">
+      <h4>Before this PR</h4>
+      <p><strong>Vocabulary List</strong> — "A per-user persistent collection of
+      vocabulary entries built two ways: <em>passively</em> (extracted automatically
+      from Vocabulary Hint / Analyze) and <em>actively</em> (user taps Save, which
+      saves the anchor message and its translation as an entry)."</p>
+      <p><strong>Vocabulary Repository</strong> — "The future persistence module for
+      Vocabulary Lists. Deferred until after core architecture is stable."</p>
+    </div>
+    <div class="compare-card after">
+      <h4>After this PR</h4>
+      <p><strong>Saved Insight</strong> — an immutable, verbatim snapshot of a whole
+      Conversation Turn, captured the instant the user taps Save.</p>
+      <p><strong>Vocabulary List</strong> — a <em>derived view</em>, recomputed by
+      scanning Saved Insights. It has no write path or repository of its own; the
+      "Vocabulary Repository" term is retired.</p>
+    </div>
+  </div>
+
+  <p>
+    Notice the word "entry" in the old definition. It quietly implied that tapping
+    Save produces something small and translation-shaped — a word, a phrase, a
+    flashcard. That's a reasonable first guess for a language-learning bot, but it
+    collapses two different things into one: the raw material captured at the moment
+    of saving, and the vocabulary-card <em>view</em> a user might eventually want to
+    browse. This PR's job is to pull those two things apart before either gets built.
+  </p>
+
+  <!-- ============================================================ -->
+  <h2 id="intuition"><span class="num">2</span>Intuition</h2>
+
+  <h3 id="in-shift">2.1 The core shift: a turn, not a word</h3>
+
+  <p>
+    Picture a learner mid-conversation. A native-speaking friend sends them a
+    message in French; the bot's default Instant Action translates it; the learner
+    then taps the <strong>Correct</strong> button on their own reply-in-progress and
+    gets back an annotated correction. That whole exchange — the original message,
+    which Action ran, and the formatted result — is one <strong>Conversation
+    Turn</strong>, already a defined concept in this glossary before this PR.
+  </p>
+
+  <p>
+    Under the old wording, tapping Save on that turn would produce a "vocabulary
+    entry" — as if the only thing worth keeping was a word pair. But a Correct
+    result isn't a word pair, it's a whole annotated sentence. A Reply suggestion
+    isn't a word pair either. The old definition was implicitly written with only the
+    Translate and Vocabulary Hint actions in mind, and quietly broke down for
+    everything else the bot can do.
+  </p>
+
+  <p>
+    This PR's core move is to rename and re-scope what gets captured: it's not a
+    vocabulary entry, it's a <strong>Saved Insight</strong> — the entire turn, saved
+    exactly as it was displayed, regardless of which Action produced it.
+  </p>
+
+  <div class="tg-mock">
+    <div class="tg-bubble">Comment dit-on "I'm running late" en français ?</div>
+    <div class="tg-bubble mine">
+      <strong>Correct</strong> result:<br>
+      "Je suis <u>en retard</u>" — <em>use "en retard", not "tard", for punctuality</em>
+      <div class="tg-kb">
+        <span class="tg-btn">Analyze</span>
+        <span class="tg-btn">Reply</span>
+        <span class="tg-btn save">💾 Save</span>
+      </div>
+    </div>
+  </div>
+  <p style="text-align:center; font-family: var(--sans); font-size: 0.85rem; color: var(--ink-soft); margin-top:-0.6rem;">
+    Tapping Save here keeps the <em>whole</em> Correct result — not a word extracted from it.
+  </p>
+
+  <p>
+    The Vocabulary List doesn't disappear from the glossary — it's simply
+    redefined as something computed <em>from</em> Saved Insights, on read, rather
+    than something written to directly. If the learner later wants to review
+    vocabulary, that view scans through their Vocabulary Hint and Analyze Saved
+    Insights and lifts the words back out of them. The Correct-result example above
+    wouldn't feed into that particular view (it isn't a Vocabulary Hint or Analyze
+    result) — and that's fine, because the Vocabulary List was never meant to be the
+    only lens onto a user's Saved Insights, just one read-side interpretation of
+    them.
+  </p>
+
+  <div class="diagram">
+    <div class="flow-row">
+      <div class="flow-box accent">One Conversation Turn<br><span style="font-size:0.75rem;">(Correct, Analyze, Reply, …)</span></div>
+      <div class="flow-arrow">→ save →</div>
+      <div class="flow-box">Saved Insight<br><span style="font-size:0.75rem;">raw, verbatim, append-only</span></div>
+    </div>
+    <div class="flow-row" style="margin-top: 1.2rem;">
+      <div class="flow-box dim">Vocabulary List</div>
+      <div class="flow-arrow">← recomputed from ←</div>
+      <div class="flow-box dim">Saved Insights<br><span style="font-size:0.75rem;">(Vocabulary Hint / Analyze only)</span></div>
+    </div>
+    <div class="caption">
+      Saved Insight is the single write path. Vocabulary List is one possible read,
+      not built yet, with no storage of its own.
+    </div>
+  </div>
+
+  <h3 id="in-raw">2.2 Why raw snapshots, not distilled cards</h3>
+
+  <p>
+    Once you decide to capture the whole turn, a design question follows
+    immediately: capture it <em>as-is</em>, or run it through another LLM call first
+    to produce something tidier — a title, an extracted vocabulary pair, a one-line
+    summary? ADR-0006 answers this directly, and the reasoning is worth sitting with
+    because it will shape everything built on top of the Insight Repository later.
+  </p>
+
+  <p>
+    The argument is about which direction is reversible. If you store the raw turn —
+    the anchor text, the Action type, the rendered HTML result, the Language Pair in
+    force — you can always run a distillation over it later: extract vocabulary,
+    generate a title, cluster related saves, whatever a future feature needs. But if
+    you distil <em>first</em> and only keep the distilled card, whatever the
+    distillation prompt didn't think to keep is gone. There's no way to recover the
+    original Correct annotation from a card that only kept "en retard → running
+    late".
+  </p>
+
+  <div class="callout">
+    <span class="label">Key decision</span>
+    Write raw, distil later. A raw snapshot can always be turned into any future
+    view. A distilled snapshot can never be turned back into the raw material it
+    discarded.
+  </div>
+
+  <p>
+    There's a second, more practical reason tucked into the ADR: an LLM call on the
+    write path makes the Save tap slow and fallible. For a bot whose stated core
+    value is speed — the primary user is mid-conversation with a real person,
+    waiting — a Save button that can spin or time out is worse than not having a
+    distilled card yet. So the write path does no LLM call and no interpretation at
+    all; it's a straight copy of what's already on screen into a database row.
+  </p>
+
+  <h3 id="in-independent">2.3 Append-only, and independent of Session</h3>
+
+  <p>
+    Two more properties round out the design, and both trace back to the same
+    instinct: a Save should never silently fail, and it should never silently
+    overwrite something the user chose to keep.
+  </p>
+
+  <p>
+    <strong>Append-only.</strong> If the learner runs Correct on a turn, saves it,
+    then later goes back to the same turn and runs Analyze instead, saving again
+    doesn't overwrite the first save — it creates a second Saved Insight. The
+    glossary entry gives this a precise mechanism: a natural key of
+    <code>(user_id, chat_id, slot_message_id, action_type)</code>. Re-tapping Save on
+    the exact same rendered result is a no-op (same key, nothing new to add), but a
+    different Action on the same turn is a genuinely new row.
+  </p>
+
+  <table>
+    <thead>
+      <tr><th>user_id</th><th>chat_id</th><th>slot_message_id</th><th>action_type</th><th>Result</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>42</td><td>1001</td><td>887</td><td>correct</td><td>New row — first save of this turn+action</td></tr>
+      <tr><td>42</td><td>1001</td><td>887</td><td>correct</td><td>No-op — identical key already saved</td></tr>
+      <tr><td>42</td><td>1001</td><td>887</td><td>analyze</td><td>New row — different Action, same turn</td></tr>
+    </tbody>
+  </table>
+
+  <p>
+    <strong>Independent of Session.</strong> This is the subtler of the two, and it's
+    where the ADR draws an explicit contrast with two features that already exist in
+    the codebase: Suggestion selection and Rating. Both of those depend on the
+    in-memory <strong>Session</strong> (a per-user dictionary held in
+    <code>context.user_data</code>) to know what to do when a button is tapped — and
+    both are designed to <em>silently no-op</em> if that Session state has been lost,
+    for instance after a bot restart. That's an accepted trade-off for those two
+    features, because the cost of failure is small: one lost tap, no data
+    corruption, nothing the user was told succeeded.
+  </p>
+
+  <p>
+    A lost Save is a different kind of failure. The user believes they've kept
+    something, permanently, for later. So the capture path is deliberately built to
+    <em>not</em> depend on Session at all — everything it needs travels on the
+    Telegram callback itself.
+  </p>
+
+  <div class="diagram">
+    <div class="flow-row" style="align-items: flex-start;">
+      <div class="stack">
+        <div class="flow-box">Suggestion / Rating</div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-box dim">needs Session</div>
+        <div class="flow-data">Session lost → silent no-op<br>(acceptable: one lost tap)</div>
+      </div>
+      <div class="stack">
+        <div class="flow-box accent">Save → Saved Insight</div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-box">Telegram callback only</div>
+        <div class="flow-data">anchor = slot_message.reply_to_message
+result_text = slot_message text
+run_id = Session, but nullable</div>
+      </div>
+    </div>
+    <div class="caption">
+      Same "Session might be gone" risk, two different responses — because the cost
+      of failure differs.
+    </div>
+  </div>
+
+  <p>
+    The one piece of Session-derived data a Saved Insight would ideally carry — the
+    <code>run_id</code> that links back to a LangSmith Trace — is nullable for
+    exactly this reason. If it's there, great, the Saved Insight can be traced back
+    to the LLM call that produced it. If Session was lost and it isn't there, the
+    Save still happens; you just lose the trace link, not the insight itself.
+  </p>
+
+  <!-- ============================================================ -->
+  <h2 id="code"><span class="num">3</span>Code Walkthrough</h2>
+
+  <p>
+    With the intuition in place, the diff itself is short and reads almost like
+    a specification. It touches exactly two files: an edit to
+    <span class="file-tag">CONTEXT.md</span> and a new
+    <span class="file-tag">docs/adr/0006-saved-insights-capture-raw-turns.md</span>.
+    No application code changes — this is the "PR 0 of 4" in a four-part rollout,
+    the part where the team agrees on words before writing the persistence layer,
+    the callback handler, and the <code>/saved</code> command that will follow.
+  </p>
+
+  <h3 id="code-glossary">3.1 Two new glossary entries</h3>
+
+  <p>
+    The diff adds <strong>Saved Insight</strong> and <strong>Insight Repository</strong>
+    as fresh entries in the Ubiquitous Language section:
+  </p>
+
+  <pre><code>### Saved Insight
+An immutable snapshot of one Conversation Turn that the user explicitly chose
+to keep. Captures the Anchor Message, the Action that produced the result,
+the rendered result text, and the Language Pair in force at the time.
+Written verbatim — no LLM call and no interpretation on the write path...
+Append-only: saving the same turn again after running a different Action
+produces a second Saved Insight, not an edit. Capture never depends on
+Session... Surfaced via `/saved`.
+<span class="diff-add">_Avoid_: note, bookmark, memory, favourite, card</span>
+
+### Insight Repository
+The module that owns persistence of Saved Insights. Follows the repository
+abstraction established in ADR-0001 (SQLite backend, swappable interface).
+Append-only from the caller's perspective... Deletion is represented as a
+soft delete, never a row removal.
+<span class="diff-add">_Avoid_: insight store, memory store</span></code></pre>
+
+  <p>
+    Two things are worth calling out about how these entries are written. First,
+    <strong>Insight Repository</strong> is defined by reference to ADR-0001 rather
+    than re-litigating storage — it explicitly reuses the SQLite-behind-an-interface
+    pattern the project already committed to for User Preferences. Second, the
+    <code>_Avoid_</code> list on Saved Insight is doing real work: "memory" is
+    banned specifically because it would collide with the unrelated LLM sense of
+    conversational memory — this bot deliberately keeps no multi-turn LLM state, so
+    reusing that word here would be actively misleading to a future reader.
+  </p>
+
+  <h3 id="code-vocab">3.2 Vocabulary List, redefined as a view</h3>
+
+  <p>
+    The existing Vocabulary List entry is rewritten in place, and the Vocabulary
+    Repository entry — which described a not-yet-built persistence module — is
+    deleted outright:
+  </p>
+
+  <pre><code>### Vocabulary List
+<span class="diff-del">A per-user persistent collection of vocabulary entries built two ways:
+passively (words/phrases automatically extracted from Vocabulary Hint and
+Analyze actions) and actively (user taps the Save button in the inline
+keyboard, which saves the anchor message and its translation as an entry).
+Passive and active entries are distinguished in the list. Accessible via
+/history. Active entries are surfaced separately as "Favourites."</span>
+<span class="diff-add">A per-user view of the vocabulary a user has encountered — words and
+phrases lifted from the stored results of their Vocabulary Hint and Analyze
+Saved Insights. A derived view, not a store: it has no capture path of its
+own and is recomputed from Saved Insights rather than written to. Not yet
+built.</span>
+
+<span class="diff-del">### Vocabulary Repository
+The future persistence module for Vocabulary Lists. Deferred until after
+core architecture is stable — the Vocabulary List exists as a domain
+concept but is not yet persisted across restarts.</span></code></pre>
+
+  <p>
+    This is the sharpest edit in the whole PR. The old text described a
+    "passive vs. active" distinction, a <code>/history</code> command, and a
+    "Favourites" sub-view — a fairly detailed feature spec for something that had
+    never been built. All of it is deleted, replaced by one honest sentence: this is
+    a read computed from Saved Insights, and it doesn't exist yet. The Vocabulary
+    Repository entry, which would have owned a storage table that now has no reason
+    to exist (there's nothing to persist beyond what the Insight Repository already
+    persists), is removed rather than reworded, because there is no future module
+    left to describe.
+  </p>
+
+  <h3 id="code-relationships">3.3 Relationships and flagged ambiguities</h3>
+
+  <p>
+    The PR also introduces two new sections to <span class="file-tag">CONTEXT.md</span>
+    that didn't exist before at all: <strong>Relationships</strong>, a short list of
+    cardinality facts connecting the new terms —
+  </p>
+
+  <pre><code>## Relationships
+
+- A Conversation Turn may produce zero or more Saved Insights — one per
+  Action whose result the user chose to keep
+- A Saved Insight belongs to exactly one Conversation Turn and records
+  exactly one Action
+- A Saved Insight carries the Language Pair in force when it was saved,
+  not the user's current one
+- The Insight Repository is the sole read/write interface for Saved
+  Insights
+- The Vocabulary List is derived from Saved Insights; it is never
+  written to directly</code></pre>
+
+  <p>
+    — and <strong>Flagged ambiguities</strong>, which does something glossaries
+    rarely do explicitly: it names the confusion this PR is resolving, in plain
+    language, so a future reader doesn't have to reconstruct it from a git blame.
+  </p>
+
+  <pre><code>## Flagged ambiguities
+
+- "Save" previously meant adding an entry to the Vocabulary List. It now
+  means capturing a Saved Insight — a whole turn, not a word. The
+  Vocabulary List keeps its name but is now a derived view over Saved
+  Insights, with no capture path of its own; the "Vocabulary Repository"
+  term is retired as a result.
+- "Memory" was used informally for this capability while it was being
+  designed. Resolved: the domain term is Saved Insight. "Memory" is
+  avoided because it collides with the LLM sense of conversational
+  memory, which this bot deliberately does not keep (see LLM Interface
+  — no multi-turn state).</code></pre>
+
+  <div class="callout">
+    <span class="label">Why write down the ambiguity at all?</span>
+    Anyone reading this repo's history — including whoever picks up parts 1
+    through 4 of this feature — will likely have "Save = vocabulary entry" as
+    their starting mental model, since that was the wording for a while. Recording
+    the correction here, instead of letting it live only in a PR description, means
+    the glossary itself carries the "don't be confused by the old meaning" warning
+    forward.
+  </div>
+
+  <h3 id="code-adr">3.4 ADR-0006: capture raw turns</h3>
+
+  <p>
+    The new decision record lays out the reasoning already covered in the
+    Intuition section above, in the project's standard ADR shape: a title framed
+    as the decision itself, the options considered, and the consequences accepted.
+    Two parts of the "Consequences" section are worth reading closely because they
+    pin down details that aren't obvious from the glossary text alone:
+  </p>
+
+  <pre><code>- Append-only. Re-saving a turn after running a different Action creates
+  a second row; the natural key is (user_id, chat_id, slot_message_id,
+  action_type), so re-tapping the same view is a no-op.
+
+- Capture never depends on Session. Everything needed is carried on the
+  Telegram callback — the anchor is recovered from the slot message's
+  reply_to_message, the result text from the message itself. Only run_id
+  comes from Session, and it is nullable. This is a deliberate departure
+  from Suggestion selection and Rating, which silently no-op when Session
+  is lost...
+
+- Rendered text is stored with its parse_mode. The stored result is
+  presentation-coupled HTML, not a normalized structure... a Saved
+  Insight can always be re-displayed exactly as it was first seen,
+  without re-running the Action's formatter.
+
+- Deletion is soft. A deleted_at column exists from the first migration
+  so that removal never violates append-only, even though no delete UI
+  ships initially.</code></pre>
+
+  <p>
+    That third point is a small but consequential implementation detail: because
+    the bot already carries a <code>parse_mode</code> per Action (HTML or plain
+    text, an existing concept defined under <strong>Action</strong> in the
+    glossary), storing the result alongside its <code>parse_mode</code> means a
+    future <code>/saved</code> command can hand the stored text straight back to
+    Telegram's <code>send_message</code> call unmodified — no re-running the
+    formatter, no risk of the redisplayed version drifting from what the user
+    originally saw.
+  </p>
+
+  <p>
+    The fourth point — soft delete via a <code>deleted_at</code> column baked into
+    the very first migration — is a case of designing the schema for a feature
+    (deletion) before building its UI. It costs one nullable column now, and it
+    means that whenever a delete button does ship, it never has to violate the
+    append-only guarantee by physically removing a row a user once chose to keep.
+  </p>
+
+  <!-- ============================================================ -->
+  <h2 id="quiz"><span class="num">4</span>Quiz</h2>
+
+  <p>
+    Five questions to check whether the reasoning above actually stuck. Click an
+    option to see whether you're right — no penalty for guessing.
+  </p>
+
+  <div id="quiz-container"></div>
+
+  <footer>
+    Generated from a diff between <code>master</code> and this branch's HEAD —
+    two files changed, zero application code touched.
+  </footer>
+</div>
+
+<script>
+const QUIZ = [
+  {
+    q: "A user runs Vocabulary Hint on a message, then taps Save. Later they run Correct on the same slot message and tap Save again. What happens in the Insight Repository?",
+    options: [
+      "The existing row is updated in place with the new Correct result.",
+      "A second, separate Saved Insight row is created alongside the first.",
+      "The Save is rejected because the turn was already saved once.",
+      "Nothing is stored — Correct results aren't saveable."
+    ],
+    correct: 1,
+    feedback: [
+      "Saved Insight is append-only, not an edit — the natural key includes action_type, and 'correct' differs from 'vocabulary_hint', so this is a new row, not an update.",
+      "Right — the natural key is (user_id, chat_id, slot_message_id, action_type). A different Action on the same turn produces a genuinely new Saved Insight, never overwriting the first.",
+      "There's no such rejection rule — only re-saving the exact same key is a no-op. A different Action is a new save.",
+      "Saved Insight applies to any Action's result, not just Vocabulary Hint or Analyze — Correct results are saveable too."
+    ]
+  },
+  {
+    q: "Why does the write path for Saved Insight avoid making an LLM call, according to ADR-0006?",
+    options: [
+      "LLM calls are too expensive to run on every Save.",
+      "The team hasn't decided which model to use yet.",
+      "A raw snapshot can always be distilled later, but a discarded raw snapshot can never be recovered — and an LLM call would also make the tap slow and fallible.",
+      "LLM calls require Session state, which Save must not depend on."
+    ],
+    correct: 2,
+    feedback: [
+      "Cost isn't the argument the ADR makes — reversibility and tap-speed are.",
+      "Model choice isn't discussed in this ADR at all; the write path avoids LLM calls categorically, regardless of which model.",
+      "Exactly — this is the two-part reasoning ADR-0006 gives: distillation is always recomputable from raw data, but not vice versa, and an LLM round-trip would make Save slow and able to fail, which is unacceptable for a bot whose core value is speed.",
+      "LLM calls and Session independence are unrelated in this ADR — the LLM-avoidance argument is about reversibility and latency, not about Session."
+    ]
+  },
+  {
+    q: "Suggestion selection and Rating both silently no-op if Session is lost. Why doesn't Saved Insight follow the same pattern?",
+    options: [
+      "Because Saved Insight is implemented in a different module and couldn't reuse the pattern.",
+      "Because the cost of a silent failure is much higher for Save — the user believes something was permanently kept, unlike a merely re-runnable tap.",
+      "Because Session loss never happens in production, so the distinction is theoretical.",
+      "It does follow the same pattern — all three silently no-op identically."
+    ],
+    correct: 1,
+    feedback: [
+      "The reasoning isn't about module boundaries — it's about the consequence of failure for the user.",
+      "Right — ADR-0006 draws this contrast explicitly. A lost Suggestion or Rating tap costs the user one retry; a lost Save costs them a piece of data they thought was safely kept forever. That asymmetry is why Save is built to not depend on Session at all, carrying everything it needs on the Telegram callback.",
+      "Session loss (e.g. a bot restart) is a real, acknowledged scenario in this codebase — it's exactly what motivates the different designs.",
+      "They don't — Suggestion/Rating no-op silently on Session loss, but Save is designed to work even without Session, precisely because that no-op behavior was judged unacceptable for it."
+    ]
+  },
+  {
+    q: "Under the new glossary, what is the Vocabulary List?",
+    options: [
+      "A table in SQLite populated every time a Vocabulary Hint action runs.",
+      "A derived, read-only view recomputed from Saved Insights, with no storage or write path of its own.",
+      "A renamed version of the Insight Repository.",
+      "A feature that was removed from the roadmap entirely."
+    ],
+    correct: 1,
+    feedback: [
+      "There's no dedicated table for it — that's exactly what the retired 'Vocabulary Repository' entry would have been, and it's deleted in this PR.",
+      "Correct — the PR explicitly recasts Vocabulary List as a view computed from the Vocabulary Hint and Analyze Saved Insights on read, not a store written to on its own.",
+      "They're distinct concepts: the Insight Repository persists Saved Insights; the Vocabulary List is a read-side interpretation layered on top, not a rename.",
+      "It's still in the glossary and still a real (if unbuilt) concept — just redefined as a derived view rather than a directly-populated store."
+    ]
+  },
+  {
+    q: "Why does a Saved Insight store its rendered result together with the Action's parse_mode, rather than a normalized/structured version of the result?",
+    options: [
+      "Because parse_mode is required by the SQLite schema for unrelated reasons.",
+      "So a future /saved command can redisplay the exact original text via Telegram's send call, without re-running the Action's formatter.",
+      "Because structured storage isn't supported by the repository abstraction from ADR-0001.",
+      "To make the Vocabulary List extraction faster."
+    ],
+    correct: 1,
+    feedback: [
+      "parse_mode isn't a schema requirement in that sense — it's stored because it's needed to safely redisplay the content later.",
+      "Right — ADR-0006 calls this out as a deliberate trade-off: storing presentation-coupled HTML plus its parse_mode means a Saved Insight can be shown again exactly as first seen, with no need to recompute it through the formatter.",
+      "ADR-0001's repository abstraction is about swappable backends, not about what shape of data a repository can hold — that's not the constraint here.",
+      "This choice is about faithful redisplay, not about the (not-yet-built) Vocabulary List's read performance."
+    ]
+  }
+];
+
+function buildQuiz() {
+  const container = document.getElementById('quiz-container');
+  QUIZ.forEach((item, qi) => {
+    const card = document.createElement('div');
+    card.className = 'quiz-item';
+
+    const h4 = document.createElement('h4');
+    h4.textContent = `${qi + 1}. ${item.q}`;
+    card.appendChild(h4);
+
+    const optsWrap = document.createElement('div');
+    optsWrap.className = 'quiz-options';
+
+    const feedback = document.createElement('div');
+    feedback.className = 'quiz-feedback';
+
+    item.options.forEach((optText, oi) => {
+      const btn = document.createElement('button');
+      btn.className = 'quiz-option';
+      btn.textContent = optText;
+      btn.addEventListener('click', () => {
+        if (btn.classList.contains('locked')) return;
+        const buttons = optsWrap.querySelectorAll('.quiz-option');
+        buttons.forEach(b => b.classList.add('locked'));
+
+        if (oi === item.correct) {
+          btn.classList.add('correct');
+        } else {
+          btn.classList.add('incorrect');
+          buttons[item.correct].classList.add('correct');
+        }
+
+        feedback.textContent = item.feedback[oi];
+        feedback.className = 'quiz-feedback show ' + (oi === item.correct ? 'good' : 'bad');
+      });
+      optsWrap.appendChild(btn);
+    });
+
+    card.appendChild(optsWrap);
+    card.appendChild(feedback);
+    container.appendChild(card);
+  });
+}
+
+buildQuiz();
+</script>
+</body>
+</html>
