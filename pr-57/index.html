@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Explain Diff — Adding the Save Button</title>
+<style>
+  :root {
+    --bg: #fbfaf7;
+    --panel: #ffffff;
+    --ink: #24272b;
+    --ink-soft: #565c64;
+    --border: #e4e0d8;
+    --accent: #2f6f5e;
+    --accent-soft: #e6f2ee;
+    --accent-strong: #1f4e42;
+    --warn: #a35d1f;
+    --warn-soft: #fbeedc;
+    --bad: #b3413b;
+    --bad-soft: #fbeceb;
+    --code-bg: #1f2430;
+    --code-ink: #e6e6e6;
+    --good: #2f6f5e;
+    --radius: 10px;
+    --max-w: 880px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Georgia, "Iowan Old Style", serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.65;
+  }
+  .wrap {
+    max-width: var(--max-w);
+    margin: 0 auto;
+    padding: 2.2rem 1.3rem 6rem;
+  }
+  header.hero {
+    padding: 3rem 1.3rem 2rem;
+    text-align: center;
+    background: linear-gradient(180deg, #eef3f0 0%, var(--bg) 100%);
+    border-bottom: 1px solid var(--border);
+  }
+  header.hero h1 {
+    font-family: Georgia, "Iowan Old Style", serif;
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    margin: 0 0 0.6rem;
+    color: var(--accent-strong);
+  }
+  header.hero p.subtitle {
+    color: var(--ink-soft);
+    font-size: 1.05rem;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  header.hero .meta {
+    margin-top: 1.1rem;
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  h2 {
+    font-family: Georgia, "Iowan Old Style", serif;
+    font-size: 1.6rem;
+    margin-top: 3rem;
+    margin-bottom: 0.6rem;
+    color: var(--accent-strong);
+    border-bottom: 2px solid var(--accent-soft);
+    padding-bottom: 0.4rem;
+  }
+  h3 {
+    font-family: Georgia, "Iowan Old Style", serif;
+    font-size: 1.22rem;
+    margin-top: 2.1rem;
+    color: var(--ink);
+  }
+  h4 {
+    font-size: 1.02rem;
+    margin-top: 1.5rem;
+    color: var(--accent-strong);
+  }
+  p { font-size: 1.02rem; }
+  a { color: var(--accent); }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: var(--accent-soft);
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+    font-size: 0.92em;
+  }
+  pre {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    padding: 1rem 1.1rem;
+    border-radius: var(--radius);
+    overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.86rem;
+    white-space: pre;
+    line-height: 1.55;
+    margin: 0.8rem 0 1.2rem;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    font-size: 1em;
+    color: inherit;
+  }
+  .filecap {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    margin: 1.1rem 0 -0.6rem;
+    letter-spacing: 0.02em;
+  }
+  /* Table of contents */
+  nav.toc {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.1rem 1.4rem;
+    margin: 2rem 0;
+  }
+  nav.toc h2 {
+    margin-top: 0;
+    border: none;
+    font-size: 1.1rem;
+    padding-bottom: 0;
+  }
+  nav.toc ol { margin: 0.4rem 0 0; padding-left: 1.3rem; }
+  nav.toc li { margin: 0.35rem 0; }
+  nav.toc ol ol { margin-top: 0.3rem; }
+  nav.toc a { text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+
+  /* Callouts */
+  .callout {
+    border-radius: var(--radius);
+    padding: 1rem 1.2rem;
+    margin: 1.3rem 0;
+    border: 1px solid var(--border);
+    border-left-width: 5px;
+  }
+  .callout.def { background: var(--accent-soft); border-left-color: var(--accent); }
+  .callout.warn { background: var(--warn-soft); border-left-color: var(--warn); }
+  .callout.edge { background: #eef1fb; border-left-color: #4a5cc9; }
+  .callout .label {
+    font-weight: 700;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.35rem;
+    display: block;
+  }
+  .callout.def .label { color: var(--accent-strong); }
+  .callout.warn .label { color: var(--warn); }
+  .callout.edge .label { color: #333e9c; }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout p { font-size: 0.97rem; }
+
+  /* Diagrams */
+  .diagram {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.3rem;
+    margin: 1.4rem 0;
+  }
+  .diagram .caption {
+    text-align: center;
+    font-size: 0.83rem;
+    color: var(--ink-soft);
+    margin-top: 0.9rem;
+    font-style: italic;
+  }
+  .flow-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  .flow-box {
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    color: var(--accent-strong);
+    border-radius: 8px;
+    padding: 0.55rem 0.85rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-align: center;
+    min-width: 100px;
+  }
+  .flow-box.alt {
+    background: #fff;
+    border-color: var(--border);
+    color: var(--ink);
+    font-weight: 400;
+  }
+  .flow-box.data {
+    background: #fff;
+    border: 1px dashed #9aa;
+    color: var(--ink-soft);
+    font-family: ui-monospace, monospace;
+    font-size: 0.78rem;
+    font-weight: 400;
+  }
+  .flow-arrow {
+    color: var(--ink-soft);
+    font-size: 1.2rem;
+    flex-shrink: 0;
+  }
+  .flow-stack { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; }
+
+  /* Telegram-ish mockup */
+  .phone {
+    max-width: 320px;
+    margin: 0.8rem auto;
+    background: #e9ecef;
+    border-radius: 16px;
+    padding: 0.9rem;
+    border: 1px solid var(--border);
+  }
+  .bubble {
+    background: #fff;
+    border-radius: 10px;
+    padding: 0.7rem 0.85rem;
+    font-size: 0.86rem;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  }
+  .bubble.user { background: #d9f2d0; margin-left: 2rem; }
+  .bubble.bot { margin-right: 1.2rem; }
+  .kb {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-right: 1.2rem;
+  }
+  .kb-row { display: flex; gap: 4px; }
+  .kb-btn {
+    flex: 1;
+    background: #fff;
+    border: 1px solid #cfd6dc;
+    color: #2678b8;
+    text-align: center;
+    padding: 0.4rem 0.3rem;
+    border-radius: 6px;
+    font-size: 0.76rem;
+  }
+  .kb-btn.save { color: var(--accent-strong); font-weight: 600; }
+  .kb-btn.saved { color: #fff; background: var(--accent); border-color: var(--accent); }
+  .kb-btn.label { color: #8b929a; font-size: 0.7rem; }
+  .toast {
+    display: inline-block;
+    background: #333;
+    color: #fff;
+    font-size: 0.72rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 12px;
+    margin-top: 0.4rem;
+  }
+  .mockup-pair {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.4rem;
+    justify-content: center;
+    align-items: flex-start;
+  }
+  .mockup-pair .col { text-align: center; }
+  .mockup-pair .col .cap { font-size: 0.8rem; color: var(--ink-soft); margin-top: 0.3rem; }
+  .big-arrow {
+    align-self: center;
+    font-size: 1.6rem;
+    color: var(--ink-soft);
+    margin-top: 4rem;
+  }
+
+  /* Keyboard row diagram (rating-row identification) */
+  .rows-compare { display: flex; gap: 1.6rem; flex-wrap: wrap; justify-content: center; }
+  .row-stack { display: flex; flex-direction: column; gap: 4px; min-width: 210px; }
+  .row-chip {
+    border-radius: 6px;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.78rem;
+    font-family: ui-monospace, monospace;
+    border: 1px solid var(--border);
+    background: #fff;
+  }
+  .row-chip.action { background: #fff; }
+  .row-chip.save { background: var(--accent-soft); border-color: var(--accent); }
+  .row-chip.rating { background: var(--bad-soft); border-color: var(--bad); }
+  .row-chip.strip {
+    text-decoration: line-through;
+    opacity: 0.55;
+  }
+  .row-stack .cap { text-align: center; font-size: 0.8rem; color: var(--ink-soft); margin-top: 0.4rem; }
+
+  table.compare {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0 1.4rem;
+    font-size: 0.92rem;
+  }
+  table.compare th, table.compare td {
+    border: 1px solid var(--border);
+    padding: 0.5rem 0.7rem;
+    text-align: left;
+    vertical-align: top;
+  }
+  table.compare th { background: var(--accent-soft); color: var(--accent-strong); }
+  table.compare td code { white-space: nowrap; }
+
+  /* Quiz */
+  .quiz-item {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.2rem 1.3rem;
+    margin: 1.3rem 0;
+  }
+  .quiz-item h4 { margin-top: 0; color: var(--ink); font-size: 1.02rem; }
+  .quiz-options { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.7rem; }
+  .quiz-option {
+    text-align: left;
+    padding: 0.6rem 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 0.94rem;
+    font-family: inherit;
+    color: var(--ink);
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .quiz-option:hover:not(:disabled) { background: #f4f6f4; border-color: var(--accent); }
+  .quiz-option:disabled { cursor: default; }
+  .quiz-option.correct { background: var(--accent-soft); border-color: var(--accent); font-weight: 600; }
+  .quiz-option.incorrect { background: var(--bad-soft); border-color: var(--bad); }
+  .quiz-feedback {
+    margin-top: 0.8rem;
+    padding: 0.7rem 0.9rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    display: none;
+  }
+  .quiz-feedback.show { display: block; }
+  .quiz-feedback.right { background: var(--accent-soft); color: var(--accent-strong); }
+  .quiz-feedback.wrong { background: var(--bad-soft); color: var(--bad); }
+
+  footer {
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 0.82rem;
+    margin-top: 4rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+  }
+
+  @media (max-width: 560px) {
+    header.hero { padding: 2.2rem 1rem 1.6rem; }
+    h2 { font-size: 1.35rem; }
+    .diagram { padding: 0.9rem; }
+    table.compare { font-size: 0.82rem; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <h1>Teaching the Bot to Remember: the Save Button</h1>
+  <p class="subtitle">
+    A walkthrough of how <code>tg-language-assistant</code> grew a third inline
+    button — one that lets a learner keep a turn of the conversation forever,
+    instead of watching it scroll away.
+  </p>
+  <div class="meta">
+    base: claude/explicit-memory-repository&nbsp;&nbsp;→&nbsp;&nbsp;head: HEAD (PR #57)<br>
+    13 files changed · 330 insertions(+) · 50 deletions(−)
+  </div>
+</header>
+
+<div class="wrap">
+
+<nav class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#background">Background</a>
+      <ol>
+        <li><a href="#bg-deep">How a message becomes a reply, from scratch</a></li>
+        <li><a href="#bg-narrow">What already existed before this PR</a></li>
+      </ol>
+    </li>
+    <li><a href="#intuition">Intuition: what tapping Save actually does</a></li>
+    <li><a href="#code">Code walkthrough</a>
+      <ol>
+        <li><a href="#code-messages">Three new strings in the catalog</a></li>
+        <li><a href="#code-keyboard">From a constant to a function</a></li>
+        <li><a href="#code-strip">Making <code>strip_rating_rows</code> content-aware</a></li>
+        <li><a href="#code-session">Session learns which Action rendered a slot</a></li>
+        <li><a href="#code-save-trigger">The new <code>SaveTrigger</code></a></li>
+        <li><a href="#code-wiring">Wiring it into <code>main.py</code></a></li>
+        <li><a href="#code-tests">Tests and the update to <code>factories.py</code></a></li>
+      </ol>
+    </li>
+    <li><a href="#quiz">Quiz</a></li>
+  </ol>
+</nav>
+
+<!-- ============================================================ -->
+<h2 id="background">1. Background</h2>
+
+<h3 id="bg-deep">1.1 How a message becomes a reply, from scratch</h3>
+<p>
+  If you already know this codebase well, feel free to skip to
+  <a href="#bg-narrow">§1.2</a>. If not, here is the shape of the system this
+  PR sits inside.
+</p>
+<p>
+  <code>tg-language-assistant</code> is a Telegram bot that helps someone
+  chatting with a native speaker in a language they're still learning. The
+  user sends a message in French (say), and the bot instantly translates it
+  — no button tap required. That automatic first response is called an
+  <strong>Instant Action</strong>; the default one is <strong>Translate</strong>.
+</p>
+<div class="diagram">
+  <div class="flow-row">
+    <div class="flow-stack">
+      <div class="flow-box alt">User's Telegram message<br>"Comment ça va?"</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box">MessageGateway</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box">MessageTrigger</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box">ActionRunner</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box">ResponsePublisher</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-stack">
+      <div class="flow-box alt">Bot's reply<br>"How's it going?"</div>
+    </div>
+  </div>
+  <p class="caption">The Instant Action pipeline. MessageGateway authorizes and classifies the
+  incoming text; ActionRunner calls the LLM and formats the result; ResponsePublisher
+  posts it to Telegram as a reply to the original message.</p>
+</div>
+<p>
+  The bot's reply — the "Slot Message" in this codebase's vocabulary — doesn't
+  just sit there. It arrives with a row of buttons underneath it:
+  <em>Analyze</em>, <em>Correct</em>, <em>Rephrase</em>, <em>Reply</em>. Tapping
+  any of these is a <strong>Keyboard Action</strong>: the bot re-runs a
+  different prompt against the same anchor text and <em>edits the same
+  message in place</em> rather than sending a new one. So across an entire
+  back-and-forth with these buttons, there's exactly one bot message per
+  turn, its content changing underneath a keyboard that stays put.
+</p>
+<div class="callout def">
+  <span class="label">Definition — Conversation Turn &amp; Slot Message</span>
+  <p>
+    A <strong>Conversation Turn</strong> begins when the user sends a message
+    (the <strong>Anchor Message</strong>) and produces exactly one bot
+    message, the <strong>Slot Message</strong>. Every Keyboard Action the
+    user taps afterwards — Analyze, Correct, Rephrase, Reply — edits that
+    same Slot Message rather than posting a new one. The keyboard lives on
+    the Slot Message for the whole turn.
+  </p>
+</div>
+<p>
+  Below the four action buttons sits a second, older feature: a rating row.
+  "Rate this response:" followed by 👍 / 👎 / Skip. Tapping a thumb calls
+  <code>FeedbackTrigger</code>, which records the vote against the LLM
+  trace that produced the message, then removes the rating row entirely
+  (via <code>strip_rating_rows</code>) so it can only be tapped once.
+</p>
+<p>
+  All of this per-user state — which language pair is active, which Action
+  rendered which Slot Message, what suggestions are pending — lives in
+  <code>UserSession</code>, a thin typed wrapper around Telegram's
+  <code>context.user_data</code> dictionary. It is <strong>in-memory only</strong>:
+  it evaporates if the bot process restarts. That fact turns out to matter a
+  great deal for this PR, as you'll see in §3.5.
+</p>
+
+<h3 id="bg-narrow">1.2 What already existed before this PR</h3>
+<p>
+  This PR is the third of four building a new capability: letting the user
+  explicitly keep a turn forever, rather than letting it scroll off into
+  Telegram history. The commit history calls it "PR 3/4 — the Save button",
+  and the branch it's diffed against already contains PRs 1 and 2:
+</p>
+<table class="compare">
+  <tr><th>Already in place (base branch)</th><th>Purpose</th></tr>
+  <tr>
+    <td><code>bot/insights.py</code> — <code>SavedInsight</code>,
+      <code>InsightRepositoryProtocol</code>,
+      <code>InMemoryInsightRepository</code>, <code>SqliteInsightRepository</code></td>
+    <td>The write/read model and both a fake and a real implementation
+      of where a kept turn lives.</td>
+  </tr>
+  <tr>
+    <td>SQLite migration for a <code>saved_insights</code> table</td>
+    <td>Persistent storage, with a <code>UNIQUE</code> constraint and a soft
+      <code>deleted_at</code> column.</td>
+  </tr>
+  <tr>
+    <td><code>docs/adr/0006-saved-insights-capture-raw-turns.md</code></td>
+    <td>The design decision this PR must honour (see callout below).</td>
+  </tr>
+</table>
+<p>
+  What was <em>missing</em> — and what this PR adds — is everything between
+  the user's thumb and that repository: a Save button on the keyboard, a
+  trigger that assembles a <code>SavedInsight</code> from what's on screen,
+  and the plumbing to wire it all together in <code>main.py</code>.
+</p>
+<div class="callout def">
+  <span class="label">ADR-0006 — the constraint this PR has to honour</span>
+  <p>
+    A Saved Insight is a <em>verbatim snapshot</em> of a turn — anchor text,
+    detected language, language pair, which Action produced the result, and
+    the rendered result exactly as displayed. No LLM call happens on the
+    write path, and no interpretation of the text happens either. Two
+    consequences that shape the code below: the natural key for
+    de-duplication is <code>(user_id, chat_id, slot_message_id,
+    action_type)</code>, and — most importantly — capture is designed to
+    <strong>not depend on Session</strong>, because Session is volatile and
+    the user believes they've kept something the moment they tap the button.
+  </p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="intuition">2. Intuition: what tapping Save actually does</h2>
+<p>
+  Picture a learner mid-conversation. They sent a French sentence, the bot
+  translated it, and now they want to remember this exchange for later
+  review. Here's the keyboard before and after they tap the new button:
+</p>
+<div class="diagram">
+  <div class="mockup-pair">
+    <div class="col">
+      <div class="phone">
+        <div class="bubble user">Comment ça va?</div>
+        <div class="bubble bot">How's it going?</div>
+        <div class="kb">
+          <div class="kb-row">
+            <div class="kb-btn">📖 Analyze</div>
+            <div class="kb-btn">✏️ Correct</div>
+          </div>
+          <div class="kb-row">
+            <div class="kb-btn">🧠 Rephrase</div>
+            <div class="kb-btn">💬 Reply</div>
+          </div>
+          <div class="kb-row"><div class="kb-btn save">💾 Save</div></div>
+          <div class="kb-row"><div class="kb-btn label">Rate this response:</div></div>
+          <div class="kb-row">
+            <div class="kb-btn">👍</div><div class="kb-btn">👎</div><div class="kb-btn">Skip</div>
+          </div>
+        </div>
+      </div>
+      <div class="cap">Before tapping — button reads "Save"</div>
+    </div>
+    <div class="big-arrow">→</div>
+    <div class="col">
+      <div class="phone">
+        <div class="bubble user">Comment ça va?</div>
+        <div class="bubble bot">How's it going?</div>
+        <div class="kb">
+          <div class="kb-row">
+            <div class="kb-btn">📖 Analyze</div>
+            <div class="kb-btn">✏️ Correct</div>
+          </div>
+          <div class="kb-row">
+            <div class="kb-btn">🧠 Rephrase</div>
+            <div class="kb-btn">💬 Reply</div>
+          </div>
+          <div class="kb-row"><div class="kb-btn saved">✅ Saved</div></div>
+          <div class="kb-row"><div class="kb-btn label">Rate this response:</div></div>
+          <div class="kb-row">
+            <div class="kb-btn">👍</div><div class="kb-btn">👎</div><div class="kb-btn">Skip</div>
+          </div>
+        </div>
+        <div class="toast">✅ Saved</div>
+      </div>
+      <div class="cap">After tapping — button flips, a toast confirms it</div>
+    </div>
+  </div>
+  <p class="caption">Everything else on the keyboard is untouched — the Save row
+  is inserted between the four action buttons and the rating row.</p>
+</div>
+<p>
+  Under the hood, nothing about the <em>message text</em ever changes. What
+  happens is: a new row of exactly one row-of-one-button is spliced into the
+  keyboard, right below Reply and right above the rating row; tapping it
+  writes a row to SQLite and re-renders that one row with a different label.
+  No LLM is involved — this has to be fast, because speed is this bot's
+  entire reason for existing.
+</p>
+<p>
+  Here's the twist that makes this genuinely interesting rather than a
+  simple boolean flag: the "saved" state isn't a property of the <em>Slot
+  Message</em>, it's a property of <strong>this particular rendered result</strong>.
+  Suppose our learner, having saved the translation, now taps <em>Correct</em>.
+  The same Slot Message is edited in place to show a corrected sentence — and
+  the Save button resets to "💾 Save", not "✅ Saved":
+</p>
+<div class="diagram">
+  <div class="flow-row">
+    <div class="flow-stack">
+      <div class="flow-box data">slot_message_id=42<br>action_type="translate"</div>
+      <div class="flow-box alt">✅ Saved</div>
+    </div>
+    <div class="flow-arrow">tap "Correct" on same message →</div>
+    <div class="flow-stack">
+      <div class="flow-box data">slot_message_id=42<br>action_type="correct"</div>
+      <div class="flow-box alt">💾 Save</div>
+    </div>
+  </div>
+  <p class="caption">Same Slot Message, different Action — a fresh row in the
+  saved_insights table, so a fresh "unsaved" starting state.</p>
+</div>
+<p>
+  That falls straight out of the natural key from ADR-0006:
+  <code>(user_id, chat_id, slot_message_id, action_type)</code>. The
+  translation and the correction are two different Saved Insights waiting to
+  happen, even though they live, one after another, in the very same Telegram
+  message. Once you see that the "unit of Saved-ness" is really "an Action's
+  result", the rest of the code follows naturally.
+</p>
+
+<!-- ============================================================ -->
+<h2 id="code">3. Code walkthrough</h2>
+
+<h3 id="code-messages">3.1 Three new strings in the catalog</h3>
+<p>
+  Every user-facing string in this codebase has to be registered as a
+  <code>MsgKey</code> in <code>bot/config/messages.py</code> rather than
+  hardcoded — that's a hard rule enforced by the project's own conventions.
+  This PR adds exactly the three strings the feature needs:
+</p>
+<div class="filecap">bot/config/messages.py</div>
+<pre><code>class MsgSave(MsgKey):
+    pass
+
+class MsgSaved(MsgKey):
+    pass
+
+class MsgSaveFailed(MsgKey):
+    pass
+
+# ...in the English catalog:
+MsgSave: "💾 Save",
+MsgSaved: "✅ Saved",
+MsgSaveFailed: "Couldn't save that one. Please try again.",</code></pre>
+<p>
+  Nothing clever here — but it's the seam that lets every other file below
+  ask for <code>t(MsgSaved)</code> instead of typing <code>"✅ Saved"</code>
+  inline, keeping localisation centralised.
+</p>
+
+<h3 id="code-keyboard">3.2 From a constant to a function</h3>
+<p>
+  Before this PR, <code>bot/keyboard.py</code> built one
+  <code>InlineKeyboardMarkup</code> called <code>KEYBOARD</code> exactly
+  once, at import time, and every trigger just referenced that same frozen
+  object. That worked because the keyboard never varied — same four action
+  buttons, same rating row, always.
+</p>
+<p>
+  The Save button breaks that assumption: its label depends on whether
+  <em>this specific result</em> has already been kept. A single
+  module-level constant can't hold two different labels at once, so
+  <code>KEYBOARD</code> becomes <code>build_action_keyboard(saved: bool =
+  False)</code> — a function called fresh, every time a Slot Message is
+  rendered:
+</p>
+<div class="filecap">bot/keyboard.py</div>
+<pre><code>SAVE_PREFIX = "save:"
+SAVE = f"{SAVE_PREFIX}insight"
+
+def build_action_keyboard(saved: bool = False) -> InlineKeyboardMarkup:
+    """The standard keyboard for a Conversation Turn.
+
+    Built per message rather than once at import, because the Save button
+    reflects whether this turn has already been kept.
+    """
+    return InlineKeyboardMarkup(
+        [
+            [Analyze, Correct],   # unchanged
+            [Rephrase, Reply],    # unchanged
+            [InlineKeyboardButton(t(MsgSaved if saved else MsgSave), callback_data=SAVE)],
+            *_rating_rows(),
+        ]
+    )</code></pre>
+<p>
+  Every call site that used to import the constant <code>KEYBOARD</code> now
+  calls <code>build_action_keyboard()</code> instead — three production
+  files (<code>bot/triggers/message.py</code>, <code>bot/triggers/keyboard.py</code>,
+  and the new <code>bot/triggers/save.py</code>) and every test that
+  asserted against the old constant. It's the single largest mechanical
+  change in the diff, but conceptually shallow: a global becomes a factory,
+  called at the same points it used to be referenced.
+</p>
+<p>
+  Notice where the new row lands: <strong>after</strong> the four action
+  buttons, <strong>before</strong> the rating rows. That ordering is what
+  produces the "Save resets on a new Action, rating row does not" behaviour
+  from §2 — the rating row is tied to the trace of whichever Action most
+  recently ran, and stays wherever it already was relative to the bottom of
+  the keyboard.
+</p>
+
+<h3 id="code-strip">3.3 Making <code>strip_rating_rows</code> content-aware</h3>
+<p>
+  <code>FeedbackTrigger</code> needs to remove the rating row once the user
+  has voted, so it can't be tapped twice. Previously it did this positionally:
+</p>
+<div class="filecap">bot/keyboard.py — before</div>
+<pre><code>def strip_rating_rows(markup: InlineKeyboardMarkup) -> InlineKeyboardMarkup:
+    """Return a copy of markup with its last two rows (the rating label + thumbs rows) removed."""
+    return InlineKeyboardMarkup(list(markup.inline_keyboard[:-2]))</code></pre>
+<p>
+  That's fragile by construction: it silently assumes the rating rows are
+  always exactly the last two rows on <em>any</em> keyboard it's handed.
+  Since this PR is already restructuring <code>build_action_keyboard</code>
+  and inserting a new row into the mix, the author took the opportunity to
+  make the function robust rather than merely correct-by-luck. The rewrite
+  identifies rows by their <code>callback_data</code> prefix instead of
+  their position:
+</p>
+<div class="filecap">bot/keyboard.py — after</div>
+<pre><code>def _is_rating_row(row) -> bool:
+    return any((btn.callback_data or "").startswith(RATE_PREFIX) for btn in row)
+
+def strip_rating_rows(markup: InlineKeyboardMarkup) -> InlineKeyboardMarkup:
+    """Return a copy of markup with the rating label + thumbs rows removed.
+
+    Identifies the rows by their callback data rather than by position, so
+    adding a row to the keyboard cannot silently strip the wrong one.
+    """
+    return InlineKeyboardMarkup(
+        [row for row in markup.inline_keyboard if not _is_rating_row(row)]
+    )</code></pre>
+<div class="diagram">
+  <div class="rows-compare">
+    <div class="row-stack">
+      <div class="row-chip action">Analyze / Correct</div>
+      <div class="row-chip action">Rephrase / Reply</div>
+      <div class="row-chip save">💾 Save</div>
+      <div class="row-chip rating">Rate this response:</div>
+      <div class="row-chip rating">👍 👎 Skip</div>
+      <div class="cap">Full keyboard, 5 rows</div>
+    </div>
+    <div class="row-stack">
+      <div class="row-chip action">Analyze / Correct</div>
+      <div class="row-chip action">Rephrase / Reply</div>
+      <div class="row-chip save">💾 Save</div>
+      <div class="row-chip rating strip">Rate this response:</div>
+      <div class="row-chip rating strip">👍 👎 Skip</div>
+      <div class="cap">After a rating tap — only <code>rate:*</code> rows dropped</div>
+    </div>
+  </div>
+  <p class="caption">The filter matches on <code>callback_data.startswith("rate:")</code>,
+  so it keeps working no matter how many rows sit above or below the rating rows.</p>
+</div>
+
+<h3 id="code-session">3.4 Session learns which Action rendered a slot</h3>
+<p>
+  A <code>SavedInsight</code> needs an <code>action_type</code> field —
+  which Action (translate, correct, analyze…) produced the text currently on
+  screen. Nothing previously recorded that anywhere reachable at Save time,
+  so <code>UserSession</code> gains a small, symmetrical pair of methods:
+</p>
+<div class="filecap">bot/session.py</div>
+<pre><code>_KEY_SLOT_ACTIONS = "slot_actions"
+
+def store_slot_action(self, msg_id: int, action_type: str) -> None:
+    """Record which Action produced what is currently rendered in a slot message."""
+    self._data.setdefault(self._KEY_SLOT_ACTIONS, {})[msg_id] = action_type
+
+def get_slot_action(self, msg_id: int) -> str | None:
+    return self._data.get(self._KEY_SLOT_ACTIONS, {}).get(msg_id)</code></pre>
+<p>
+  Both <code>MessageTrigger</code> (the Instant Action path) and
+  <code>KeyboardTrigger</code> (every subsequent Keyboard Action) now call
+  <code>session.store_slot_action(msg_id, action_type)</code> right after
+  publishing or editing the Slot Message — so by the time Save is tapped,
+  whatever the user is currently looking at has its Action type recorded
+  against that message id. This mirrors the pre-existing
+  <code>store_run_id</code> / <code>get_run_id</code> pair used for
+  correlating a Slot Message to its LangSmith trace.
+</p>
+
+<h3 id="code-save-trigger">3.5 The new <code>SaveTrigger</code></h3>
+<p>
+  This is the centrepiece of the diff — a brand-new file,
+  <code>bot/triggers/save.py</code>, following the same constructor-injection
+  shape as every other trigger in the codebase (a Protocol dependency passed
+  in, no module-level state, no <code>mock.patch</code> needed to test it).
+</p>
+<div class="filecap">bot/triggers/save.py</div>
+<pre><code>class SaveTrigger:
+    def __init__(self, repository: InsightRepositoryProtocol) -> None:
+        self._repository = repository
+
+    async def handle(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        query = update.callback_query
+        session = UserSession.from_context(context)
+        slot_id = query.message.message_id
+        language_pair = session.language_pair
+
+        anchor = getattr(query.message, "reply_to_message", None)
+        insight = SavedInsight(
+            user_id=update.effective_user.id,
+            chat_id=query.message.chat.id,
+            slot_message_id=slot_id,
+            anchor_text=(getattr(anchor, "text", "") or "").strip(),
+            detected_language=session.get_detected_language(slot_id) or language_pair.target,
+            base_language=language_pair.base,
+            target_language=language_pair.target,
+            action_type=session.get_slot_action(slot_id) or UNKNOWN_ACTION,
+            result_text=query.message.text_html or query.message.text or "",
+            parse_mode="HTML" if query.message.text_html else None,
+            run_id=session.get_run_id(slot_id),
+        )
+
+        try:
+            await self._repository.save(insight)
+        except Exception as exc:  # never break the Telegram flow
+            logger.warning("Could not save insight: {}", exc)
+            await query.answer(t(MsgSaveFailed, session.base_language))
+            return
+
+        await query.answer(t(MsgSaved, session.base_language))
+        await query.edit_message_reply_markup(reply_markup=build_action_keyboard(saved=True))</code></pre>
+<p>
+  The interesting design decision is <em>where each field comes from</em>.
+  Look closely and two sources are in play:
+</p>
+<div class="diagram">
+  <div class="flow-row">
+    <div class="flow-stack">
+      <div class="flow-box">Telegram callback<br><code>query.message</code></div>
+      <div class="flow-box data">anchor_text<br>result_text · parse_mode<br>chat_id · slot_message_id</div>
+    </div>
+    <div class="flow-arrow">+</div>
+    <div class="flow-stack">
+      <div class="flow-box alt">UserSession<br>(in-memory, volatile)</div>
+      <div class="flow-box data">action_type (or "unknown")<br>run_id (nullable)<br>detected_language (fallback)</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box">SavedInsight</div>
+  </div>
+  <p class="caption">Everything load-bearing comes off the callback itself,
+  which Telegram guarantees is there. Session only supplies extras whose
+  absence degrades gracefully instead of failing the Save.</p>
+</div>
+<p>
+  This is a deliberate departure from how <code>FeedbackTrigger</code> and
+  suggestion-selection behave elsewhere in the codebase. Both of those
+  silently no-op if Session has been lost (e.g. the bot process restarted
+  mid-conversation) — acceptable, because the cost is one dropped tap on a
+  rating or a suggestion. Save is different: the moment the user sees the
+  button flip and the "✅ Saved" toast, they believe the turn is safely
+  kept. Silently no-op'ing there would be a lie. So <code>SaveTrigger</code>
+  is written so that even a completely empty Session still produces a valid
+  <code>SavedInsight</code> — just with <code>action_type="unknown"</code>
+  and <code>run_id=None</code> instead of failing.
+</p>
+<div class="callout edge">
+  <span class="label">Edge case — repository dedup vs. user feedback</span>
+  <p>
+    <code>InsightRepositoryProtocol.save()</code> returns <code>None</code>
+    when the natural key already exists (a second tap on an already-saved
+    result). <code>SaveTrigger</code> doesn't inspect that return value —
+    it always answers "✅ Saved" and flips the button on any non-exception
+    outcome. That's intentional: from the user's point of view, tapping
+    Save on something already saved should look identical to tapping it the
+    first time — idempotent in effect, not just in storage.
+  </p>
+</div>
+<p>
+  Errors are handled the same way the rest of the bot handles unreliable
+  external calls (LangSmith feedback, LangSmith tracing): catch broadly,
+  log, tell the user gently via <code>MsgSaveFailed</code>, and — critically
+  — <strong>never let a storage failure break the Telegram response flow</strong>.
+</p>
+
+<h3 id="code-wiring">3.6 Wiring it into <code>main.py</code></h3>
+<p>
+  Three additions tie the new trigger into the running application: build a
+  <code>SqliteInsightRepository</code> against the shared <code>Database</code>,
+  construct a <code>SaveTrigger</code> with it, and register a
+  <code>CallbackQueryHandler</code> that only matches callback data starting
+  with <code>save:</code>.
+</p>
+<div class="filecap">bot/main.py</div>
+<pre><code>save_trigger = SaveTrigger(repository=SqliteInsightRepository(database=database))
+...
+app.add_handler(
+    CallbackQueryHandler(feedback_trigger.handle, pattern=f"^{RATE_PREFIX}")
+)
+app.add_handler(
+    CallbackQueryHandler(save_trigger.handle, pattern=f"^{SAVE_PREFIX}")
+)
+app.add_handler(CallbackQueryHandler(keyboard_trigger.handle))  # catch-all, last</code></pre>
+<p>
+  Handler <em>order</em> matters here, and the existing comment above the
+  feedback handler ("must be registered before the catch-all keyboard
+  handler, otherwise <code>rate:*</code> callback data reaches
+  <code>KeyboardTrigger</code> and raises a <code>KeyError</code>") applies
+  equally to <code>save:*</code> — <code>python-telegram-bot</code> tries
+  handlers in registration order and stops at the first pattern match, so
+  the save handler has to sit above the unpatterned catch-all that would
+  otherwise try to interpret <code>"save:insight"</code> as an
+  <code>ActionType</code> and blow up.
+</p>
+
+<h3 id="code-tests">3.7 Tests and the update to <code>factories.py</code></h3>
+<p>
+  The test suite grows in two ways. First, every existing test that imported
+  the old <code>KEYBOARD</code> constant is updated to call
+  <code>build_action_keyboard()</code> instead (mechanical, following from
+  §3.2). Second, a new <code>bot/triggers/test_save.py</code> exercises
+  <code>SaveTrigger</code> end to end against the existing
+  <code>InMemoryInsightRepository</code> fake — no mocking of the
+  repository is needed, because it was already designed as a real,
+  swappable implementation rather than a test double bolted on afterwards.
+</p>
+<p>
+  The tests cover exactly the design decisions discussed above: the happy
+  path, "keeps the turn even when the session is gone" (the ADR-0006
+  guarantee from §3.5), "a second tap does not keep the turn twice", and "a
+  failing repository tells the user instead of raising".
+</p>
+<p>
+  To make the session-loss and action-type tests possible,
+  <code>tests/factories.py</code>'s <code>make_callback_update</code> gains
+  a <code>slot_text</code> parameter that stamps the fake message's
+  <code>.text</code> and <code>.text_html</code> attributes — simulating
+  the Action result currently rendered on screen, which is exactly what
+  <code>SaveTrigger</code> reads to populate <code>result_text</code>.
+</p>
+
+<!-- ============================================================ -->
+<h2 id="quiz">4. Quiz</h2>
+<p>Five questions to check the change actually landed in your head. Click an option.</p>
+
+<div id="quiz-root"></div>
+
+</div><!-- /wrap -->
+
+<footer>Generated explanation of a diff between <code>claude/explicit-memory-repository</code> and this branch's head.</footer>
+
+<script>
+const QUIZ = [
+  {
+    q: "Why did the module-level KEYBOARD constant in bot/keyboard.py have to become a function, build_action_keyboard()?",
+    options: [
+      "Because InlineKeyboardMarkup objects can't be reused across messages in python-telegram-bot",
+      "Because the Save button's label depends on whether this specific result was already saved, so the keyboard has to be built fresh per message with a `saved` flag",
+      "Because the suggestions keyboard and the action keyboard were merged into one function",
+      "Because Telegram requires a new keyboard object on every callback query",
+    ],
+    correct: 1,
+    feedback: [
+      "Not quite — the object itself is fine to reuse; the problem is that its *content* now needs to vary per message.",
+      "Right. A single frozen object can't show \"💾 Save\" on one message and \"✅ Saved\" on another — build_action_keyboard(saved=...) is called fresh every time a Slot Message is rendered.",
+      "No — build_suggestions_keyboard and build_action_keyboard remain two separate functions in this diff.",
+      "Not the reason given in the code or commit — the change is about per-message state, not a Telegram API requirement.",
+    ],
+  },
+  {
+    q: "What is the natural key that makes a Save idempotent — tapping the button twice on the same result doesn't create two rows?",
+    options: [
+      "run_id alone",
+      "user_id and created_at timestamp",
+      "user_id, chat_id, slot_message_id, and action_type",
+      "The SQLite row's auto-incrementing id",
+    ],
+    correct: 2,
+    feedback: [
+      "run_id is nullable and not part of the UNIQUE constraint — Session loss shouldn't block dedup.",
+      "created_at changes every time, so it can't be part of a dedup key.",
+      "Correct — this is the tuple ADR-0006 specifies, and it's exactly what InMemoryInsightRepository._turn_key and the SQLite UNIQUE constraint use.",
+      "The id is assigned after a row is inserted — it can't prevent a duplicate insert.",
+    ],
+  },
+  {
+    q: "Why does SaveTrigger read anchor_text and result_text off query.message directly, instead of from UserSession like FeedbackTrigger reads run_id?",
+    options: [
+      "UserSession doesn't support storing strings, only numeric ids",
+      "Reading from the callback is faster than a dictionary lookup",
+      "Because Save must survive a bot restart — the user believes they kept something the instant they tap, so it can't silently no-op the way Rating and Suggestion selection do when Session is lost",
+      "It's a leftover from before UserSession existed and hasn't been cleaned up",
+    ],
+    correct: 2,
+    feedback: [
+      "UserSession already stores lists and dicts of strings elsewhere (messages, suggestions) — that's not the constraint.",
+      "Not the stated reason — both are in-memory reads; the difference is about reliability, not speed.",
+      "Exactly — this is called out directly in both ADR-0006 and the SaveTrigger docstring: Rating/Suggestion selection can afford to drop a tap, Save cannot.",
+      "No — this is a deliberate design choice explained in the ADR and the trigger's own docstring, not incidental leftover code.",
+    ],
+  },
+  {
+    q: "strip_rating_rows used to remove markup.inline_keyboard[:-2]. Why change it to filter on callback_data prefix instead?",
+    options: [
+      "Slicing the last two rows is slower than filtering",
+      "InlineKeyboardMarkup no longer supports list slicing in this version of the library",
+      "So that identifying the rating rows doesn't depend on them always being exactly the last two rows on the keyboard — robust to future rows being added anywhere",
+      "Because the Save row is now the very last row, which would break the old slice",
+    ],
+    correct: 2,
+    feedback: [
+      "Not a performance concern — both operations are cheap on a handful of rows.",
+      "Markup rows are a plain list; slicing still works fine — that's not what changed.",
+      "Right — the docstring says it plainly: identifying rows by content rather than position means adding a row can't silently strip the wrong one.",
+      "Close, but not quite the actual layout — the Save row sits *above* the rating rows, which are still last; the change is a defensive improvement made while the file was already being touched, not a fix for a newly-broken case.",
+    ],
+  },
+  {
+    q: "A user saves the Translate result on a Slot Message, then taps Correct on that same message. What does the Save button show immediately after Correct renders, and why?",
+    options: [
+      "\"✅ Saved\", because the whole turn was already marked saved",
+      "\"💾 Save\" again — the corrected result is a different (slot_message_id, action_type) pair, so it hasn't been saved yet even though it's the same Telegram message",
+      "The Save button is removed, since a turn can only be saved once",
+      "The bot throws an error, since the message was already saved",
+    ],
+    correct: 1,
+    feedback: [
+      "\"Saved\" isn't a property of the message — it's a property of one Action's rendered result, keyed by action_type.",
+      "Correct — build_action_keyboard() is called again with the default saved=False when KeyboardTrigger renders the Correct result, because that (slot_message_id, action_type) combination is new.",
+      "There's no such limit — Save is append-only per (slot, action) pair, by design (ADR-0006).",
+      "Nothing about re-running a different Action touches the insights table at all.",
+    ],
+  },
+];
+
+const root = document.getElementById('quiz-root');
+QUIZ.forEach((item, qi) => {
+  const div = document.createElement('div');
+  div.className = 'quiz-item';
+
+  const h4 = document.createElement('h4');
+  h4.textContent = `${qi + 1}. ${item.q}`;
+  div.appendChild(h4);
+
+  const optWrap = document.createElement('div');
+  optWrap.className = 'quiz-options';
+
+  const fb = document.createElement('div');
+  fb.className = 'quiz-feedback';
+
+  item.options.forEach((optText, oi) => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-option';
+    btn.type = 'button';
+    btn.textContent = optText;
+    btn.addEventListener('click', () => {
+      const allBtns = optWrap.querySelectorAll('.quiz-option');
+      allBtns.forEach(b => b.disabled = true);
+
+      if (oi === item.correct) {
+        btn.classList.add('correct');
+      } else {
+        btn.classList.add('incorrect');
+        allBtns[item.correct].classList.add('correct');
+      }
+
+      fb.textContent = item.feedback[oi];
+      fb.classList.remove('right', 'wrong');
+      fb.classList.add('show', oi === item.correct ? 'right' : 'wrong');
+    });
+    optWrap.appendChild(btn);
+  });
+
+  div.appendChild(optWrap);
+  div.appendChild(fb);
+  root.appendChild(div);
+});
+</script>
+
+</body>
+</html>
